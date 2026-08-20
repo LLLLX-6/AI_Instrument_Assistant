@@ -1,0 +1,16 @@
+{
+  "name": "ai-instrument-assistant-workspace",
+  "version": "0.2.0-dev.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "extensions/jlceda"
+  ],
+  "scripts": {
+    "test": "npm run test --workspace @aia/jlceda-contracts"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
+
