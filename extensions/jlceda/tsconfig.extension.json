@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "node",
+      "@jlceda/pro-api-types"
+    ]
+  },
+  "include": [
+    "src/index.ts",
+    "src/runtime/**/*.ts",
+    "tests/unit/**/*.ts",
+    "tests/architecture/**/*.ts"
+  ]
+}

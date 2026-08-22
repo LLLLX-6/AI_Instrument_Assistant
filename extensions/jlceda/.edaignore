@@ -1,0 +1,11 @@
+.git/
+.npm-cache/
+build/
+node_modules/
+scripts/
+src/
+tests/
+*.tsbuildinfo
+package-lock.json
+package.json
+tsconfig*.json

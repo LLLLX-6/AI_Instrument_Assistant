@@ -1,18 +1,31 @@
 {
-  "name": "@aia/jlceda-contracts",
-  "version": "0.2.0-dev.0",
+  "name": "@aia/jlceda-extension",
+  "version": "0.2.4-dev.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "npm run typecheck && node --test tests/contract/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "test": "npm run test:contracts && npm run test:adapter",
+    "test:contracts": "npm run typecheck:contracts && node --test tests/contract/*.test.ts",
+    "test:adapter": "npm run typecheck:extension && node --test tests/unit/*.test.ts tests/architecture/*.test.ts",
+    "typecheck": "npm run typecheck:contracts && npm run typecheck:extension",
+    "typecheck:contracts": "tsc --noEmit --project tsconfig.contracts.json",
+    "typecheck:extension": "tsc --noEmit --project tsconfig.extension.json",
+    "build": "npm run typecheck:extension && node scripts/build-extension.mjs"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=20.17.0"
+  },
+  "aiaJlcEdaCompatibility": {
+    "proApiSdk": "1.6.17",
+    "edaEngine": "^3.2.0",
+    "proApiTypes": "0.4.14"
   },
   "devDependencies": {
+    "@jlceda/pro-api-types": "0.4.14",
     "@types/node": "^24.0.0",
     "ajv": "8.20.0",
+    "esbuild": "0.24.2",
+    "jszip": "3.10.1",
     "typescript": "^5.9.2"
   }
 }

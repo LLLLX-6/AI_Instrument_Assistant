@@ -7,10 +7,10 @@
     "extensions/jlceda"
   ],
   "scripts": {
-    "test": "npm run test --workspace @aia/jlceda-contracts"
+    "test": "npm run test --workspace @aia/jlceda-extension",
+    "build": "npm run build --workspace @aia/jlceda-extension"
   },
   "engines": {
     "node": ">=24"
   }
 }
-

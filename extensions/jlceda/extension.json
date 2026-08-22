@@ -1,0 +1,57 @@
+{
+  "name": "ai-instrument-assistant",
+  "uuid": "a1a5eda000024e5a9000000000000001",
+  "displayName": "AI Instrument Assistant",
+  "description": "Read-only EDA runtime validation for normalized instrument-analysis context.",
+  "version": "0.2.4",
+  "publisher": "AI Instrument Assistant Project",
+  "engines": {
+    "eda": "^3.2.0"
+  },
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "categories": "Schematic",
+  "keywords": [
+    "Instrument",
+    "Analysis",
+    "Read-only"
+  ],
+  "homepage": "",
+  "bugs": "",
+  "activationEvents": {},
+  "entry": "./dist/index",
+  "dependentExtensions": {},
+  "headerMenus": {
+    "sch": [
+      {
+        "id": "AI Instrument Assistant",
+        "title": "AI Instrument Assistant",
+        "menuItems": [
+          {
+            "id": "Inspect Current Document",
+            "title": "Inspect Current Document",
+            "registerFn": "inspectCurrentDocument"
+          },
+          {
+            "id": "Inspect Selection",
+            "title": "Inspect Selection",
+            "registerFn": "inspectSelection"
+          },
+          {
+            "id": "Highlight Selection",
+            "title": "Highlight Selection",
+            "registerFn": "highlightSelection"
+          },
+          {
+            "id": "About",
+            "title": "About",
+            "registerFn": "about"
+          }
+        ]
+      }
+    ]
+  }
+}
