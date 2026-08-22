@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/models/design-document",
+  "title": "DesignDocument",
+  "description": "A bounded snapshot description of the active JLCEDA schematic document. Integration runtime metadata is deliberately excluded.",
+  "type": "object",
+  "required": [
+    "model_version",
+    "document_ref",
+    "project_id",
+    "project_name",
+    "document_name",
+    "document_type",
+    "native_revision",
+    "content_fingerprint",
+    "fingerprint_scope",
+    "is_dirty",
+    "captured_at"
+  ],
+  "properties": {
+    "model_version": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/modelVersion"
+    },
+    "document_ref": {
+      "allOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/models/design-object-ref"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "object_type": {
+              "const": "document"
+            }
+          }
+        }
+      ]
+    },
+    "project_id": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/projectId"
+    },
+    "project_name": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/displayName"
+    },
+    "document_name": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/displayName"
+    },
+    "document_type": {
+      "type": "string",
+      "const": "schematic"
+    },
+    "native_revision": {
+      "description": "Official provider revision when supplied by the EDA API; null when unavailable. It must never be synthesized from the fingerprint.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "content_fingerprint": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/contentFingerprint"
+    },
+    "fingerprint_scope": {
+      "description": "Finite normalized projection used to compute content_fingerprint; it does not claim coverage of the whole EDA project.",
+      "type": "object",
+      "required": [
+        "scope_kind",
+        "scope_version",
+        "included_paths"
+      ],
+      "properties": {
+        "scope_kind": {
+          "type": "string",
+          "const": "normalized-document-projection"
+        },
+        "scope_version": {
+          "type": "string",
+          "const": "1.0"
+        },
+        "included_paths": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "is_dirty": {
+      "type": "boolean"
+    },
+    "captured_at": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/utcTimestamp"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,5 @@
+{
+  "description": "A snapshot identifier cannot be an arbitrary revision-like string",
+  "schema_ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/snapshotId",
+  "instance": "revision-42"
+}

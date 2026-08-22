@@ -1,0 +1,11 @@
+{
+  "description": "An authenticated session envelope requires a session identifier",
+  "schema_ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/sessionEnvelope",
+  "instance": {
+    "protocol": "aia-jlceda",
+    "protocol_version": "1.0",
+    "message_id": "10000000-0000-4000-8000-000000000013",
+    "sent_at": "2026-08-20T10:00:05Z",
+    "trace_id": "10000000-0000-4000-8000-000000000014"
+  }
+}

@@ -24,15 +24,5 @@ class PhaseOneEnvironmentTests(unittest.TestCase):
         self.assertTrue((extension_root / "tests" / "support").is_dir())
         self.assertFalse((extension_root / "src" / "fake").exists())
 
-    def test_phase_two_schemas_have_not_been_implemented_early(self) -> None:
-        protocol_root = REPOSITORY_ROOT / "protocols" / "jlceda" / "v1"
-
-        self.assertFalse((protocol_root / "message.schema.json").exists())
-        self.assertFalse(
-            (protocol_root / "models" / "design-document.schema.json").exists()
-        )
-
-
 if __name__ == "__main__":
     unittest.main()
-

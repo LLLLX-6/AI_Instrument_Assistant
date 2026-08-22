@@ -1,0 +1,5 @@
+{
+  "description": "The JLCEDA wire provider is fixed",
+  "schema_ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/provider",
+  "instance": "jlceda-pro"
+}

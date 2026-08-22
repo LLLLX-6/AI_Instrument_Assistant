@@ -1,0 +1,12 @@
+{
+  "description": "A pre-authentication envelope rejects a session identifier",
+  "schema_ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/preAuthEnvelope",
+  "instance": {
+    "protocol": "aia-jlceda",
+    "protocol_version": "1.0",
+    "message_id": "10000000-0000-4000-8000-000000000010",
+    "sent_at": "2026-08-20T10:00:04Z",
+    "trace_id": "10000000-0000-4000-8000-000000000011",
+    "session_id": "10000000-0000-4000-8000-000000000012"
+  }
+}

@@ -7,11 +7,12 @@ name = "ai-instrument-assistant"
 version = "0.2.0.dev0"
 description = "Contract-first AI and electronic instrument integration platform"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "jsonschema>=4.23,<5",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

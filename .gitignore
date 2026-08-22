@@ -10,6 +10,7 @@ build/
 *.egg-info/
 
 node_modules/
+.npm-cache/
 coverage/
 *.tsbuildinfo
 
@@ -17,4 +18,3 @@ coverage/
 .vscode/
 .DS_Store
 Thumbs.db
-

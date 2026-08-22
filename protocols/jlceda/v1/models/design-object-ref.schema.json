@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/models/design-object-ref",
+  "title": "DesignObjectRef",
+  "description": "A stable wire reference to a design object within one system-captured snapshot. Phase 2 supports only document and net object kinds.",
+  "type": "object",
+  "required": [
+    "model_version",
+    "provider",
+    "object_type",
+    "document_id",
+    "snapshot_id",
+    "native_id",
+    "canonical_id",
+    "display_name"
+  ],
+  "properties": {
+    "model_version": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/modelVersion"
+    },
+    "provider": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/provider"
+    },
+    "object_type": {
+      "type": "string",
+      "enum": [
+        "document",
+        "net"
+      ]
+    },
+    "document_id": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/documentId"
+    },
+    "snapshot_id": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/snapshotId"
+    },
+    "native_id": {
+      "description": "Provider-supplied object identifier when available; null means the provider exposed no stable native identifier.",
+      "oneOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/nativeId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "canonical_id": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/canonicalId"
+    },
+    "display_name": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/displayName"
+    }
+  },
+  "additionalProperties": false
+}

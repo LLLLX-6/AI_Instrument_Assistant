@@ -1,0 +1,12 @@
+{
+  "description": "The standalone base envelope rejects undeclared fields",
+  "schema_ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelope",
+  "instance": {
+    "protocol": "aia-jlceda",
+    "protocol_version": "1.0",
+    "message_id": "10000000-0000-4000-8000-000000000015",
+    "sent_at": "2026-08-20T10:00:06Z",
+    "trace_id": "10000000-0000-4000-8000-000000000016",
+    "unexpected": true
+  }
+}

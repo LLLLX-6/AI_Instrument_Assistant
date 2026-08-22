@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/common/identifiers",
+  "title": "AIA-JLCEDA Protocol v1 Identifiers",
+  "description": "Reusable wire-level identifiers. This schema is a definition library; consumers reference entries in $defs.",
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "protocol": {
+      "type": "string",
+      "const": "aia-jlceda"
+    },
+    "protocolVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "modelVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "provider": {
+      "description": "The provider is fixed only in the JLCEDA wire protocol; provider-neutral Python domain models are outside this schema.",
+      "type": "string",
+      "const": "jlceda-pro"
+    },
+    "messageId": {
+      "$ref": "#/$defs/uuid"
+    },
+    "traceId": {
+      "$ref": "#/$defs/uuid"
+    },
+    "sessionId": {
+      "$ref": "#/$defs/uuid"
+    },
+    "snapshotId": {
+      "description": "System-generated identifier for a captured design state; it is not a provider-native revision.",
+      "$ref": "#/$defs/uuid"
+    },
+    "utcTimestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-([0-2][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9](\\.[0-9]{1,9})?Z$"
+    },
+    "documentId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "projectId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "nativeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "canonicalId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "contentFingerprint": {
+      "description": "SHA-256 digest of only the explicitly declared fingerprint scope.",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    }
+  }
+}

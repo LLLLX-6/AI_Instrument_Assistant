@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/common/envelope",
+  "title": "AIA-JLCEDA Protocol v1 Base Envelopes",
+  "description": "Structural envelope variants only. Authentication state transitions and cross-message correlation are defined by the Protocol State Machine, not this schema.",
+  "$defs": {
+    "baseEnvelopeFields": {
+      "type": "object",
+      "required": [
+        "protocol",
+        "protocol_version",
+        "message_id",
+        "sent_at",
+        "trace_id"
+      ],
+      "properties": {
+        "protocol": {
+          "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/protocol"
+        },
+        "protocol_version": {
+          "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/protocolVersion"
+        },
+        "message_id": {
+          "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/messageId"
+        },
+        "sent_at": {
+          "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/utcTimestamp"
+        },
+        "trace_id": {
+          "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/traceId"
+        }
+      }
+    },
+    "baseEnvelope": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseEnvelopeFields"
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "preAuthEnvelope": {
+      "description": "Envelope for messages sent before a session is authenticated. It intentionally has no session_id.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseEnvelopeFields"
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "sessionEnvelope": {
+      "description": "Envelope for authenticated business messages.",
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "#/$defs/baseEnvelopeFields"
+        },
+        {
+          "type": "object",
+          "required": [
+            "session_id"
+          ],
+          "properties": {
+            "session_id": {
+              "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/sessionId"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}
