@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/models/design-selection",
+  "title": "DesignSelection",
+  "description": "The user's selected design object references, without circuit graph context.",
+  "type": "object",
+  "required": [
+    "model_version",
+    "document_ref",
+    "selected_objects",
+    "primary_object"
+  ],
+  "properties": {
+    "model_version": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/modelVersion"
+    },
+    "document_ref": {
+      "allOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/models/design-object-ref"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "object_type": {
+              "const": "document"
+            }
+          }
+        }
+      ]
+    },
+    "selected_objects": {
+      "type": "array",
+      "maxItems": 4096,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "aia://protocol/jlceda/v1/models/design-object-ref"
+      }
+    },
+    "primary_object": {
+      "oneOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/models/design-object-ref"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

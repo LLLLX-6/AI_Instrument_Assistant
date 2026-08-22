@@ -12,7 +12,7 @@ from referencing import Registry, Resource
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 PROTOCOL_ROOT = REPOSITORY_ROOT / "protocols" / "jlceda" / "v1"
 FIXTURES_ROOT = PROTOCOL_ROOT / "fixtures"
-SCHEMA_PATHS = (
+REQUIRED_PHASE_TWO_SCHEMA_PATHS = (
     PROTOCOL_ROOT / "common" / "identifiers.schema.json",
     PROTOCOL_ROOT / "common" / "envelope.schema.json",
     PROTOCOL_ROOT / "models" / "design-object-ref.schema.json",
@@ -31,11 +31,15 @@ def fixture_cases(expectation: str) -> Iterator[tuple[Path, dict[str, Any]]]:
 
 
 def load_registry() -> tuple[Registry, list[dict[str, Any]]]:
-    schemas = [load_json(path) for path in SCHEMA_PATHS]
+    schemas = [load_json(path) for path in schema_paths()]
     resources = [
         (schema["$id"], Resource.from_contents(schema)) for schema in schemas
     ]
     return Registry().with_resources(resources), schemas
+
+
+def schema_paths() -> tuple[Path, ...]:
+    return tuple(sorted(PROTOCOL_ROOT.rglob("*.schema.json")))
 
 
 def validator_for(schema_ref: str, registry: Registry) -> Draft202012Validator:
@@ -62,7 +66,7 @@ def nested_refs(value: Any) -> Iterator[str]:
 
 class PhaseTwoContractTests(unittest.TestCase):
     def test_required_schema_files_exist(self) -> None:
-        for path in SCHEMA_PATHS:
+        for path in REQUIRED_PHASE_TWO_SCHEMA_PATHS:
             with self.subTest(schema=path.name):
                 self.assertTrue(path.is_file(), f"Phase 2 schema is missing: {path}")
 

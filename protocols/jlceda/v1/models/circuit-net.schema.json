@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/models/circuit-net",
+  "title": "CircuitNet",
+  "description": "Minimal circuit context for a selected net without a complete component/pin graph.",
+  "type": "object",
+  "required": [
+    "model_version",
+    "ref",
+    "endpoints",
+    "source",
+    "signal_expectation"
+  ],
+  "properties": {
+    "model_version": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/modelVersion"
+    },
+    "ref": {
+      "allOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/models/design-object-ref"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "object_type": {
+              "const": "net"
+            }
+          }
+        }
+      ]
+    },
+    "endpoints": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "aia://protocol/jlceda/v1/models/circuit-endpoint"
+      }
+    },
+    "source": {
+      "oneOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/models/circuit-endpoint"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "signal_expectation": {
+      "oneOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/models/signal-expectation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

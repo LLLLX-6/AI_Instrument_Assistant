@@ -1,0 +1,24 @@
+{
+  "description": "SelectionContext rejects unmodeled EDA runtime context",
+  "schema_ref": "aia://protocol/jlceda/v1/models/selection-context",
+  "instance": {
+    "model_version": "1.0",
+    "selection": {
+      "model_version": "1.0",
+      "document_ref": {
+        "model_version": "1.0",
+        "provider": "jlceda-pro",
+        "object_type": "document",
+        "document_id": "doc-main-schematic",
+        "snapshot_id": "11111111-1111-4111-8111-111111111111",
+        "native_id": "doc-main-schematic",
+        "canonical_id": "jlceda-pro:project-stm32-test:doc-main-schematic:document",
+        "display_name": "main_schematic"
+      },
+      "selected_objects": [],
+      "primary_object": null
+    },
+    "nets": [],
+    "source_runtime": "jlceda-extension"
+  }
+}

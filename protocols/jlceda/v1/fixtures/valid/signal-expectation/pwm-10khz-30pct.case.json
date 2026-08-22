@@ -1,0 +1,9 @@
+{
+  "description": "A 10 kHz PWM expectation uses a canonical duty ratio of 0.30",
+  "schema_ref": "aia://protocol/jlceda/v1/models/signal-expectation",
+  "instance": {
+    "model_version": "1.0",
+    "frequency_hz": 10000.0,
+    "duty_cycle_ratio": 0.30
+  }
+}

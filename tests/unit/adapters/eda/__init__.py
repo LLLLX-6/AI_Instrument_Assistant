@@ -1,0 +1,1 @@
+"""EDA adapter unit tests."""

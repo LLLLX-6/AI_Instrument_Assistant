@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/models/circuit-endpoint",
+  "title": "CircuitEndpoint",
+  "description": "A minimal component-pin endpoint used by the PWM_OUT vertical slice.",
+  "type": "object",
+  "required": [
+    "model_version",
+    "component_reference",
+    "pin_name",
+    "pin_number"
+  ],
+  "properties": {
+    "model_version": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/modelVersion"
+    },
+    "component_reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "pin_name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "pin_number": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

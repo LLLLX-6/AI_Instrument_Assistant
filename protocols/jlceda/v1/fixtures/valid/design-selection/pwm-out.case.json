@@ -1,0 +1,39 @@
+{
+  "description": "The PWM_OUT net is the primary selected object",
+  "schema_ref": "aia://protocol/jlceda/v1/models/design-selection",
+  "instance": {
+    "model_version": "1.0",
+    "document_ref": {
+      "model_version": "1.0",
+      "provider": "jlceda-pro",
+      "object_type": "document",
+      "document_id": "doc-main-schematic",
+      "snapshot_id": "11111111-1111-4111-8111-111111111111",
+      "native_id": "doc-main-schematic",
+      "canonical_id": "jlceda-pro:project-stm32-test:doc-main-schematic:document",
+      "display_name": "main_schematic"
+    },
+    "selected_objects": [
+      {
+        "model_version": "1.0",
+        "provider": "jlceda-pro",
+        "object_type": "net",
+        "document_id": "doc-main-schematic",
+        "snapshot_id": "11111111-1111-4111-8111-111111111111",
+        "native_id": "net-pwm-out",
+        "canonical_id": "jlceda-pro:project-stm32-test:doc-main-schematic:net:pwm-out",
+        "display_name": "PWM_OUT"
+      }
+    ],
+    "primary_object": {
+      "model_version": "1.0",
+      "provider": "jlceda-pro",
+      "object_type": "net",
+      "document_id": "doc-main-schematic",
+      "snapshot_id": "11111111-1111-4111-8111-111111111111",
+      "native_id": "net-pwm-out",
+      "canonical_id": "jlceda-pro:project-stm32-test:doc-main-schematic:net:pwm-out",
+      "display_name": "PWM_OUT"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "description": "A duty ratio cannot use the percentage value 30",
+  "schema_ref": "aia://protocol/jlceda/v1/models/signal-expectation",
+  "instance": {
+    "model_version": "1.0",
+    "frequency_hz": 10000.0,
+    "duty_cycle_ratio": 30.0
+  }
+}

@@ -9,7 +9,9 @@ from .schema_registry import (
 )
 from .schema_validator import (
     SchemaNotFoundError,
+    SchemaInstanceValidationError,
     SchemaValidator,
+    ValidatedInstance,
     ValidationIssue,
     ValidationResult,
 )
@@ -21,9 +23,11 @@ __all__ = [
     "SchemaDefinitionError",
     "SchemaFileNotFoundError",
     "SchemaNotFoundError",
+    "SchemaInstanceValidationError",
     "SchemaReferenceError",
     "SchemaRegistry",
     "SchemaValidator",
+    "ValidatedInstance",
     "ValidationIssue",
     "ValidationResult",
 ]

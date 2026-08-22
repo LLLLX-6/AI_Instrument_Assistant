@@ -1,0 +1,11 @@
+{
+  "description": "A circuit endpoint rejects an original EDA API object",
+  "schema_ref": "aia://protocol/jlceda/v1/models/circuit-endpoint",
+  "instance": {
+    "model_version": "1.0",
+    "component_reference": "U1",
+    "pin_name": "PA0",
+    "pin_number": null,
+    "raw_eda_object": {}
+  }
+}

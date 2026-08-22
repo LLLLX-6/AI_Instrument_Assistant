@@ -22,12 +22,19 @@ const repositoryRoot = resolve(
 );
 const protocolRoot = join(repositoryRoot, "protocols", "jlceda", "v1");
 const fixturesRoot = join(protocolRoot, "fixtures");
-const schemaPaths = [
+const requiredPhaseTwoSchemaPaths = [
   join(protocolRoot, "common", "identifiers.schema.json"),
   join(protocolRoot, "common", "envelope.schema.json"),
   join(protocolRoot, "models", "design-object-ref.schema.json"),
   join(protocolRoot, "models", "design-document.schema.json"),
 ];
+
+function schemaPaths(): string[] {
+  return readdirSync(protocolRoot, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".schema.json"))
+    .map((entry) => resolve(entry.parentPath, entry.name))
+    .sort();
+}
 
 function readJson(path: string): Record<string, unknown> {
   return JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
@@ -42,14 +49,14 @@ function casePaths(root: string): string[] {
 
 function buildValidator(): Ajv2020 {
   const ajv = new Ajv2020({ allErrors: true, strict: true });
-  for (const schemaPath of schemaPaths) {
+  for (const schemaPath of schemaPaths()) {
     ajv.addSchema(readJson(schemaPath));
   }
   return ajv;
 }
 
 test("the four required Phase 2 schema files exist", () => {
-  for (const schemaPath of schemaPaths) {
+  for (const schemaPath of requiredPhaseTwoSchemaPaths) {
     assert.ok(existsSync(schemaPath), `Phase 2 schema is missing: ${schemaPath}`);
   }
 });
@@ -89,7 +96,7 @@ test("invalid shared fixtures are rejected", () => {
 });
 
 test("schema identifiers are unique and every schema compiles", () => {
-  const schemas = schemaPaths.map(readJson);
+  const schemas = schemaPaths().map(readJson);
   const identifiers = schemas.map((schema) => schema.$id);
   assert.equal(new Set(identifiers).size, identifiers.length);
 

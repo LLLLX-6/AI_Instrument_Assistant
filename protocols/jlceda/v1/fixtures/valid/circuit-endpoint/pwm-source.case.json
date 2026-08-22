@@ -1,0 +1,10 @@
+{
+  "description": "PWM_OUT source endpoint U1.PA0 is valid",
+  "schema_ref": "aia://protocol/jlceda/v1/models/circuit-endpoint",
+  "instance": {
+    "model_version": "1.0",
+    "component_reference": "U1",
+    "pin_name": "PA0",
+    "pin_number": null
+  }
+}

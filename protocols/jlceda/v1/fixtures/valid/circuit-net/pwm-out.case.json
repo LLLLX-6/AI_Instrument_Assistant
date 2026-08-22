@@ -1,0 +1,36 @@
+{
+  "description": "PWM_OUT carries its source endpoint and expected signal",
+  "schema_ref": "aia://protocol/jlceda/v1/models/circuit-net",
+  "instance": {
+    "model_version": "1.0",
+    "ref": {
+      "model_version": "1.0",
+      "provider": "jlceda-pro",
+      "object_type": "net",
+      "document_id": "doc-main-schematic",
+      "snapshot_id": "11111111-1111-4111-8111-111111111111",
+      "native_id": "net-pwm-out",
+      "canonical_id": "jlceda-pro:project-stm32-test:doc-main-schematic:net:pwm-out",
+      "display_name": "PWM_OUT"
+    },
+    "endpoints": [
+      {
+        "model_version": "1.0",
+        "component_reference": "U1",
+        "pin_name": "PA0",
+        "pin_number": null
+      }
+    ],
+    "source": {
+      "model_version": "1.0",
+      "component_reference": "U1",
+      "pin_name": "PA0",
+      "pin_number": null
+    },
+    "signal_expectation": {
+      "model_version": "1.0",
+      "frequency_hz": 10000.0,
+      "duty_cycle_ratio": 0.30
+    }
+  }
+}

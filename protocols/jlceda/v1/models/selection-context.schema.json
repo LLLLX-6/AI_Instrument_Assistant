@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/models/selection-context",
+  "title": "SelectionContext",
+  "description": "Selection state plus the minimal circuit-net context needed by the PWM_OUT use case.",
+  "type": "object",
+  "required": [
+    "model_version",
+    "selection",
+    "nets"
+  ],
+  "properties": {
+    "model_version": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/modelVersion"
+    },
+    "selection": {
+      "$ref": "aia://protocol/jlceda/v1/models/design-selection"
+    },
+    "nets": {
+      "type": "array",
+      "maxItems": 4096,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "aia://protocol/jlceda/v1/models/circuit-net"
+      }
+    }
+  },
+  "additionalProperties": false
+}

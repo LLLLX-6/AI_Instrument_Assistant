@@ -15,6 +15,14 @@ EDA_INTERFACE_PATH = (
     / "ports"
     / "eda_interface.py"
 )
+IN_MEMORY_ADAPTER_PATH = (
+    REPOSITORY_ROOT
+    / "src"
+    / "ai_instrument_assistant"
+    / "adapters"
+    / "eda"
+    / "in_memory.py"
+)
 
 
 def imported_modules(path: Path) -> frozenset[str]:
@@ -57,6 +65,25 @@ class EDADependencyBoundaryTests(unittest.TestCase):
             "websockets",
             "ai_instrument_assistant.protocol",
             "ai_instrument_assistant.integrations",
+        }
+        self.assertFalse(
+            any(
+                module in forbidden_roots
+                or any(module.startswith(root + ".") for root in forbidden_roots)
+                for module in imports
+            ),
+            imports,
+        )
+
+    def test_in_memory_adapter_does_not_depend_on_protocol_or_jlceda(self) -> None:
+        self.assertTrue(
+            IN_MEMORY_ADAPTER_PATH.is_file(),
+            "in-memory EDA adapter was not found",
+        )
+        imports = imported_modules(IN_MEMORY_ADAPTER_PATH)
+        forbidden_roots = {
+            "ai_instrument_assistant.protocol",
+            "ai_instrument_assistant.integrations.jlceda",
         }
         self.assertFalse(
             any(

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/models/signal-expectation",
+  "title": "SignalExpectation",
+  "description": "Expected scalar signal properties. Duty cycle is represented only as a ratio from 0.0 to 1.0.",
+  "type": "object",
+  "required": [
+    "model_version"
+  ],
+  "properties": {
+    "model_version": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/modelVersion"
+    },
+    "frequency_hz": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "duty_cycle_ratio": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0
+    }
+  },
+  "anyOf": [
+    {
+      "required": [
+        "frequency_hz"
+      ],
+      "properties": {
+        "frequency_hz": {}
+      }
+    },
+    {
+      "required": [
+        "duty_cycle_ratio"
+      ],
+      "properties": {
+        "duty_cycle_ratio": {}
+      }
+    }
+  ],
+  "additionalProperties": false
+}
