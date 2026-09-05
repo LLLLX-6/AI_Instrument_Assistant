@@ -27,6 +27,23 @@ function fakeWire(id = 'wire-1', net = 'PWM_OUT'): FakePrimitive {
   };
 }
 
+function fakeComponent(id = 'component-1', designator = 'U1'): FakePrimitive {
+  return {
+    getState_PrimitiveId: () => id,
+    getState_PrimitiveType: () => 'Component',
+    getState_Designator: () => designator,
+    internalSecret: 'must-not-cross-adapter',
+  };
+}
+
+function fakeOther(id = 'text-1'): FakePrimitive {
+  return {
+    getState_PrimitiveId: () => id,
+    getState_PrimitiveType: () => 'Text',
+    internalSecret: 'must-not-cross-adapter',
+  };
+}
+
 function runtime(overrides: Record<string, unknown> = {}): JlcEdaRuntimeBoundary {
   return {
     dmt_SelectControl: {
@@ -127,6 +144,47 @@ test('one selected wire is normalized and the raw object is cropped', async () =
   assert.ok(!serialized.includes('internalSecret'));
   assert.ok(!serialized.includes('hugePayload'));
   assert.ok(serialized.length < 2_000);
+});
+
+test('component, unsupported type, and wire without a net remain finite distinct DTOs', async () => {
+  const objects = [fakeComponent(), fakeOther(), fakeWire('wire-no-net', '')];
+  const adapter = new JlcEdaApiAdapter(runtime({
+    sch_SelectControl: {
+      getAllSelectedPrimitives: async () => objects,
+      getAllSelectedPrimitives_PrimitiveId: async () => [
+        'component-1', 'text-1', 'wire-no-net',
+      ],
+    },
+  }));
+
+  const result = await adapter.readCurrentSelection();
+
+  assert.deepEqual(result.objects, [
+    {
+      primitiveId: 'component-1', primitiveType: 'Component',
+      componentDesignator: 'U1',
+    },
+    { primitiveId: 'text-1', primitiveType: 'Text' },
+    { primitiveId: 'wire-no-net', primitiveType: 'Wire' },
+  ]);
+  assert.deepEqual(result.primitiveTypeSummary, { Component: 1, Text: 1, Wire: 1 });
+});
+
+test('selection DTO is bounded and explicitly reports truncation', async () => {
+  const objects = Array.from({ length: 129 }, (_, index) => fakeOther(`text-${index}`));
+  const ids = objects.map((_, index) => `text-${index}`);
+  const adapter = new JlcEdaApiAdapter(runtime({
+    sch_SelectControl: {
+      getAllSelectedPrimitives: async () => objects,
+      getAllSelectedPrimitives_PrimitiveId: async () => ids,
+    },
+  }));
+
+  const result = await adapter.readCurrentSelection();
+
+  assert.equal(result.objects.length, 128);
+  assert.equal(result.totalSelected, 129);
+  assert.equal(result.truncated, true);
 });
 
 test('schematic wire identity comes from selection control without reading PCB-backed object identity', async () => {

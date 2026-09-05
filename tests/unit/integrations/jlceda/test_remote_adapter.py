@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import unittest
 from pathlib import Path
 from typing import Any
@@ -10,8 +11,10 @@ from ai_instrument_assistant.application.ports.eda_interface import (
     EDACapability,
     EDANotConnectedError,
     EDARequestTimeoutError,
+    InconsistentDesignObservationError,
     NoActiveDocumentError,
 )
+from ai_instrument_assistant.domain.eda.models import DesignObjectKind
 from ai_instrument_assistant.integrations.jlceda.errors import (
     JLCEDAConnectionLostError,
     JLCEDARequestTimeoutError,
@@ -67,7 +70,59 @@ class JLCEDARemoteAdapterTests(unittest.IsolatedAsyncioTestCase):
             [("eda.document.get_active", {}, 1.25)], client.calls
         )
         self.assertTrue(adapter.capabilities.supports(EDACapability.DOCUMENT_READ))
-        self.assertFalse(adapter.capabilities.supports(EDACapability.SELECTION_READ))
+        self.assertTrue(adapter.capabilities.supports(EDACapability.SELECTION_READ))
+
+    async def test_maps_valid_wire_selection_to_provider_neutral_context(self) -> None:
+        response = _selection_response("wire-net-response.case.json")
+        client = StubRequestClient(response)
+        adapter = JLCEDARemoteAdapter(
+            request_client=client,
+            validator=self.validator,
+            mapper=JLCEDADomainMapper(),
+            request_timeout=1.25,
+        )
+
+        context = await adapter.get_selection()
+
+        selected = context.selection.selected_objects[0]
+        self.assertIs(selected.object_type, DesignObjectKind.WIRE)
+        self.assertEqual("Wire", selected.provider_kind)
+        self.assertEqual("wire-1", selected.native_id)
+        self.assertEqual("PWM_OUT", selected.display_name)
+        self.assertIsNone(context.selection.primary_object)
+        self.assertEqual(1, len(context.nets))
+        self.assertEqual("PWM_OUT", context.nets[0].ref.display_name)
+        self.assertIsNone(context.nets[0].ref.native_id)
+        self.assertTrue(context.nets[0].connectivity_unresolved)
+        self.assertIsNone(context.nets[0].signal_expectation)
+        self.assertEqual([("eda.selection.get", {}, 1.25)], client.calls)
+
+    async def test_empty_remote_selection_is_valid(self) -> None:
+        context = await self._adapter(
+            _selection_response("empty-selection-response.case.json")
+        ).get_selection()
+
+        self.assertEqual((), context.selection.selected_objects)
+        self.assertEqual((), context.nets)
+
+    async def test_selection_maps_inconsistent_observation_error(self) -> None:
+        adapter = self._adapter(
+            _selection_error_response("inconsistent_observation")
+        )
+        with self.assertRaises(InconsistentDesignObservationError):
+            await adapter.get_selection()
+
+    async def test_selection_rejects_raw_transport_dto_leak(self) -> None:
+        response = _selection_response("wire-net-response.case.json")
+        response["payload"]["totalSelected"] = 1
+        adapter = self._adapter(response)
+        with self.assertRaisesRegex(RuntimeError, "protocol"):
+            await adapter.get_selection()
+
+    async def test_selection_maps_transport_timeout(self) -> None:
+        adapter = self._adapter(JLCEDARequestTimeoutError("late"))
+        with self.assertRaises(EDARequestTimeoutError):
+            await adapter.get_selection()
 
     async def test_maps_structured_no_document_error(self) -> None:
         adapter = self._adapter(_error_response("no_active_document"))
@@ -153,6 +208,19 @@ def _error_response(code: str) -> dict[str, Any]:
         "status": "error",
         "error": {"code": code, "message": "bounded remote error"},
     }
+
+
+def _selection_response(name: str) -> dict[str, Any]:
+    fixture = PROTOCOL_ROOT / "fixtures" / "valid" / "eda-selection" / name
+    return json.loads(fixture.read_text(encoding="utf-8"))["instance"]
+
+
+def _selection_error_response(code: str) -> dict[str, Any]:
+    response = _selection_response("empty-selection-response.case.json")
+    response.pop("payload")
+    response["status"] = "error"
+    response["error"] = {"code": code, "message": "bounded remote error"}
+    return response
 
 
 if __name__ == "__main__":

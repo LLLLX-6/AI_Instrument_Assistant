@@ -49,6 +49,10 @@ class StaleDesignSnapshotError(EDAInterfaceError):
     """An operation references a design snapshot that is no longer current."""
 
 
+class InconsistentDesignObservationError(EDAInterfaceError):
+    """The provider document identity changed during one bounded observation."""
+
+
 class DesignObjectNotFoundError(EDAInterfaceError):
     """A referenced design object cannot be found in the requested snapshot."""
 

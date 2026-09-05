@@ -1,9 +1,9 @@
 # JLCEDA Extension Workspace
 
-Phase 5B.2b enables one authenticated, read-only remote operation:
-`eda.document.get_active`. The official API remains isolated behind the finite
-DTO boundary. Remote selection/highlight, Agent, LLM and design mutation remain
-disabled.
+Phase 5B.3b enables two authenticated, read-only remote operations:
+`eda.document.get_active` and `eda.selection.get`. The official API remains
+isolated behind the finite DTO boundary. Remote highlight, Agent, LLM and
+design mutation remain disabled.
 
 Compatibility baseline:
 

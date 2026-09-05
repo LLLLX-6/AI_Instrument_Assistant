@@ -15,6 +15,7 @@ from ai_instrument_assistant.application.ports.eda_interface import (
     EDARequestTimeoutError,
     HighlightCommand,
     HighlightResult,
+    InconsistentDesignObservationError,
     NoActiveDocumentError,
     OperationNotAllowedError,
 )
@@ -31,11 +32,16 @@ from .errors import (
     JLCEDATransportUnavailableError,
     WireToDomainMappingError,
 )
-from .mapper import DESIGN_DOCUMENT_SCHEMA_ID, JLCEDADomainMapper
+from .mapper import (
+    DESIGN_DOCUMENT_SCHEMA_ID,
+    SELECTION_CONTEXT_SCHEMA_ID,
+    JLCEDADomainMapper,
+)
 
 
 MESSAGE_SCHEMA_ID = "aia://protocol/jlceda/v1/message"
 GET_ACTIVE_DOCUMENT = "eda.document.get_active"
+GET_SELECTION = "eda.selection.get"
 
 
 class JLCEDARequestClient(Protocol):
@@ -65,7 +71,11 @@ class JLCEDARemoteAdapter(EDAInterface):
         self._validator = validator
         self._mapper = mapper
         self._request_timeout = request_timeout
-        self._capabilities = EDACapabilitySet(frozenset({EDACapability.DOCUMENT_READ}))
+        self._capabilities = EDACapabilitySet(
+            frozenset(
+                {EDACapability.DOCUMENT_READ, EDACapability.SELECTION_READ}
+            )
+        )
 
     @property
     def capabilities(self) -> EDACapabilitySet:
@@ -107,7 +117,36 @@ class JLCEDARemoteAdapter(EDAInterface):
             raise EDAProtocolError(str(error)) from error
 
     async def get_selection(self) -> SelectionContext:
-        raise CapabilityUnsupportedError("selection.read is not enabled in Phase 5B.2b")
+        try:
+            raw_response = await self._request_client.request(
+                GET_SELECTION,
+                {},
+                timeout=self._request_timeout,
+            )
+            self._validator.validate_and_freeze(MESSAGE_SCHEMA_ID, raw_response)
+            response = _mapping(raw_response)
+            if response.get("operation") != GET_SELECTION:
+                raise JLCEDAProtocolError("Remote response operation mismatch")
+            if response.get("status") == "error":
+                self._raise_remote_error(_mapping(response.get("error")))
+            payload = _mapping(response.get("payload"))
+            validated_context = self._validator.validate_and_freeze(
+                SELECTION_CONTEXT_SCHEMA_ID,
+                payload.get("context"),
+            )
+            return self._mapper.map_selection_context(validated_context)
+        except SchemaInstanceValidationError as error:
+            raise EDAProtocolError(f"JLCEDA protocol response rejected: {error}") from error
+        except WireToDomainMappingError as error:
+            raise EDAProtocolError(f"JLCEDA mapping failed: {error}") from error
+        except JLCEDATransportUnavailableError as error:
+            raise EDANotConnectedError(str(error)) from error
+        except JLCEDARequestTimeoutError as error:
+            raise EDARequestTimeoutError(str(error)) from error
+        except JLCEDAConnectionLostError as error:
+            raise EDAConnectionLostError(str(error)) from error
+        except JLCEDAProtocolError as error:
+            raise EDAProtocolError(str(error)) from error
 
     async def highlight(self, command: HighlightCommand) -> HighlightResult:
         del command
@@ -123,6 +162,8 @@ class JLCEDARemoteAdapter(EDAInterface):
             raise CapabilityUnsupportedError(message)
         if code == "operation_not_allowed":
             raise OperationNotAllowedError(message)
+        if code == "inconsistent_observation":
+            raise InconsistentDesignObservationError(message)
         raise EDAInterfaceError(message)
 
 

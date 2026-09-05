@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "aia://protocol/jlceda/v1/message",
   "title": "AIA-JLCEDA Protocol v1 Message Allowlist",
-  "description": "The closed Phase 5B.2b wire-message allowlist. Adding a business operation requires an explicit schema revision.",
+  "description": "The closed Phase 5B.3b wire-message allowlist. Adding a business operation requires an explicit schema revision.",
   "oneOf": [
     { "$ref": "aia://protocol/jlceda/v1/messages/handshake#/$defs/helloInit" },
     { "$ref": "aia://protocol/jlceda/v1/messages/handshake#/$defs/helloAckChallenge" },
@@ -13,6 +13,9 @@
     { "$ref": "aia://protocol/jlceda/v1/messages/heartbeat#/$defs/pong" },
     { "$ref": "aia://protocol/jlceda/v1/messages/eda-document#/$defs/getActiveRequest" },
     { "$ref": "aia://protocol/jlceda/v1/messages/eda-document#/$defs/getActiveSuccessResponse" },
-    { "$ref": "aia://protocol/jlceda/v1/messages/eda-document#/$defs/getActiveErrorResponse" }
+    { "$ref": "aia://protocol/jlceda/v1/messages/eda-document#/$defs/getActiveErrorResponse" },
+    { "$ref": "aia://protocol/jlceda/v1/messages/eda-selection#/$defs/getSelectionRequest" },
+    { "$ref": "aia://protocol/jlceda/v1/messages/eda-selection#/$defs/getSelectionSuccessResponse" },
+    { "$ref": "aia://protocol/jlceda/v1/messages/eda-selection#/$defs/getSelectionErrorResponse" }
   ]
 }

@@ -13,6 +13,7 @@ from ai_instrument_assistant.application.ports.eda_interface import (
     EDACapabilitySet,
     EDAInterface,
     EDAInterfaceError,
+    InconsistentDesignObservationError,
     HighlightCommand,
     HighlightResult,
     HighlightStatus,
@@ -143,6 +144,7 @@ class EDAInterfaceTests(unittest.TestCase):
     def test_interface_errors_are_provider_neutral_categories(self) -> None:
         for error_type in (
             CapabilityUnsupportedError,
+            InconsistentDesignObservationError,
             NoActiveDocumentError,
             StaleDesignSnapshotError,
             DesignObjectNotFoundError,

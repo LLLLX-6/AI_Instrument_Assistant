@@ -77,7 +77,8 @@ Official host callbacks are synchronous boundaries: they always return `undefine
 
 ## Authenticated business request lifecycle
 
-Phase 5B.2b adds exactly one operation, `eda.document.get_active`. The Python
+Phase 5B.3b permits exactly two operations, `eda.document.get_active` and
+`eda.selection.get`. The Python
 gateway sends it only after exactly one authenticated session is active. The
 request `message_id` is its request identity; a response must carry the same
 session, operation and trace identifiers and name that request in
@@ -96,5 +97,22 @@ rules in the previous paragraph are cross-message semantics and are enforced by
 the transport lifecycle, not claimed as Schema guarantees.
 
 Unknown operations, malformed JSON, binary frames, and unknown fields are
-rejected before business dispatch. Remote selection and highlight operations
-remain intentionally absent.
+rejected before business dispatch. Remote highlight remains intentionally
+absent.
+
+For `eda.selection.get`, the Extension reads current document identity, then
+the finite selection DTO, then current document identity again. A missing first
+document produces `no_active_document`; a missing or different second document
+produces `inconsistent_observation`. Only after both identities agree does the
+Extension generate one new AIA `snapshot_id` shared by the document reference,
+selected object references, and safely derived net references. This is a
+coherent observation window, not an atomic provider snapshot, native revision,
+content version, or stale-proof.
+
+Selected wire, component, and unsupported primitive types remain distinct.
+Provider primitive IDs and finite native type names are retained, but official
+objects and runtime summaries never cross the protocol boundary. A derived net
+is created only from a non-empty network name actually observed on a wire; it
+has no invented native ID, endpoints, source, or signal expectation. A bounded
+selection that was truncated is rejected instead of silently represented as a
+complete Domain selection.

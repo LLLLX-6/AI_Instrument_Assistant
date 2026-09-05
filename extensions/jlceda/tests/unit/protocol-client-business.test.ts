@@ -68,6 +68,34 @@ test('authenticated business request produces correlated current-session respons
   client.stop();
 });
 
+test('authenticated selection request validates and returns a finite correlated context', async () => {
+  const transport = new FakeTransport();
+  const client = new JlcEdaProtocolClient({
+    transport, validator: new ProtocolMessageValidator(),
+    serviceUri: 'ws://127.0.0.1:49624', secret: SECRET,
+    autoHeartbeat: false, connectTimeoutMs: 60_000,
+    requestDispatcher: {
+      async dispatch() {
+        return { status: 'success', payload: { context: emptySelectionContext() } };
+      },
+    },
+  });
+  const sessionId = await authenticate(client, transport);
+  const request: Record<string, unknown> = {
+    ...base(), session_id: sessionId, kind: 'request',
+    operation: 'eda.selection.get', payload: {},
+  };
+
+  await transport.receive(request);
+
+  const response = JSON.parse(transport.sent.at(-1)!) as Record<string, unknown>;
+  assert.equal(response.operation, 'eda.selection.get');
+  assert.equal(response.reply_to_message_id, request.message_id);
+  assert.equal(response.session_id, sessionId);
+  assert.equal(response.status, 'success');
+  client.stop();
+});
+
 test('response from an old connection generation is never sent', async () => {
   const transport = new FakeTransport();
   let resolveDispatch: (() => void) | undefined;
@@ -192,4 +220,22 @@ function nonce(fill: number): string {
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+}
+
+function emptySelectionContext(): Record<string, unknown> {
+  const snapshotId = crypto.randomUUID();
+  return {
+    model_version: '1.0',
+    selection: {
+      model_version: '1.0',
+      document_ref: {
+        model_version: '1.0', provider: 'jlceda-pro', object_type: 'document',
+        document_id: 'document-1', snapshot_id: snapshotId,
+        native_id: 'document-1', canonical_id: 'jlceda-pro:document:document-1',
+        display_name: null,
+      },
+      selected_objects: [], primary_object: null,
+    },
+    nets: [],
+  };
 }

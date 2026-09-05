@@ -67,6 +67,21 @@ class GatewayBusinessRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(request["message_id"], response["reply_to_message_id"])
         await socket.close()
 
+    async def test_correlated_selection_response_completes_one_request(self) -> None:
+        socket, session_id = await self._authenticated_socket()
+        task = asyncio.create_task(
+            self.gateway.request("eda.selection.get", {}, timeout=1)
+        )
+        request = json.loads(await socket.recv())
+        self.assertEqual(session_id, request["session_id"])
+        await socket.send(json.dumps(_selection_success_response(request)))
+
+        response = await task
+
+        self.assertEqual("eda.selection.get", response["operation"])
+        self.assertEqual(request["message_id"], response["reply_to_message_id"])
+        await socket.close()
+
     async def test_timeout_removes_pending_request(self) -> None:
         socket, _ = await self._authenticated_socket()
         task = asyncio.create_task(
@@ -133,7 +148,7 @@ class GatewayBusinessRequestTests(unittest.IsolatedAsyncioTestCase):
     async def test_unknown_outbound_operation_is_rejected_before_send(self) -> None:
         socket, _ = await self._authenticated_socket()
         with self.assertRaises(JLCEDAProtocolError):
-            await self.gateway.request("eda.selection.get", {}, timeout=1)
+            await self.gateway.request("eda.view.highlight", {}, timeout=1)
         await socket.close()
 
     async def _authenticated_socket(self) -> tuple[ClientConnection, str]:
@@ -197,6 +212,38 @@ def _success_response(request: dict[str, Any]) -> dict[str, Any]:
                 "document_type": "schematic", "native_revision": None,
                 "fingerprint": None, "is_dirty": None,
                 "captured_at": "2026-09-05T08:00:00Z",
+            }
+        },
+    }
+
+
+def _selection_success_response(request: dict[str, Any]) -> dict[str, Any]:
+    snapshot_id = str(uuid4())
+    return _base(trace_id=request["trace_id"]) | {
+        "session_id": request["session_id"],
+        "kind": "response",
+        "operation": "eda.selection.get",
+        "reply_to_message_id": request["message_id"],
+        "status": "success",
+        "payload": {
+            "context": {
+                "model_version": "1.0",
+                "selection": {
+                    "model_version": "1.0",
+                    "document_ref": {
+                        "model_version": "1.0",
+                        "provider": "jlceda-pro",
+                        "object_type": "document",
+                        "document_id": "document-1",
+                        "snapshot_id": snapshot_id,
+                        "native_id": "document-1",
+                        "canonical_id": "jlceda-pro:document:document-1",
+                        "display_name": None,
+                    },
+                    "selected_objects": [],
+                    "primary_object": None,
+                },
+                "nets": [],
             }
         },
     }

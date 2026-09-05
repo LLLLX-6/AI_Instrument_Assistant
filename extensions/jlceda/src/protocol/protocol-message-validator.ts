@@ -7,8 +7,14 @@ import securitySchema from '../../../../protocols/jlceda/v1/common/security.sche
 import errorsSchema from '../../../../protocols/jlceda/v1/common/errors.schema.json' with { type: 'json' };
 import designObjectRefSchema from '../../../../protocols/jlceda/v1/models/design-object-ref.schema.json' with { type: 'json' };
 import designDocumentSchema from '../../../../protocols/jlceda/v1/models/design-document.schema.json' with { type: 'json' };
+import circuitEndpointSchema from '../../../../protocols/jlceda/v1/models/circuit-endpoint.schema.json' with { type: 'json' };
+import signalExpectationSchema from '../../../../protocols/jlceda/v1/models/signal-expectation.schema.json' with { type: 'json' };
+import circuitNetSchema from '../../../../protocols/jlceda/v1/models/circuit-net.schema.json' with { type: 'json' };
+import designSelectionSchema from '../../../../protocols/jlceda/v1/models/design-selection.schema.json' with { type: 'json' };
+import selectionContextSchema from '../../../../protocols/jlceda/v1/models/selection-context.schema.json' with { type: 'json' };
 import messageSchema from '../../../../protocols/jlceda/v1/message.schema.json' with { type: 'json' };
 import edaDocumentSchema from '../../../../protocols/jlceda/v1/messages/eda-document.schema.json' with { type: 'json' };
+import edaSelectionSchema from '../../../../protocols/jlceda/v1/messages/eda-selection.schema.json' with { type: 'json' };
 import handshakeSchema from '../../../../protocols/jlceda/v1/messages/handshake.schema.json' with { type: 'json' };
 import heartbeatSchema from '../../../../protocols/jlceda/v1/messages/heartbeat.schema.json' with { type: 'json' };
 
@@ -32,8 +38,11 @@ export class ProtocolMessageValidator {
     const ajv = new Ajv2020({ allErrors: true, strict: true });
     for (const schema of [
       identifiersSchema, envelopeSchema, securitySchema, errorsSchema,
-      designObjectRefSchema, designDocumentSchema,
-      handshakeSchema, heartbeatSchema, edaDocumentSchema, messageSchema,
+      designObjectRefSchema, designDocumentSchema, circuitEndpointSchema,
+      signalExpectationSchema, circuitNetSchema, designSelectionSchema,
+      selectionContextSchema,
+      handshakeSchema, heartbeatSchema, edaDocumentSchema, edaSelectionSchema,
+      messageSchema,
     ]) {
       ajv.addSchema(schema);
     }

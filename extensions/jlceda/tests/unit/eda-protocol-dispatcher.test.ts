@@ -8,6 +8,7 @@ import {
   JlcEdaApiCallError,
   JlcEdaCapabilityUnavailableError,
   type CurrentDocumentReadDto,
+  type CurrentSelectionDto,
 } from '../../src/runtime/jlc-eda-api-adapter.ts';
 
 
@@ -82,6 +83,149 @@ test('static dispatcher maps no document and bounded runtime errors', async () =
   }
 });
 
+test('selection dispatcher creates one coherent snapshot and separates wire from derived net', async () => {
+  let documentReads = 0;
+  const api = {
+    async readCurrentDocument(): Promise<CurrentDocumentReadDto> {
+      documentReads += 1;
+      return documentObservation('official-document-uuid');
+    },
+    async readCurrentSelection(): Promise<CurrentSelectionDto> {
+      return {
+        objects: [{
+          primitiveId: 'wire-1', primitiveType: 'Wire', netName: 'PWM_OUT',
+        }],
+        totalSelected: 1, truncated: false,
+        primitiveTypeSummary: { Wire: 1 },
+      };
+    },
+  };
+  const dispatcher = new EdaProtocolDispatcher(api, {
+    now: () => new Date('2026-09-05T09:00:00Z'),
+    randomUuid: () => '55555555-5555-4555-8555-555555555555',
+  });
+
+  const outcome = await dispatcher.dispatch({ operation: 'eda.selection.get' });
+
+  assert.equal(outcome.status, 'success');
+  if (outcome.status !== 'success') return;
+  assert.equal(documentReads, 2);
+  const context = outcome.payload.context as Record<string, unknown>;
+  const selection = context.selection as Record<string, unknown>;
+  const documentRef = selection.document_ref as Record<string, unknown>;
+  const selected = (selection.selected_objects as Record<string, unknown>[])[0]!;
+  const net = (context.nets as Record<string, unknown>[])[0]!;
+  const netRef = net.ref as Record<string, unknown>;
+  assert.equal(documentRef.snapshot_id, '55555555-5555-4555-8555-555555555555');
+  assert.equal(selected.snapshot_id, documentRef.snapshot_id);
+  assert.equal(netRef.snapshot_id, documentRef.snapshot_id);
+  assert.equal(selected.object_type, 'wire');
+  assert.equal(selected.native_id, 'wire-1');
+  assert.equal(selected.provider_kind, 'Wire');
+  assert.equal(netRef.object_type, 'net');
+  assert.equal(netRef.native_id, null);
+  assert.deepEqual(net.endpoints, []);
+  assert.equal(net.source, null);
+  assert.equal(net.signal_expectation, null);
+  assert.equal(selection.primary_object, null);
+  assert.equal(JSON.stringify(outcome).includes('primitiveTypeSummary'), false);
+  assert.equal(JSON.stringify(outcome).includes('totalSelected'), false);
+});
+
+test('selection dispatcher supports empty, component, other, and unnamed-wire selections without invented nets', async () => {
+  const selections: CurrentSelectionDto[] = [
+    { objects: [], totalSelected: 0, truncated: false, primitiveTypeSummary: {} },
+    {
+      objects: [{
+        primitiveId: 'component-1', primitiveType: 'Component',
+        componentDesignator: 'U1',
+      }],
+      totalSelected: 1, truncated: false,
+      primitiveTypeSummary: { Component: 1 },
+    },
+    {
+      objects: [{ primitiveId: 'text-1', primitiveType: 'Text' }],
+      totalSelected: 1, truncated: false,
+      primitiveTypeSummary: { Text: 1 },
+    },
+    {
+      objects: [{ primitiveId: 'wire-2', primitiveType: 'Wire' }],
+      totalSelected: 1, truncated: false,
+      primitiveTypeSummary: { Wire: 1 },
+    },
+  ];
+  for (const current of selections) {
+    const dispatcher = new EdaProtocolDispatcher({
+      async readCurrentDocument() { return documentObservation('doc-1'); },
+      async readCurrentSelection() { return current; },
+    });
+    const outcome = await dispatcher.dispatch({ operation: 'eda.selection.get' });
+    assert.equal(outcome.status, 'success');
+    if (outcome.status !== 'success') continue;
+    const context = outcome.payload.context as Record<string, unknown>;
+    assert.deepEqual(context.nets, []);
+  }
+});
+
+test('selection dispatcher maps unavailable and failed provider APIs to bounded errors', async () => {
+  const noSelectionApi = new EdaProtocolDispatcher({
+    async readCurrentDocument() { return documentObservation('doc-1'); },
+  });
+  assert.equal(
+    (await noSelectionApi.dispatch({ operation: 'eda.selection.get' })).error?.code,
+    'capability_unsupported',
+  );
+
+  const failedSelection = new EdaProtocolDispatcher({
+    async readCurrentDocument() { return documentObservation('doc-1'); },
+    async readCurrentSelection(): Promise<CurrentSelectionDto> {
+      throw new JlcEdaApiCallError('selection', 'failed');
+    },
+  });
+  assert.equal(
+    (await failedSelection.dispatch({ operation: 'eda.selection.get' })).error?.code,
+    'provider_error',
+  );
+});
+
+test('selection dispatcher rejects a document change during the observation window', async () => {
+  let documentReads = 0;
+  const dispatcher = new EdaProtocolDispatcher({
+    async readCurrentDocument() {
+      documentReads += 1;
+      return documentObservation(documentReads === 1 ? 'doc-before' : 'doc-after');
+    },
+    async readCurrentSelection() {
+      return {
+        objects: [], totalSelected: 0, truncated: false,
+        primitiveTypeSummary: {},
+      };
+    },
+  });
+
+  const outcome = await dispatcher.dispatch({ operation: 'eda.selection.get' });
+
+  assert.equal(outcome.status, 'error');
+  assert.equal(outcome.error?.code, 'inconsistent_observation');
+});
+
+test('selection dispatcher rejects truncated provider observations', async () => {
+  const dispatcher = new EdaProtocolDispatcher({
+    async readCurrentDocument() { return documentObservation('doc-1'); },
+    async readCurrentSelection() {
+      return {
+        objects: [], totalSelected: 129, truncated: true,
+        primitiveTypeSummary: { Text: 128 },
+      };
+    },
+  });
+
+  const outcome = await dispatcher.dispatch({ operation: 'eda.selection.get' });
+
+  assert.equal(outcome.status, 'error');
+  assert.equal(outcome.error?.code, 'provider_error');
+});
+
 test('static dispatcher rejects every operation outside the allowlist', async () => {
   let calls = 0;
   const dispatcher = new EdaProtocolDispatcher({
@@ -91,9 +235,22 @@ test('static dispatcher rejects every operation outside the allowlist', async ()
     },
   });
 
-  const outcome = await dispatcher.dispatch({ operation: 'eda.selection.get' });
+  const outcome = await dispatcher.dispatch({ operation: 'eda.view.highlight' });
 
   assert.equal(outcome.status, 'error');
   assert.equal(outcome.error?.code, 'operation_not_allowed');
   assert.equal(calls, 0);
 });
+
+function documentObservation(documentId: string): CurrentDocumentReadDto {
+  return {
+    document: {
+      provider: 'jlceda-pro', documentId, documentType: 'schematic',
+      projectId: null, libraryId: null,
+    },
+    rawShape: {
+      kind: 'object', ownKeyCount: 2,
+      ownKeys: ['documentType', 'uuid'], unknownKeyCount: 0,
+    },
+  };
+}
