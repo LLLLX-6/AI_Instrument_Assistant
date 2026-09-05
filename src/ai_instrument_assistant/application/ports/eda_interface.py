@@ -8,6 +8,7 @@ from uuid import UUID
 
 from ai_instrument_assistant.domain.eda.models import (
     DesignDocument,
+    DesignFingerprint,
     DesignObjectKind,
     DesignObjectRef,
     SelectionContext,
@@ -60,10 +61,7 @@ class OperationNotAllowedError(EDAInterfaceError):
 class HighlightCommand:
     document_ref: DesignObjectRef
     expected_snapshot_id: UUID
-    expected_content_fingerprint: str
-    expected_fingerprint_scope_kind: str
-    expected_fingerprint_scope_version: str
-    expected_fingerprint_scope: tuple[str, ...]
+    expected_fingerprint: DesignFingerprint
     targets: tuple[DesignObjectRef, ...]
     style: HighlightStyle
     ttl: timedelta | None
@@ -75,25 +73,15 @@ class HighlightCommand:
             raise ValueError("document_ref must reference a document")
         if self.expected_snapshot_id != self.document_ref.snapshot_id:
             raise ValueError("expected snapshot must match document_ref")
-        for field_name in (
-            "expected_content_fingerprint",
-            "expected_fingerprint_scope_kind",
-            "expected_fingerprint_scope_version",
-            "idempotency_key",
-        ):
+        if not isinstance(self.expected_fingerprint, DesignFingerprint):
+            raise ValueError(
+                "expected_fingerprint must provide a complete strong stale guard"
+            )
+        for field_name in ("idempotency_key",):
             value = getattr(self, field_name)
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"{field_name} must be a non-empty string")
             object.__setattr__(self, field_name, value.strip())
-
-        scope = tuple(self.expected_fingerprint_scope)
-        if not scope or not all(
-            isinstance(path, str) and path.strip() for path in scope
-        ):
-            raise ValueError("expected_fingerprint_scope must contain paths")
-        if len(scope) != len(set(scope)):
-            raise ValueError("expected_fingerprint_scope paths must be unique")
-        object.__setattr__(self, "expected_fingerprint_scope", scope)
 
         targets = tuple(self.targets)
         if not targets:

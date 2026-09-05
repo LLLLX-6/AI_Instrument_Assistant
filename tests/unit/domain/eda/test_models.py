@@ -10,6 +10,7 @@ from ai_instrument_assistant.domain.eda.models import (
     ArtifactReference,
     CircuitEndpoint,
     CircuitNet,
+    DesignFingerprint,
     DesignDocument,
     DesignObjectKind,
     DesignObjectRef,
@@ -70,10 +71,12 @@ def design_document(snapshot_id: UUID = SNAPSHOT_A) -> DesignDocument:
         document_name="main_schematic",
         document_type="schematic",
         native_revision=None,
-        content_fingerprint="sha256:" + "a" * 64,
-        fingerprint_scope_kind="normalized-document-projection",
-        fingerprint_scope_version="1.0",
-        fingerprint_scope=("project_id", "document_name", "document_type"),
+        fingerprint=DesignFingerprint(
+            value="sha256:" + "a" * 64,
+            scope_kind="normalized-document-projection",
+            scope_version="1.0",
+            included_paths=("project_id", "document_name", "document_type"),
+        ),
         is_dirty=False,
         captured_at=datetime(2026, 8, 22, 10, 0, tzinfo=UTC),
     )
@@ -110,16 +113,82 @@ class DesignIdentityTests(unittest.TestCase):
 
         self.assertIsNone(document.native_revision)
         self.assertEqual(SNAPSHOT_A, document.snapshot_id)
-        self.assertEqual("sha256:" + "a" * 64, document.content_fingerprint)
-        self.assertEqual(
-            "normalized-document-projection",
-            document.fingerprint_scope_kind,
-        )
-        self.assertEqual("1.0", document.fingerprint_scope_version)
+        self.assertEqual("sha256:" + "a" * 64, document.fingerprint.value)
+        self.assertEqual("normalized-document-projection", document.fingerprint.scope_kind)
+        self.assertEqual("1.0", document.fingerprint.scope_version)
         self.assertEqual(
             ("project_id", "document_name", "document_type"),
-            document.fingerprint_scope,
+            document.fingerprint.included_paths,
         )
+
+    def test_provider_unknown_document_metadata_is_explicitly_optional(self) -> None:
+        reference = DesignObjectRef(
+            provider="jlceda-pro",
+            object_type=DesignObjectKind.DOCUMENT,
+            document_id="official-document-uuid",
+            snapshot_id=SNAPSHOT_A,
+            native_id="official-document-uuid",
+            canonical_id="jlceda-pro:document:official-document-uuid",
+            display_name=None,
+        )
+        document = DesignDocument(
+            document_ref=reference,
+            project_id=None,
+            project_name=None,
+            document_name=None,
+            document_type="pcb",
+            native_revision=None,
+            fingerprint=None,
+            is_dirty=None,
+            captured_at=datetime(2026, 9, 5, 10, 0, tzinfo=UTC),
+        )
+
+        self.assertIsNone(document.document_ref.display_name)
+        self.assertIsNone(document.project_id)
+        self.assertIsNone(document.project_name)
+        self.assertIsNone(document.document_name)
+        self.assertIsNone(document.fingerprint)
+        self.assertIsNone(document.is_dirty)
+
+    def test_design_fingerprint_is_complete_and_immutable(self) -> None:
+        fingerprint = DesignFingerprint(
+            value="sha256:" + "c" * 64,
+            scope_kind="normalized-document-projection",
+            scope_version="1.0",
+            included_paths=("document_ref.document_id",),
+        )
+
+        with self.assertRaises(FrozenInstanceError):
+            fingerprint.value = "sha256:" + "d" * 64  # type: ignore[misc]
+        with self.assertRaises(DomainInvariantError):
+            DesignFingerprint(
+                value="sha256:" + "c" * 64,
+                scope_kind="normalized-document-projection",
+                scope_version="1.0",
+                included_paths=(),
+            )
+
+    def test_snapshot_is_an_aia_observation_token_not_a_content_version(self) -> None:
+        self.assertIn("observation token", DesignDocument.__doc__ or "")
+        document = DesignDocument(
+            document_ref=document_ref(),
+            project_id=None,
+            project_name=None,
+            document_name=None,
+            document_type="schematic",
+            native_revision=None,
+            fingerprint=None,
+            is_dirty=None,
+            captured_at=datetime(2026, 9, 5, 10, 0, tzinfo=UTC),
+        )
+
+        self.assertEqual(SNAPSHOT_A, document.snapshot_id)
+        self.assertIsNone(document.native_revision)
+        self.assertIsNone(document.fingerprint)
+
+    def test_tab_id_is_not_a_domain_field(self) -> None:
+        self.assertNotIn("tab_id", {field.name for field in fields(DesignDocument)})
+        self.assertNotIn("tab_id", {field.name for field in fields(DesignObjectRef)})
 
 
 class DesignSelectionTests(unittest.TestCase):

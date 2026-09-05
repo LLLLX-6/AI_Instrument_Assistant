@@ -14,9 +14,11 @@ wire-protocol specification.
 ## Version and fingerprint semantics
 
 - `native_revision` is supplied by an EDA provider and may be null.
-- `snapshot_id` identifies a design-state snapshot created by this system.
-- `content_fingerprint` fingerprints only the normalized content described by
-  `fingerprint_scope`.
+- `snapshot_id` is an AIA-generated observation token used to correlate one
+  capture. It is not a provider revision, a content version, or stale-proof.
+- `DesignDocument.fingerprint` is either null when a meaningful content
+  projection is unavailable, or a complete immutable `DesignFingerprint`
+  containing its value, scope kind, scope version, and included paths.
 - A content fingerprint must never be described as the state of an entire EDA
   project unless its declared scope actually covers that project.
 
@@ -55,4 +57,3 @@ wire-protocol specification.
 - real EDA mutation
 - arbitrary JavaScript execution
 - real localhost WebSocket transport
-

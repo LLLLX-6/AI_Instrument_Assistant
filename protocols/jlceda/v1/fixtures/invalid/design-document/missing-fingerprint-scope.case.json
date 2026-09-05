@@ -18,7 +18,9 @@
     "document_name": "main_schematic",
     "document_type": "schematic",
     "native_revision": null,
-    "content_fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "fingerprint": {
+      "value": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
     "is_dirty": false,
     "captured_at": "2026-08-20T10:03:00Z"
   }

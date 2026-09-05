@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "aia://protocol/jlceda/v1/models/design-document",
   "title": "DesignDocument",
-  "description": "A bounded snapshot description of the active JLCEDA schematic document. Integration runtime metadata is deliberately excluded.",
+  "description": "A bounded AIA observation of an active JLCEDA design document. Integration runtime metadata is deliberately excluded.",
   "type": "object",
   "required": [
     "model_version",
@@ -12,8 +12,7 @@
     "document_name",
     "document_type",
     "native_revision",
-    "content_fingerprint",
-    "fingerprint_scope",
+    "fingerprint",
     "is_dirty",
     "captured_at"
   ],
@@ -37,17 +36,46 @@
       ]
     },
     "project_id": {
-      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/projectId"
+      "oneOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/projectId"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "project_name": {
-      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/displayName"
+      "oneOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/displayName"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "document_name": {
-      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/displayName"
+      "oneOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/displayName"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "document_type": {
       "type": "string",
-      "const": "schematic"
+      "enum": [
+        "schematic",
+        "pcb",
+        "symbol",
+        "footprint",
+        "home",
+        "blank",
+        "other"
+      ]
     },
     "native_revision": {
       "description": "Official provider revision when supplied by the EDA API; null when unavailable. It must never be synthesized from the fingerprint.",
@@ -62,45 +90,64 @@
         }
       ]
     },
-    "content_fingerprint": {
-      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/contentFingerprint"
-    },
-    "fingerprint_scope": {
-      "description": "Finite normalized projection used to compute content_fingerprint; it does not claim coverage of the whole EDA project.",
-      "type": "object",
-      "required": [
-        "scope_kind",
-        "scope_version",
-        "included_paths"
-      ],
-      "properties": {
-        "scope_kind": {
-          "type": "string",
-          "const": "normalized-document-projection"
+    "fingerprint": {
+      "description": "Complete finite content projection fingerprint, or null when the provider observation cannot support a meaningful fingerprint.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "value",
+            "scope_kind",
+            "scope_version",
+            "included_paths"
+          ],
+          "properties": {
+            "value": {
+              "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/contentFingerprint"
+            },
+            "scope_kind": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "scope_version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "included_paths": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 64,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$"
+              }
+            }
+          },
+          "additionalProperties": false
         },
-        "scope_version": {
-          "type": "string",
-          "const": "1.0"
-        },
-        "included_paths": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 64,
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 256,
-            "pattern": "^[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)*$"
-          }
+        {
+          "type": "null"
         }
-      },
-      "additionalProperties": false
+      ]
     },
     "is_dirty": {
-      "type": "boolean"
+      "description": "Provider dirty state, or null when the provider does not expose it.",
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "captured_at": {
+      "description": "AIA observation timestamp; it is not a provider revision.",
       "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/utcTimestamp"
     }
   },

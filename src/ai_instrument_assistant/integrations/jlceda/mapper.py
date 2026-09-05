@@ -10,6 +10,7 @@ from ai_instrument_assistant.domain.eda.models import (
     CircuitEndpoint,
     CircuitNet,
     DesignDocument,
+    DesignFingerprint,
     DesignObjectKind,
     DesignObjectRef,
     DesignSelection,
@@ -32,37 +33,39 @@ class JLCEDADomainMapper:
     def map_design_document(self, payload: ValidatedInstance) -> DesignDocument:
         wire = self._validated_mapping(payload, DESIGN_DOCUMENT_SCHEMA_ID)
         try:
-            scope = _mapping(wire["fingerprint_scope"], "fingerprint_scope")
+            fingerprint_wire = wire["fingerprint"]
+            fingerprint = None
+            if fingerprint_wire is not None:
+                fingerprint_mapping = _mapping(fingerprint_wire, "fingerprint")
+                fingerprint = DesignFingerprint(
+                    value=_string(fingerprint_mapping["value"], "fingerprint.value"),
+                    scope_kind=_string(
+                        fingerprint_mapping["scope_kind"], "fingerprint.scope_kind"
+                    ),
+                    scope_version=_string(
+                        fingerprint_mapping["scope_version"],
+                        "fingerprint.scope_version",
+                    ),
+                    included_paths=tuple(
+                        _string(path, "fingerprint.included_paths item")
+                        for path in _sequence(
+                            fingerprint_mapping["included_paths"],
+                            "fingerprint.included_paths",
+                        )
+                    ),
+                )
             return DesignDocument(
                 document_ref=self._map_object_ref(wire["document_ref"]),
-                project_id=_string(wire["project_id"], "project_id"),
-                project_name=_string(wire["project_name"], "project_name"),
-                document_name=_string(wire["document_name"], "document_name"),
+                project_id=_optional_string(wire["project_id"], "project_id"),
+                project_name=_optional_string(wire["project_name"], "project_name"),
+                document_name=_optional_string(wire["document_name"], "document_name"),
                 document_type=_string(wire["document_type"], "document_type"),
                 native_revision=_optional_string(
                     wire["native_revision"],
                     "native_revision",
                 ),
-                content_fingerprint=_string(
-                    wire["content_fingerprint"],
-                    "content_fingerprint",
-                ),
-                fingerprint_scope_kind=_string(
-                    scope["scope_kind"],
-                    "fingerprint_scope.scope_kind",
-                ),
-                fingerprint_scope_version=_string(
-                    scope["scope_version"],
-                    "fingerprint_scope.scope_version",
-                ),
-                fingerprint_scope=tuple(
-                    _string(path, "fingerprint_scope.included_paths item")
-                    for path in _sequence(
-                        scope["included_paths"],
-                        "fingerprint_scope.included_paths",
-                    )
-                ),
-                is_dirty=_boolean(wire["is_dirty"], "is_dirty"),
+                fingerprint=fingerprint,
+                is_dirty=_optional_boolean(wire["is_dirty"], "is_dirty"),
                 captured_at=_timestamp(wire["captured_at"], "captured_at"),
             )
         except (KeyError, TypeError, ValueError, DomainInvariantError) as error:
@@ -108,7 +111,7 @@ class JLCEDADomainMapper:
             snapshot_id=UUID(_string(wire["snapshot_id"], "snapshot_id")),
             native_id=_optional_string(wire["native_id"], "native_id"),
             canonical_id=_string(wire["canonical_id"], "canonical_id"),
-            display_name=_string(wire["display_name"], "display_name"),
+            display_name=_optional_string(wire["display_name"], "display_name"),
         )
 
     def _map_endpoint(self, value: Any) -> CircuitEndpoint:
@@ -199,6 +202,12 @@ def _boolean(value: Any, field_name: str) -> bool:
     if not isinstance(value, bool):
         raise TypeError(f"{field_name} must be a boolean")
     return value
+
+
+def _optional_boolean(value: Any, field_name: str) -> bool | None:
+    if value is None:
+        return None
+    return _boolean(value, field_name)
 
 
 def _timestamp(value: Any, field_name: str) -> datetime:

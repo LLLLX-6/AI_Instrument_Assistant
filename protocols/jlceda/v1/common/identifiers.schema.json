@@ -35,7 +35,7 @@
       "$ref": "#/$defs/uuid"
     },
     "snapshotId": {
-      "description": "System-generated identifier for a captured design state; it is not a provider-native revision.",
+      "description": "AIA-generated observation token for correlating one capture; it is not a provider revision, content version, or stale-proof.",
       "$ref": "#/$defs/uuid"
     },
     "utcTimestamp": {

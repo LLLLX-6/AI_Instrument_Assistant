@@ -22,6 +22,7 @@ from ai_instrument_assistant.application.ports.eda_interface import (
     StaleDesignSnapshotError,
 )
 from ai_instrument_assistant.domain.eda.models import (
+    DesignFingerprint,
     DesignDocument,
     DesignObjectKind,
     DesignObjectRef,
@@ -110,10 +111,12 @@ class EDAInterfaceTests(unittest.TestCase):
         command = HighlightCommand(
             document_ref=document_ref(),
             expected_snapshot_id=SNAPSHOT_ID,
-            expected_content_fingerprint="sha256:" + "a" * 64,
-            expected_fingerprint_scope_kind="normalized-document-projection",
-            expected_fingerprint_scope_version="1.0",
-            expected_fingerprint_scope=("document_name", "document_type"),
+            expected_fingerprint=DesignFingerprint(
+                value="sha256:" + "a" * 64,
+                scope_kind="normalized-document-projection",
+                scope_version="1.0",
+                included_paths=("document_name", "document_type"),
+            ),
             targets=(target,),
             style=HighlightStyle.ANALYSIS,
             ttl=timedelta(seconds=30),

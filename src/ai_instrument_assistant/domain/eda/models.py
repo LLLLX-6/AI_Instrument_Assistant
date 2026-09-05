@@ -32,7 +32,7 @@ class DesignObjectRef:
     snapshot_id: UUID
     native_id: str | None
     canonical_id: str
-    display_name: str
+    display_name: str | None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "provider", _non_empty(self.provider, "provider"))
@@ -46,11 +46,12 @@ class DesignObjectRef:
             "canonical_id",
             _non_empty(self.canonical_id, "canonical_id"),
         )
-        object.__setattr__(
-            self,
-            "display_name",
-            _non_empty(self.display_name, "display_name"),
-        )
+        if self.display_name is not None:
+            object.__setattr__(
+                self,
+                "display_name",
+                _non_empty(self.display_name, "display_name"),
+            )
         if self.native_id is not None:
             object.__setattr__(
                 self,
@@ -63,32 +64,57 @@ class DesignObjectRef:
 
 
 @dataclass(frozen=True, slots=True)
+class DesignFingerprint:
+    """A value plus the complete finite projection from which it was computed."""
+
+    value: str
+    scope_kind: str
+    scope_version: str
+    included_paths: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        for field_name in ("value", "scope_kind", "scope_version"):
+            object.__setattr__(
+                self,
+                field_name,
+                _non_empty(getattr(self, field_name), field_name),
+            )
+        paths = tuple(
+            _non_empty(path, "included_paths item") for path in self.included_paths
+        )
+        if not paths:
+            raise DomainInvariantError("included_paths must not be empty")
+        if len(paths) != len(set(paths)):
+            raise DomainInvariantError("included_paths must be unique")
+        object.__setattr__(self, "included_paths", paths)
+
+
+@dataclass(frozen=True, slots=True)
 class DesignDocument:
+    """A provider observation whose snapshot_id is an AIA observation token.
+
+    The token correlates one captured observation. It is not a provider revision,
+    content version, or proof that the design has not changed.
+    """
+
     document_ref: DesignObjectRef
-    project_id: str
-    project_name: str
-    document_name: str
+    project_id: str | None
+    project_name: str | None
+    document_name: str | None
     document_type: str
     native_revision: str | None
-    content_fingerprint: str
-    fingerprint_scope_kind: str
-    fingerprint_scope_version: str
-    fingerprint_scope: tuple[str, ...]
-    is_dirty: bool
+    fingerprint: DesignFingerprint | None
+    is_dirty: bool | None
     captured_at: datetime
 
     def __post_init__(self) -> None:
         if self.document_ref.object_type is not DesignObjectKind.DOCUMENT:
             raise DomainInvariantError("document_ref must reference a document")
-        for field_name in (
-            "project_id",
-            "project_name",
-            "document_name",
-            "document_type",
-            "content_fingerprint",
-            "fingerprint_scope_kind",
-            "fingerprint_scope_version",
-        ):
+        for field_name in ("project_id", "project_name", "document_name"):
+            value = getattr(self, field_name)
+            if value is not None:
+                object.__setattr__(self, field_name, _non_empty(value, field_name))
+        for field_name in ("document_type",):
             object.__setattr__(
                 self,
                 field_name,
@@ -101,18 +127,14 @@ class DesignDocument:
                 _non_empty(self.native_revision, "native_revision"),
             )
 
-        scope = tuple(
-            _non_empty(path, "fingerprint_scope item")
-            for path in self.fingerprint_scope
-        )
-        if not scope:
-            raise DomainInvariantError("fingerprint_scope must not be empty")
-        if len(scope) != len(set(scope)):
-            raise DomainInvariantError("fingerprint_scope paths must be unique")
-        object.__setattr__(self, "fingerprint_scope", scope)
-
-        if not isinstance(self.is_dirty, bool):
-            raise DomainInvariantError("is_dirty must be a boolean")
+        if self.fingerprint is not None and not isinstance(
+            self.fingerprint, DesignFingerprint
+        ):
+            raise DomainInvariantError(
+                "fingerprint must be a complete DesignFingerprint or None"
+            )
+        if self.is_dirty is not None and not isinstance(self.is_dirty, bool):
+            raise DomainInvariantError("is_dirty must be a boolean or None")
         _require_aware_datetime(self.captured_at, "captured_at")
 
     @property

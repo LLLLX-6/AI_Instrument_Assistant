@@ -71,17 +71,36 @@ class JLCEDADomainMapperTests(unittest.TestCase):
         )
 
         document = self.mapper.map_design_document(validated)
-        wire_scope = fixture.instance["fingerprint_scope"]
+        wire_fingerprint = fixture.instance["fingerprint"]
 
-        self.assertEqual(wire_scope["scope_kind"], document.fingerprint_scope_kind)
+        self.assertEqual(wire_fingerprint["value"], document.fingerprint.value)
+        self.assertEqual(wire_fingerprint["scope_kind"], document.fingerprint.scope_kind)
+        self.assertEqual(wire_fingerprint["scope_version"], document.fingerprint.scope_version)
         self.assertEqual(
-            wire_scope["scope_version"],
-            document.fingerprint_scope_version,
+            tuple(wire_fingerprint["included_paths"]),
+            document.fingerprint.included_paths,
         )
-        self.assertEqual(
-            tuple(wire_scope["included_paths"]),
-            document.fingerprint_scope,
+
+    def test_partial_provider_metadata_maps_without_fabrication(self) -> None:
+        fixture = self.valid_fixture(
+            "design-document",
+            "partial-provider-metadata.case.json",
         )
+        validated = self.validator.validate_and_freeze(
+            fixture.schema_ref,
+            fixture.instance,
+        )
+
+        document = self.mapper.map_design_document(validated)
+
+        self.assertIsNone(document.document_ref.display_name)
+        self.assertIsNone(document.project_id)
+        self.assertIsNone(document.project_name)
+        self.assertIsNone(document.document_name)
+        self.assertIsNone(document.native_revision)
+        self.assertIsNone(document.fingerprint)
+        self.assertIsNone(document.is_dirty)
+        self.assertEqual("pcb", document.document_type)
 
     def test_valid_pwm_selection_maps_to_selection_context(self) -> None:
         fixture = self.valid_fixture("selection-context", "pwm-out.case.json")

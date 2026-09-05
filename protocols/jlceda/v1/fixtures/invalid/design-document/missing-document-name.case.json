@@ -1,0 +1,24 @@
+{
+  "description": "Unknown document name must be explicit null rather than a missing field",
+  "schema_ref": "aia://protocol/jlceda/v1/models/design-document",
+  "instance": {
+    "model_version": "1.0",
+    "document_ref": {
+      "model_version": "1.0",
+      "provider": "jlceda-pro",
+      "object_type": "document",
+      "document_id": "official-document-uuid",
+      "snapshot_id": "77777777-7777-4777-8777-777777777777",
+      "native_id": "official-document-uuid",
+      "canonical_id": "jlceda-pro:document:official-document-uuid",
+      "display_name": null
+    },
+    "project_id": null,
+    "project_name": null,
+    "document_type": "schematic",
+    "native_revision": null,
+    "fingerprint": null,
+    "is_dirty": null,
+    "captured_at": "2026-09-05T10:00:00Z"
+  }
+}

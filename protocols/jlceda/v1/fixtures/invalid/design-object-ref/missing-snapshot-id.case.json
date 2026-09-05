@@ -1,0 +1,13 @@
+{
+  "description": "A design reference must always carry an AIA observation token",
+  "schema_ref": "aia://protocol/jlceda/v1/models/design-object-ref",
+  "instance": {
+    "model_version": "1.0",
+    "provider": "jlceda-pro",
+    "object_type": "document",
+    "document_id": "official-document-uuid",
+    "native_id": "official-document-uuid",
+    "canonical_id": "jlceda-pro:document:official-document-uuid",
+    "display_name": null
+  }
+}

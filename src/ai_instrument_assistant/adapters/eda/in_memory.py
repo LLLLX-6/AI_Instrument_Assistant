@@ -14,12 +14,14 @@ from ai_instrument_assistant.application.ports.eda_interface import (
     HighlightResult,
     HighlightStatus,
     NoActiveDocumentError,
+    OperationNotAllowedError,
     StaleDesignSnapshotError,
 )
 from ai_instrument_assistant.domain.eda.models import (
     CircuitEndpoint,
     CircuitNet,
     DesignDocument,
+    DesignFingerprint,
     DesignObjectKind,
     DesignObjectRef,
     DesignSelection,
@@ -95,10 +97,12 @@ class InMemoryEDAAdapter(EDAInterface):
             document_name="main_schematic",
             document_type="schematic",
             native_revision=None,
-            content_fingerprint="sha256:pwm-out-slice-v1",
-            fingerprint_scope_kind="selected_context",
-            fingerprint_scope_version="1.0",
-            fingerprint_scope=("document", "selection", "selected_nets"),
+            fingerprint=DesignFingerprint(
+                value="sha256:" + "a" * 64,
+                scope_kind="selected_context",
+                scope_version="1.0",
+                included_paths=("document", "selection", "selected_nets"),
+            ),
             is_dirty=False,
             captured_at=datetime(2026, 8, 22, 0, 0, tzinfo=timezone.utc),
         )
@@ -220,7 +224,24 @@ class InMemoryEDAAdapter(EDAInterface):
         self._active_document = replace(
             document,
             document_ref=new_document_ref,
-            content_fingerprint=content_fingerprint,
+            fingerprint=DesignFingerprint(
+                value=content_fingerprint,
+                scope_kind=(
+                    document.fingerprint.scope_kind
+                    if document.fingerprint is not None
+                    else "selected_context"
+                ),
+                scope_version=(
+                    document.fingerprint.scope_version
+                    if document.fingerprint is not None
+                    else "1.0"
+                ),
+                included_paths=(
+                    document.fingerprint.included_paths
+                    if document.fingerprint is not None
+                    else ("document", "selection", "selected_nets")
+                ),
+            ),
             captured_at=self._clock(),
         )
         self._selection_context = SelectionContext(
@@ -233,6 +254,10 @@ class InMemoryEDAAdapter(EDAInterface):
         command: HighlightCommand,
         document: DesignDocument,
     ) -> None:
+        if document.fingerprint is None:
+            raise OperationNotAllowedError(
+                "highlight strong guard unavailable: document fingerprint is unknown"
+            )
         ref = document.document_ref
         guarded_ref = command.document_ref
         if (
@@ -240,12 +265,7 @@ class InMemoryEDAAdapter(EDAInterface):
             or guarded_ref.document_id != ref.document_id
             or guarded_ref.canonical_id != ref.canonical_id
             or command.expected_snapshot_id != document.snapshot_id
-            or command.expected_content_fingerprint != document.content_fingerprint
-            or command.expected_fingerprint_scope_kind
-            != document.fingerprint_scope_kind
-            or command.expected_fingerprint_scope_version
-            != document.fingerprint_scope_version
-            or command.expected_fingerprint_scope != document.fingerprint_scope
+            or command.expected_fingerprint != document.fingerprint
         ):
             raise StaleDesignSnapshotError(
                 "highlight guard does not match the active design snapshot"

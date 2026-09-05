@@ -49,7 +49,15 @@
       "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/canonicalId"
     },
     "display_name": {
-      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/displayName"
+      "description": "Provider-supplied display name, or null when the provider does not expose one.",
+      "oneOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/displayName"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "additionalProperties": false

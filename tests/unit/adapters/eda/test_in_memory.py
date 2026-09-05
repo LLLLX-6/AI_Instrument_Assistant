@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import unittest
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -14,6 +15,7 @@ from ai_instrument_assistant.application.ports.eda_interface import (
     HighlightCommand,
     HighlightStatus,
     HighlightStyle,
+    OperationNotAllowedError,
     StaleDesignSnapshotError,
 )
 
@@ -26,13 +28,11 @@ def highlight_command(adapter: InMemoryEDAAdapter, *, key: str = "highlight-1") 
     assert document is not None
     target = adapter.selection_context.selection.primary_object
     assert target is not None
+    assert document.fingerprint is not None
     return HighlightCommand(
         document_ref=document.document_ref,
         expected_snapshot_id=document.snapshot_id,
-        expected_content_fingerprint=document.content_fingerprint,
-        expected_fingerprint_scope_kind=document.fingerprint_scope_kind,
-        expected_fingerprint_scope_version=document.fingerprint_scope_version,
-        expected_fingerprint_scope=document.fingerprint_scope,
+        expected_fingerprint=document.fingerprint,
         targets=(target,),
         style=HighlightStyle.ANALYSIS,
         ttl=timedelta(seconds=30),
@@ -55,6 +55,22 @@ class InMemoryEDAAdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(context.nets[0].source.pin_name, "PA0")
         self.assertEqual(context.nets[0].signal_expectation.frequency_hz, 10_000.0)
         self.assertEqual(context.nets[0].signal_expectation.duty_cycle.percent, 30.0)
+        self.assertIsNotNone(document.fingerprint)
+
+    async def test_highlight_rejects_document_without_strong_fingerprint_guard(self) -> None:
+        complete = InMemoryEDAAdapter.for_pwm_out_scenario(clock=lambda: NOW)
+        command = highlight_command(complete)
+        partial_document = replace(complete.active_document, fingerprint=None)
+        adapter = InMemoryEDAAdapter(
+            partial_document,
+            complete.selection_context,
+            clock=lambda: NOW,
+        )
+
+        with self.assertRaisesRegex(OperationNotAllowedError, "strong guard unavailable"):
+            await adapter.highlight(command)
+
+        self.assertEqual((), adapter.highlight_history)
 
     async def test_empty_selection_is_supported(self) -> None:
         adapter = InMemoryEDAAdapter.for_pwm_out_scenario(clock=lambda: NOW)

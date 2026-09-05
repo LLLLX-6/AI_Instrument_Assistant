@@ -18,8 +18,8 @@
     "document_name": "main_schematic",
     "document_type": "schematic",
     "native_revision": 42,
-    "content_fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    "fingerprint_scope": {
+    "fingerprint": {
+      "value": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "scope_kind": "normalized-document-projection",
       "scope_version": "1.0",
       "included_paths": ["document_name"]
