@@ -12,7 +12,9 @@ from ai_instrument_assistant.application.ports.eda_interface import (
     EDAInterface,
     HighlightCommand,
     HighlightResult,
-    HighlightStatus,
+    SubmissionStatus,
+    VerificationStatus,
+    GuardMode,
     NoActiveDocumentError,
     OperationNotAllowedError,
     StaleDesignSnapshotError,
@@ -61,7 +63,7 @@ class InMemoryEDAAdapter(EDAInterface):
         self._capabilities = capabilities
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         self._highlight_history: list[HighlightCommand] = []
-        self._idempotency_keys: set[str] = set()
+        self._highlight_results: dict[str, tuple[HighlightCommand, HighlightResult]] = {}
 
     @classmethod
     def for_pwm_out_scenario(
@@ -161,26 +163,29 @@ class InMemoryEDAAdapter(EDAInterface):
         document = self._active_document
         if document is None:
             raise NoActiveDocumentError("the in-memory EDA has no active document")
+        cached = self._highlight_results.get(command.idempotency_key)
+        if cached is not None:
+            if cached[0] != command:
+                raise OperationNotAllowedError("idempotency key command conflict")
+            return cached[1]
         self._require_current_guard(command, document)
         self._require_known_targets(command)
-
-        if command.idempotency_key in self._idempotency_keys:
-            return HighlightResult(
-                status=HighlightStatus.NOOP,
-                warnings=("idempotency key was already applied",),
-            )
 
         now = self._clock()
         if now.tzinfo is None or now.utcoffset() is None:
             raise ValueError("clock must return a timezone-aware datetime")
         expires_at = now + command.ttl if command.ttl is not None else None
-        self._idempotency_keys.add(command.idempotency_key)
         self._highlight_history.append(command)
-        return HighlightResult(
-            status=HighlightStatus.APPLIED,
-            applied_targets=command.targets,
+        result = HighlightResult(
+            submission_status=SubmissionStatus.ACCEPTED,
+            verification_status=VerificationStatus.VERIFIED_APPLIED,
+            guard_mode_used=command.guard_mode,
+            submitted_targets=command.targets,
+            verified_applied_targets=command.targets,
             expires_at=expires_at,
         )
+        self._highlight_results[command.idempotency_key] = (command, result)
+        return result
 
     def set_empty_selection(self) -> None:
         document = self._active_document
@@ -254,7 +259,9 @@ class InMemoryEDAAdapter(EDAInterface):
         command: HighlightCommand,
         document: DesignDocument,
     ) -> None:
-        if document.fingerprint is None:
+        if command.guard_mode is GuardMode.STRONG_REQUIRED and (
+            document.fingerprint is None or command.expected_fingerprint is None
+        ):
             raise OperationNotAllowedError(
                 "highlight strong guard unavailable: document fingerprint is unknown"
             )
@@ -264,8 +271,8 @@ class InMemoryEDAAdapter(EDAInterface):
             guarded_ref.provider != ref.provider
             or guarded_ref.document_id != ref.document_id
             or guarded_ref.canonical_id != ref.canonical_id
-            or command.expected_snapshot_id != document.snapshot_id
-            or command.expected_fingerprint != document.fingerprint
+            or (command.guard_mode is GuardMode.STRONG_REQUIRED
+                and command.expected_fingerprint != document.fingerprint)
         ):
             raise StaleDesignSnapshotError(
                 "highlight guard does not match the active design snapshot"

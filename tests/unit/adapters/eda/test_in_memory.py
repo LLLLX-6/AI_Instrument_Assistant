@@ -13,7 +13,8 @@ from ai_instrument_assistant.application.ports.eda_interface import (
     EDACapabilitySet,
     EDAInterface,
     HighlightCommand,
-    HighlightStatus,
+    SubmissionStatus,
+    VerificationStatus,
     HighlightStyle,
     OperationNotAllowedError,
     StaleDesignSnapshotError,
@@ -88,21 +89,20 @@ class InMemoryEDAAdapterTests(unittest.IsolatedAsyncioTestCase):
 
         result = await adapter.highlight(command)
 
-        self.assertEqual(result.status, HighlightStatus.APPLIED)
-        self.assertEqual(result.applied_targets, command.targets)
+        self.assertEqual(result.submission_status, SubmissionStatus.ACCEPTED)
+        self.assertEqual(result.verification_status, VerificationStatus.VERIFIED_APPLIED)
+        self.assertEqual(result.verified_applied_targets, command.targets)
         self.assertEqual(result.expires_at, NOW + timedelta(seconds=30))
         self.assertEqual(adapter.highlight_history, (command,))
 
-    async def test_duplicate_idempotency_key_is_noop_without_new_history(self) -> None:
+    async def test_duplicate_idempotency_key_returns_prior_result_without_new_history(self) -> None:
         adapter = InMemoryEDAAdapter.for_pwm_out_scenario(clock=lambda: NOW)
         command = highlight_command(adapter)
-        await adapter.highlight(command)
+        first = await adapter.highlight(command)
 
         result = await adapter.highlight(command)
 
-        self.assertEqual(result.status, HighlightStatus.NOOP)
-        self.assertEqual(result.applied_targets, ())
-        self.assertTrue(result.warnings)
+        self.assertEqual(first, result)
         self.assertEqual(adapter.highlight_history, (command,))
 
     async def test_stale_highlight_has_no_side_effects(self) -> None:

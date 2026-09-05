@@ -22,15 +22,33 @@ class EDACapability(StrEnum):
 
 
 class HighlightStyle(StrEnum):
+    PROVIDER_DEFAULT = "provider_default"
     ANALYSIS = "analysis"
     INFORMATION = "information"
     WARNING = "warning"
     ERROR = "error"
 
 
-class HighlightStatus(StrEnum):
-    APPLIED = "applied"
-    NOOP = "noop"
+class SubmissionStatus(StrEnum):
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+    INDETERMINATE = "indeterminate"
+
+
+class VerificationStatus(StrEnum):
+    UNVERIFIED = "unverified"
+    VERIFIED_APPLIED = "verified_applied"
+    VERIFIED_NOT_APPLIED = "verified_not_applied"
+
+
+class GuardMode(StrEnum):
+    STRONG_REQUIRED = "strong_required"
+    WEAK_IDENTITY_CHECK = "weak_identity_check"
+
+
+class ScopeExpansion(StrEnum):
+    NONE = "none"
+    WIRE_TO_NET = "wire_to_net"
 
 
 class EDAInterfaceError(RuntimeError):
@@ -81,21 +99,23 @@ class EDAProtocolError(EDAInterfaceError):
 class HighlightCommand:
     document_ref: DesignObjectRef
     expected_snapshot_id: UUID
-    expected_fingerprint: DesignFingerprint
     targets: tuple[DesignObjectRef, ...]
-    style: HighlightStyle
-    ttl: timedelta | None
-    replace_existing: bool
     idempotency_key: str
+    expected_fingerprint: DesignFingerprint | None = None
+    guard_mode: GuardMode = GuardMode.STRONG_REQUIRED
+    allow_scope_expansion: bool = False
+    style: HighlightStyle = HighlightStyle.PROVIDER_DEFAULT
+    ttl: timedelta | None = None
+    replace_existing: bool | None = None
 
     def __post_init__(self) -> None:
         if self.document_ref.object_type is not DesignObjectKind.DOCUMENT:
             raise ValueError("document_ref must reference a document")
         if self.expected_snapshot_id != self.document_ref.snapshot_id:
             raise ValueError("expected snapshot must match document_ref")
-        if not isinstance(self.expected_fingerprint, DesignFingerprint):
+        if self.expected_fingerprint is not None and not isinstance(self.expected_fingerprint, DesignFingerprint):
             raise ValueError(
-                "expected_fingerprint must provide a complete strong stale guard"
+                "expected_fingerprint must be complete or None"
             )
         for field_name in ("idempotency_key",):
             value = getattr(self, field_name)
@@ -124,29 +144,57 @@ class HighlightCommand:
         if self.ttl is not None:
             if not isinstance(self.ttl, timedelta) or self.ttl.total_seconds() <= 0:
                 raise ValueError("ttl must be a positive timedelta")
-        if not isinstance(self.replace_existing, bool):
+        if not isinstance(self.guard_mode, GuardMode):
+            raise ValueError("guard_mode must be a GuardMode")
+        if not isinstance(self.allow_scope_expansion, bool):
+            raise ValueError("allow_scope_expansion must be boolean")
+        if len(targets) != len(set(targets)):
+            raise ValueError("targets must be unique")
+        if self.replace_existing is not None and not isinstance(self.replace_existing, bool):
             raise ValueError("replace_existing must be a boolean")
 
 
 @dataclass(frozen=True, slots=True)
 class HighlightResult:
-    status: HighlightStatus
-    applied_targets: tuple[DesignObjectRef, ...] = ()
+    """Accepted cross-probe is not verified visible application.
+
+    Indeterminate outcomes must never trigger automatic replay.
+    """
+    submission_status: SubmissionStatus
+    verification_status: VerificationStatus
+    guard_mode_used: GuardMode
+    submitted_targets: tuple[DesignObjectRef, ...] = ()
+    verified_applied_targets: tuple[DesignObjectRef, ...] = ()
+    scope_expansion: ScopeExpansion = ScopeExpansion.NONE
     warnings: tuple[str, ...] = ()
     expires_at: datetime | None = None
 
     def __post_init__(self) -> None:
-        if not isinstance(self.status, HighlightStatus):
-            raise ValueError("status must be a HighlightStatus")
-        targets = tuple(self.applied_targets)
-        if not all(isinstance(target, DesignObjectRef) for target in targets):
-            raise ValueError("applied_targets must contain DesignObjectRef values")
-        if self.status is HighlightStatus.APPLIED and not targets:
-            raise ValueError("an applied result must contain applied targets")
-        if self.status is HighlightStatus.NOOP and targets:
-            raise ValueError("a noop result cannot contain applied targets")
-        object.__setattr__(self, "applied_targets", targets)
-
+        for name, enum in (
+            ("submission_status", SubmissionStatus),
+            ("verification_status", VerificationStatus),
+            ("guard_mode_used", GuardMode),
+            ("scope_expansion", ScopeExpansion),
+        ):
+            if not isinstance(getattr(self, name), enum):
+                raise ValueError(f"{name} must be {enum.__name__}")
+        for name in ("submitted_targets", "verified_applied_targets"):
+            targets = tuple(getattr(self, name))
+            if not all(isinstance(target, DesignObjectRef) for target in targets):
+                raise ValueError(f"{name} must contain DesignObjectRef")
+            if len(targets) != len(set(targets)):
+                raise ValueError(f"{name} must be unique")
+            object.__setattr__(self, name, targets)
+        verified = self.verified_applied_targets
+        if self.verification_status is VerificationStatus.VERIFIED_APPLIED:
+            if not verified:
+                raise ValueError("verified applied requires evidenced targets")
+        elif verified:
+            raise ValueError("unverified or not-applied cannot claim applied targets")
+        if not set(verified).issubset(self.submitted_targets):
+            raise ValueError("verified targets must belong to submitted targets")
+        if self.submission_status is SubmissionStatus.ACCEPTED and not self.submitted_targets:
+            raise ValueError("accepted submission requires submitted targets")
         warnings = tuple(self.warnings)
         if not all(isinstance(warning, str) and warning.strip() for warning in warnings):
             raise ValueError("warnings must contain non-empty strings")
@@ -157,14 +205,6 @@ class HighlightResult:
             or self.expires_at.utcoffset() is None
         ):
             raise ValueError("expires_at must be timezone-aware")
-
-    @property
-    def applied(self) -> bool:
-        return self.status is HighlightStatus.APPLIED
-
-    @property
-    def noop(self) -> bool:
-        return self.status is HighlightStatus.NOOP
 
 
 @dataclass(frozen=True, slots=True)

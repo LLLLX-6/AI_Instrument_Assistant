@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/models/highlight-result",
+  "type": "object",
+  "required": [
+    "model_version",
+    "submission_status",
+    "verification_status",
+    "submitted_targets",
+    "verified_applied_targets",
+    "guard_mode_used",
+    "scope_expansion",
+    "warnings",
+    "expires_at"
+  ],
+  "properties": {
+    "model_version": {
+      "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/modelVersion"
+    },
+    "submission_status": {
+      "enum": [
+        "accepted",
+        "rejected",
+        "indeterminate"
+      ]
+    },
+    "verification_status": {
+      "enum": [
+        "unverified",
+        "verified_applied",
+        "verified_not_applied"
+      ]
+    },
+    "submitted_targets": {
+      "type": "array",
+      "maxItems": 128,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "aia://protocol/jlceda/v1/models/design-object-ref"
+      }
+    },
+    "verified_applied_targets": {
+      "type": "array",
+      "maxItems": 128,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "aia://protocol/jlceda/v1/models/design-object-ref"
+      }
+    },
+    "guard_mode_used": {
+      "enum": [
+        "strong_required",
+        "weak_identity_check"
+      ]
+    },
+    "scope_expansion": {
+      "enum": [
+        "none",
+        "wire_to_net"
+      ]
+    },
+    "warnings": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      }
+    },
+    "expires_at": {
+      "oneOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/utcTimestamp"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "verification_status": {
+            "const": "verified_applied"
+          }
+        },
+        "required": [
+          "verification_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "verified_applied_targets": {
+            "type": "array",
+            "minItems": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "verified_applied_targets": {
+            "type": "array",
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "submission_status": {
+            "const": "accepted"
+          }
+        },
+        "required": [
+          "submission_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "submitted_targets": {
+            "type": "array",
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

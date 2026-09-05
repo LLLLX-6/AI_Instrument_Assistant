@@ -16,7 +16,9 @@ from ai_instrument_assistant.application.ports.eda_interface import (
     InconsistentDesignObservationError,
     HighlightCommand,
     HighlightResult,
-    HighlightStatus,
+    SubmissionStatus,
+    VerificationStatus,
+    GuardMode,
     HighlightStyle,
     NoActiveDocumentError,
     OperationNotAllowedError,
@@ -129,17 +131,14 @@ class EDAInterfaceTests(unittest.TestCase):
         self.assertEqual((target,), command.targets)
         self.assertEqual(30, command.ttl.total_seconds())
 
-    def test_highlight_result_distinguishes_applied_and_noop(self) -> None:
-        applied = HighlightResult(
-            status=HighlightStatus.APPLIED,
-            applied_targets=(net_ref(),),
+    def test_highlight_result_distinguishes_submission_and_verification(self) -> None:
+        result = HighlightResult(
+            submission_status=SubmissionStatus.ACCEPTED,
+            verification_status=VerificationStatus.UNVERIFIED,
+            guard_mode_used=GuardMode.WEAK_IDENTITY_CHECK,
+            submitted_targets=(net_ref(),),
         )
-        noop = HighlightResult(status=HighlightStatus.NOOP)
-
-        self.assertTrue(applied.applied)
-        self.assertFalse(applied.noop)
-        self.assertTrue(noop.noop)
-        self.assertEqual((), noop.applied_targets)
+        self.assertEqual((), result.verified_applied_targets)
 
     def test_interface_errors_are_provider_neutral_categories(self) -> None:
         for error_type in (
