@@ -1,3 +1,5 @@
+import { HighlightPreflightError, type HighlightCommandDto, type HighlightExecutionContext } from './highlight-contract.ts';
+
 const MAX_TEXT_LENGTH = 512;
 const MAX_SELECTION_OBJECTS = 128;
 const DOCUMENT_SHAPE_KEYS = new Set([
@@ -52,7 +54,7 @@ export interface CurrentSelectionDto {
 }
 
 export interface HighlightSelectionResultDto {
-  readonly status: 'applied' | 'noop';
+  readonly status: 'accepted' | 'rejected';
   readonly componentCount: number;
   readonly pinCount: number;
   readonly netCount: number;
@@ -72,6 +74,8 @@ export interface RuntimeDiagnosticsDto {
 }
 
 export interface JlcEdaRuntimeBoundary {
+  readonly sch_PrimitiveWire?: Partial<Pick<SCH_PrimitiveWire, 'get' | 'getAll'>>;
+  readonly sch_PrimitiveComponent?: Partial<Pick<SCH_PrimitiveComponent, 'get' | 'getAll'>>;
   readonly dmt_SelectControl?: Partial<
     Pick<DMT_SelectControl, 'getCurrentDocumentInfo'>
   >;
@@ -203,7 +207,13 @@ export class JlcEdaApiAdapter {
     }
   }
 
-  async highlightSelection(): Promise<HighlightSelectionResultDto> {
+  highlightSelection(): Promise<HighlightSelectionResultDto>;
+  highlightSelection(command: HighlightCommandDto, context: HighlightExecutionContext): Promise<Readonly<Record<string, unknown>>>;
+  async highlightSelection(
+    command?: HighlightCommandDto,
+    context?: HighlightExecutionContext,
+  ): Promise<HighlightSelectionResultDto | Readonly<Record<string, unknown>>> {
+    if (command !== undefined) return this.#highlightCommand(command, context);
     const operation = 'sch_SelectControl.doCrossProbeSelect';
     const control = this.#runtime.sch_SelectControl;
     if (typeof control?.doCrossProbeSelect !== 'function') {
@@ -229,7 +239,7 @@ export class JlcEdaApiAdapter {
     const pins: string[] = [];
     if (components.length === 0 && pins.length === 0 && nets.length === 0) {
       return Object.freeze({
-        status: 'noop' as const,
+        status: 'rejected' as const,
         componentCount: 0,
         pinCount: 0,
         netCount: 0,
@@ -248,7 +258,7 @@ export class JlcEdaApiAdapter {
     }
     if (!selectionCleared) {
       return Object.freeze({
-        status: 'noop' as const,
+        status: 'rejected' as const,
         componentCount: components.length,
         pinCount: pins.length,
         netCount: nets.length,
@@ -272,7 +282,7 @@ export class JlcEdaApiAdapter {
           selection.objects.map((object) => object.primitiveId),
         );
         return Object.freeze({
-          status: 'noop' as const,
+          status: 'rejected' as const,
           componentCount: components.length,
           pinCount: pins.length,
           netCount: nets.length,
@@ -285,7 +295,7 @@ export class JlcEdaApiAdapter {
         });
       }
       return Object.freeze({
-        status: 'applied' as const,
+        status: 'accepted' as const,
         componentCount: components.length,
         pinCount: pins.length,
         netCount: nets.length,
@@ -301,6 +311,128 @@ export class JlcEdaApiAdapter {
       );
       throw apiCallError(operation, error);
     }
+  }
+
+
+  async #highlightCommand(
+    command: HighlightCommandDto,
+    context: HighlightExecutionContext | undefined,
+  ): Promise<Readonly<Record<string, unknown>>> {
+    const requireLive = (): void => {
+      if (context?.isActive() !== true) throw new HighlightPreflightError('session_invalid');
+    };
+    requireLive();
+    if (command.guard_mode === 'strong_required') {
+      throw new HighlightPreflightError('strong_guard_unavailable');
+    }
+    if (command.ttl_ms !== null || command.style !== 'provider_default'
+      || command.replace_existing !== null) {
+      throw new HighlightPreflightError('presentation_unsupported');
+    }
+    const control = this.#runtime.sch_SelectControl;
+    if (typeof control?.doCrossProbeSelect !== 'function') {
+      throw new HighlightPreflightError('capability_unsupported');
+    }
+    const requireDocument = async (): Promise<void> => {
+      const observed = await this.readCurrentDocument();
+      requireLive();
+      if (observed.document === null) throw new HighlightPreflightError('no_active_document');
+      if (observed.document.provider !== command.document_ref.provider
+        || observed.document.documentId !== command.document_ref.document_id
+        || command.document_ref.native_id !== observed.document.documentId) {
+        throw new HighlightPreflightError('stale_design_snapshot');
+      }
+      if (observed.document.documentType !== 'schematic') {
+        throw new HighlightPreflightError('unsupported_target');
+      }
+    };
+    const components: string[] = [];
+    const nets: string[] = [];
+    let expansion = false;
+    await requireDocument();
+    for (const target of command.targets) {
+      requireLive();
+      if (target.provider !== command.document_ref.provider
+        || target.document_id !== command.document_ref.document_id
+        || target.snapshot_id !== command.expected_snapshot_id
+        || command.document_ref.snapshot_id !== command.expected_snapshot_id) {
+        throw new HighlightPreflightError('stale_design_snapshot');
+      }
+      if (target.object_type === 'wire') {
+        const api = this.#runtime.sch_PrimitiveWire;
+        if (typeof api?.get !== 'function') throw new HighlightPreflightError('capability_unsupported');
+        if (target.native_id === null) throw new HighlightPreflightError('object_not_found');
+        const wire = await api.get(target.native_id);
+        if (wire === undefined) throw new HighlightPreflightError('object_not_found');
+        if (wire.getState_PrimitiveType() !== 'Wire') throw new HighlightPreflightError('ambiguous_target');
+        const name = exactSemanticText(wire.getState_Net());
+        if (name === null) throw new HighlightPreflightError('unsupported_target');
+        if (!command.allow_scope_expansion) throw new HighlightPreflightError('scope_expansion_required');
+        nets.push(name);
+        expansion = true;
+      }
+      else if (target.object_type === 'component') {
+        const api = this.#runtime.sch_PrimitiveComponent;
+        if (typeof api?.get !== 'function' || typeof api.getAll !== 'function') {
+          throw new HighlightPreflightError('capability_unsupported');
+        }
+        if (target.native_id === null) throw new HighlightPreflightError('object_not_found');
+        const component = await api.get(target.native_id);
+        if (component === undefined) throw new HighlightPreflightError('object_not_found');
+        if (component.getState_PrimitiveType() !== 'Component') throw new HighlightPreflightError('ambiguous_target');
+        const name = exactSemanticText(component.getState_Designator());
+        if (name === null) throw new HighlightPreflightError('unsupported_target');
+        const all = await api.getAll(undefined, true);
+        if (all.length > 4096) throw new HighlightPreflightError('ambiguous_target');
+        const matching = all.filter((item) => item.getState_Designator() === name);
+        if (matching.length !== 1) throw new HighlightPreflightError('ambiguous_target');
+        components.push(name);
+      }
+      else if (target.object_type === 'net') {
+        const name = exactSemanticText(target.display_name);
+        if (name === null) throw new HighlightPreflightError('unsupported_target');
+        const api = this.#runtime.sch_PrimitiveWire;
+        if (typeof api?.getAll !== 'function') throw new HighlightPreflightError('capability_unsupported');
+        const wires = await api.getAll(name);
+        if (wires.length === 0) throw new HighlightPreflightError('object_not_found');
+        if (wires.length > 4096 || wires.some((wire) => wire.getState_Net() !== name)) {
+          throw new HighlightPreflightError('ambiguous_target');
+        }
+        nets.push(name);
+      }
+      else throw new HighlightPreflightError('unsupported_target');
+    }
+    await requireDocument();
+    requireLive();
+    let submission: 'accepted' | 'rejected' | 'indeterminate';
+    try {
+      // No await between the last liveness check and provider invocation.
+      console.info('[AI Instrument Assistant] guarded cross-probe invocation');
+      const accepted = await control.doCrossProbeSelect(
+        [...new Set(components)], [], [...new Set(nets)], true, false,
+      );
+      submission = accepted === true ? 'accepted' : accepted === false ? 'rejected' : 'indeterminate';
+    }
+    catch {
+      submission = 'indeterminate';
+    }
+    if (context?.isActive() !== true) submission = 'indeterminate';
+    return Object.freeze({
+      model_version: '1.0',
+      submission_status: submission,
+      verification_status: 'unverified',
+      submitted_targets: command.targets,
+      verified_applied_targets: Object.freeze([]),
+      guard_mode_used: command.guard_mode,
+      scope_expansion: expansion ? 'wire_to_net' : 'none',
+      warnings: Object.freeze([
+        'Weak identity checks do not provide strong stale protection.',
+        submission === 'rejected' ? 'provider_rejected'
+          : submission === 'indeterminate' ? 'Outcome unknown; do not replay automatically.'
+            : 'Provider accepted cross-probe; visible rendering is unverified.',
+      ]),
+      expires_at: null,
+    });
   }
 
   readRuntimeDiagnostics(): RuntimeDiagnosticsDto {
@@ -649,4 +781,9 @@ function safeEnvironmentBoolean(
   catch {
     return false;
   }
+}
+function exactSemanticText(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim() || value.length > 512) return null;
+  // Routing keys must never be truncated into a different target.
+  return value;
 }

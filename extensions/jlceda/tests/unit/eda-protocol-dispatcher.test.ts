@@ -235,7 +235,7 @@ test('static dispatcher rejects every operation outside the allowlist', async ()
     },
   });
 
-  const outcome = await dispatcher.dispatch({ operation: 'eda.view.highlight' });
+  const outcome = await dispatcher.dispatch({ operation: 'eda.design.modify' });
 
   assert.equal(outcome.status, 'error');
   assert.equal(outcome.error?.code, 'operation_not_allowed');

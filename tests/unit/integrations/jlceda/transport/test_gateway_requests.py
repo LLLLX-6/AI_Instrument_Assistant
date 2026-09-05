@@ -82,6 +82,29 @@ class GatewayBusinessRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(request["message_id"], response["reply_to_message_id"])
         await socket.close()
 
+    async def test_highlight_correlates_and_rejects_duplicate_response(self) -> None:
+        socket, session_id = await self._authenticated_socket()
+        fixture_root = PROTOCOL_ROOT / "fixtures/valid/highlight"
+        command = json.loads((fixture_root / "request.case.json").read_text())["instance"]["payload"]
+        task = asyncio.create_task(self.gateway.request("eda.view.highlight", command, timeout=1))
+        request = json.loads(await socket.recv())
+        response = json.loads((fixture_root / "response.case.json").read_text())["instance"]
+        response.update(session_id=session_id, reply_to_message_id=request["message_id"], trace_id=request["trace_id"])
+        await socket.send(json.dumps(response))
+        self.assertEqual(response, await task)
+        await socket.send(json.dumps(response))
+        with self.assertRaises(ConnectionClosed):
+            await socket.recv()
+
+    async def test_highlight_disconnect_after_delivery_preserves_lost_connection(self) -> None:
+        socket, _ = await self._authenticated_socket()
+        command = json.loads((PROTOCOL_ROOT / "fixtures/valid/highlight/request.case.json").read_text())["instance"]["payload"]
+        task = asyncio.create_task(self.gateway.request("eda.view.highlight", command, timeout=1))
+        await socket.recv()
+        await socket.close()
+        with self.assertRaises(JLCEDAConnectionLostError):
+            await task
+
     async def test_timeout_removes_pending_request(self) -> None:
         socket, _ = await self._authenticated_socket()
         task = asyncio.create_task(
@@ -148,7 +171,7 @@ class GatewayBusinessRequestTests(unittest.IsolatedAsyncioTestCase):
     async def test_unknown_outbound_operation_is_rejected_before_send(self) -> None:
         socket, _ = await self._authenticated_socket()
         with self.assertRaises(JLCEDAProtocolError):
-            await self.gateway.request("eda.view.highlight", {}, timeout=1)
+            await self.gateway.request("eda.design.modify", {}, timeout=1)
         await socket.close()
 
     async def _authenticated_socket(self) -> tuple[ClientConnection, str]:

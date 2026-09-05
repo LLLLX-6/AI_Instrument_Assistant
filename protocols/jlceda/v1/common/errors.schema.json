@@ -5,7 +5,10 @@
   "$defs": {
     "edaOperationError": {
       "type": "object",
-      "required": ["code", "message"],
+      "required": [
+        "code",
+        "message"
+      ],
       "properties": {
         "code": {
           "type": "string",
@@ -15,7 +18,17 @@
             "no_active_document",
             "operation_not_allowed",
             "provider_error",
-            "internal_error"
+            "internal_error",
+            "strong_guard_unavailable",
+            "stale_design_snapshot",
+            "object_not_found",
+            "unsupported_target",
+            "ambiguous_target",
+            "scope_expansion_required",
+            "presentation_unsupported",
+            "idempotency_conflict",
+            "idempotency_capacity_exceeded",
+            "session_invalid"
           ]
         },
         "message": {

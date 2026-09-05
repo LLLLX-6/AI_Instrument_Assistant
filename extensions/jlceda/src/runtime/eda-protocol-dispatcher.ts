@@ -1,3 +1,5 @@
+import { ProtocolMessageValidator } from '../protocol/protocol-message-validator.ts';
+import { HighlightPreflightError, type HighlightCommandDto, type HighlightExecutionContext } from './highlight-contract.ts';
 import {
   JlcEdaApiCallError,
   JlcEdaCapabilityUnavailableError,
@@ -14,7 +16,10 @@ export type EdaOperationErrorCode =
   | 'no_active_document'
   | 'operation_not_allowed'
   | 'provider_error'
-  | 'internal_error';
+  | 'internal_error' | 'strong_guard_unavailable' | 'stale_design_snapshot'
+  | 'object_not_found' | 'unsupported_target' | 'ambiguous_target'
+  | 'scope_expansion_required' | 'presentation_unsupported' | 'session_invalid'
+  | 'idempotency_conflict' | 'idempotency_capacity_exceeded';
 
 export interface DispatchError {
   readonly code: EdaOperationErrorCode;
@@ -35,6 +40,7 @@ export type DispatchOutcome =
 
 export interface EdaObservationReader {
   readCurrentDocument(): Promise<CurrentDocumentReadDto>;
+  highlightSelection?(command: HighlightCommandDto, context: HighlightExecutionContext): Promise<Readonly<Record<string, unknown>>>;
   readCurrentSelection?(): Promise<CurrentSelectionDto>;
 }
 
@@ -49,6 +55,8 @@ const defaultEnvironment: DispatcherEnvironment = {
 };
 
 export class EdaProtocolDispatcher {
+  readonly #validator = new ProtocolMessageValidator();
+  readonly #highlights = new Map<string, { canonical: string; outcome: Promise<DispatchOutcome> }>();
   readonly #api: EdaObservationReader;
   readonly #environment: DispatcherEnvironment;
 
@@ -62,7 +70,11 @@ export class EdaProtocolDispatcher {
 
   async dispatch(
     request: Readonly<Record<string, unknown>>,
+    execution?: HighlightExecutionContext,
   ): Promise<DispatchOutcome> {
+    if (request.operation === 'eda.view.highlight') {
+      return this.#highlight(request, execution);
+    }
     if (request.operation === 'eda.document.get_active') {
       return this.#getActiveDocument();
     }
@@ -71,8 +83,39 @@ export class EdaProtocolDispatcher {
     }
     return errorOutcome(
       'operation_not_allowed',
-      'Operation is not present in the Phase 5B.3b static allowlist.',
+      'Operation is not present in the Phase 5B.4b static allowlist.',
     );
+  }
+
+  async #highlight(request: Readonly<Record<string, unknown>>, execution?: HighlightExecutionContext): Promise<DispatchOutcome> {
+    try { this.#validator.validate(request); }
+    catch { return errorOutcome('operation_not_allowed', 'Invalid highlight request.'); }
+    if (execution?.isActive() !== true) return errorOutcome('session_invalid', 'Session is inactive.');
+    const command = structuredClone((request.payload as { command: HighlightCommandDto }).command);
+    const canonical = canonicalJson(command);
+    const existing = this.#highlights.get(command.idempotency_key);
+    if (existing !== undefined) {
+      return existing.canonical === canonical ? existing.outcome
+        : errorOutcome('idempotency_conflict', 'Key already belongs to another command.');
+    }
+    if (this.#highlights.size >= 1024) return errorOutcome('idempotency_capacity_exceeded', 'Highlight ledger is full; no request was executed.');
+    const deadline = Date.now() + 5000;
+    const outcome: Promise<DispatchOutcome> = Promise.resolve().then(async () => {
+      try {
+        if (typeof this.#api.highlightSelection !== 'function') return errorOutcome('capability_unsupported', 'Highlight API unavailable.');
+        const result = await this.#api.highlightSelection(command, {
+          isActive: () => execution.isActive() && Date.now() < deadline,
+        });
+        return { status: 'success', payload: { result } };
+      }
+      catch (error) {
+        if (error instanceof HighlightPreflightError) return errorOutcome(error.code as EdaOperationErrorCode, error.code);
+        if (error instanceof JlcEdaCapabilityUnavailableError) return errorOutcome('capability_unsupported', 'Required read-only API unavailable.');
+        return errorOutcome('provider_error', 'Highlight preflight failed.');
+      }
+    });
+    this.#highlights.set(command.idempotency_key, { canonical, outcome });
+    return outcome;
   }
 
   async #getActiveDocument(): Promise<DispatchOutcome> {
@@ -301,4 +344,13 @@ function errorOutcome(
     status: 'error' as const,
     error: Object.freeze({ code, message }),
   });
+}
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return '[' + value.map(canonicalJson).join(',') + ']';
+  if (value !== null && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return '{' + Object.keys(record).sort().map(key => JSON.stringify(key) + ':' + canonicalJson(record[key])).join(',') + '}';
+  }
+  return JSON.stringify(value) ?? 'null';
 }

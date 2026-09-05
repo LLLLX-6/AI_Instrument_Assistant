@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
@@ -239,3 +240,49 @@ function emptySelectionContext(): Record<string, unknown> {
     nets: [],
   };
 }
+test('highlight rejects pre-auth, old-session and malformed commands before dispatcher invocation', async () => {
+  const fixture = JSON.parse(readFileSync(new URL('../../../../protocols/jlceda/v1/fixtures/valid/highlight/request.case.json', import.meta.url), 'utf8')).instance;
+  for (const mode of ['preauth', 'old', 'malformed']) {
+    const transport = new FakeTransport();
+    let count = 0;
+    const client = new JlcEdaProtocolClient({
+      transport, validator: new ProtocolMessageValidator(), serviceUri: 'ws://127.0.0.1:49624', secret: SECRET,
+      autoHeartbeat: false, connectTimeoutMs: 60_000, reconnectDelaysMs: [],
+      requestDispatcher: { async dispatch() { count += 1; return { status: 'error', error: { code: 'internal_error', message: 'no' } }; } },
+    });
+    const req = structuredClone(fixture);
+    if (mode === 'preauth') { client.start(); await transport.connect(); }
+    else {
+      const session = await authenticate(client, transport);
+      if (mode === 'malformed') { req.session_id = session; req.payload.command.javascript = 'forbidden'; }
+    }
+    await transport.receive(req);
+    assert.equal(count, 0);
+    client.stop();
+  }
+});
+test('highlight execution context expires across disconnect and old result is never delivered', async () => {
+  const fixture = JSON.parse(readFileSync(new URL('../../../../protocols/jlceda/v1/fixtures/valid/highlight/request.case.json', import.meta.url), 'utf8')).instance;
+  const transport = new FakeTransport();
+  let release: (() => void) | undefined;
+  let check: (() => boolean) | undefined;
+  const client = new JlcEdaProtocolClient({
+    transport, validator: new ProtocolMessageValidator(), serviceUri: 'ws://127.0.0.1:49624', secret: SECRET,
+    autoHeartbeat: false, connectTimeoutMs: 60_000,
+    requestDispatcher: { async dispatch(_request, execution) {
+      check = execution!.isActive;
+      assert.equal(check(), true);
+      await new Promise<void>(resolve => { release = resolve; });
+      return { status: 'error', error: { code: 'session_invalid', message: 'lost' } };
+    }},
+  });
+  fixture.session_id = await authenticate(client, transport);
+  const before = transport.sent.length;
+  const pending = transport.receive(fixture);
+  await Promise.resolve();
+  client.stop();
+  assert.equal(check!(), false);
+  release!();
+  await pending;
+  assert.equal(transport.sent.length, before);
+});

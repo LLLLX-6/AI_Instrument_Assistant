@@ -79,6 +79,13 @@ class OperationNotAllowedError(EDAInterfaceError):
     """Policy or current EDA state does not allow the requested operation."""
 
 
+class HighlightRejectedError(OperationNotAllowedError):
+    """Structured rejection before provider invocation."""
+    def __init__(self, code: str) -> None:
+        self.code = code
+        super().__init__(code)
+
+
 class EDANotConnectedError(EDAInterfaceError):
     """No authenticated EDA integration session is currently available."""
 
@@ -245,4 +252,4 @@ class EDAInterface(ABC):
 
     @abstractmethod
     async def highlight(self, command: HighlightCommand) -> HighlightResult:
-        """Apply a guarded semantic highlight command to the EDA view."""
+        """Submit a guarded view command; acceptance does not prove a visible effect."""

@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/messages/eda-highlight",
+  "$defs": {
+    "request": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields"
+        },
+        {
+          "required": [
+            "session_id",
+            "kind",
+            "operation",
+            "payload"
+          ],
+          "properties": {
+            "session_id": {
+              "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/sessionId"
+            },
+            "kind": {
+              "const": "request"
+            },
+            "operation": {
+              "const": "eda.view.highlight"
+            },
+            "payload": {
+              "type": "object",
+              "required": [
+                "command"
+              ],
+              "properties": {
+                "command": {
+                  "$ref": "aia://protocol/jlceda/v1/models/highlight-command"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "response": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields"
+        },
+        {
+          "required": [
+            "session_id",
+            "kind",
+            "operation",
+            "reply_to_message_id",
+            "status",
+            "payload"
+          ],
+          "properties": {
+            "session_id": {
+              "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/sessionId"
+            },
+            "kind": {
+              "const": "response"
+            },
+            "operation": {
+              "const": "eda.view.highlight"
+            },
+            "reply_to_message_id": {
+              "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/messageId"
+            },
+            "status": {
+              "const": "success"
+            },
+            "payload": {
+              "type": "object",
+              "required": [
+                "result"
+              ],
+              "properties": {
+                "result": {
+                  "$ref": "aia://protocol/jlceda/v1/models/highlight-result"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "error": {
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields"
+        },
+        {
+          "required": [
+            "session_id",
+            "kind",
+            "operation",
+            "reply_to_message_id",
+            "status",
+            "error"
+          ],
+          "properties": {
+            "session_id": {
+              "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/sessionId"
+            },
+            "kind": {
+              "const": "response"
+            },
+            "operation": {
+              "const": "eda.view.highlight"
+            },
+            "reply_to_message_id": {
+              "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/messageId"
+            },
+            "status": {
+              "const": "error"
+            },
+            "error": {
+              "$ref": "aia://protocol/jlceda/v1/common/errors#/$defs/edaOperationError"
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

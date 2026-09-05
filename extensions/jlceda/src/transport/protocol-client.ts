@@ -69,6 +69,7 @@ export interface ProtocolDispatchOutcome {
 export interface ProtocolRequestDispatcher {
   dispatch(
     request: Readonly<Record<string, unknown>>,
+    execution?: { isActive(): boolean },
   ): Promise<ProtocolDispatchOutcome>;
 }
 
@@ -470,7 +471,9 @@ export class JlcEdaProtocolClient {
             message: 'No business operation dispatcher is configured.',
           },
         }
-      : await this.#requestDispatcher.dispatch(message);
+      : await this.#requestDispatcher.dispatch(message, {
+          isActive: () => this.#canSendAuthenticated(generation) && this.#sessionId === sessionId,
+        });
     if (
       !this.#canSendAuthenticated(generation)
       || this.#sessionId !== sessionId

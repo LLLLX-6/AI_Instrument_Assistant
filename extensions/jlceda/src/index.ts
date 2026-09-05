@@ -7,6 +7,8 @@ import { JlcEdaProtocolClient } from './transport/protocol-client.ts';
 import { JlcEdaWebSocketTransport } from './transport/jlceda-websocket-transport.ts';
 
 const api = new JlcEdaApiAdapter(eda);
+// Ledger survives transport re-authentication, but not an extension reload.
+const dispatcher = new EdaProtocolDispatcher(api);
 let protocolClient: JlcEdaProtocolClient | null = null;
 
 export function activate(status?: 'onStartupFinished', arg?: string): void {
@@ -48,14 +50,9 @@ export async function inspectSelection(): Promise<void> {
 
 export async function highlightSelection(): Promise<void> {
   await runMenuAction('Highlight Selection', async () => {
-    const result = await api.highlightSelection();
-    console.info(
-      '[AI Instrument Assistant] highlight result',
-      JSON.stringify(result),
-    );
     api.showInformation(
-      JSON.stringify(result, null, 2),
-      'AI Instrument Assistant — Highlight Result',
+      'Use scripts/highlight_jlceda_selection.py for guarded remote highlight. Local legacy highlight is disabled to avoid implicit wire-to-net expansion.',
+      'AI Instrument Assistant — Guarded Highlight',
     );
   });
 }
@@ -65,12 +62,12 @@ export function about(): void {
   api.showInformation(
     [
       `AI Instrument Assistant Extension v${extensionConfig.version}`,
-      'Phase 5B.3b: authenticated document and selection read',
+      'Phase 5B.4b: authenticated reads and guarded highlight submission',
       `Editor: ${diagnostics.editorVersion ?? 'unknown'}`,
       `Environment: ${diagnostics.environment}`,
       `Edition: ${diagnostics.edition}`,
       `Backend: ${protocolClient?.state ?? 'not configured'}`,
-      'Remote highlight, Agent, instrument, and design mutation are disabled.',
+      'Highlight acceptance is not visual verification. Agent, instruments and design mutation are disabled.',
     ].join('\n'),
     'About AI Instrument Assistant',
   );
@@ -108,7 +105,7 @@ export function configureBackendConnection(): void {
               );
             }
           },
-          requestDispatcher: new EdaProtocolDispatcher(api),
+          requestDispatcher: dispatcher,
         });
         protocolClient.start();
       }

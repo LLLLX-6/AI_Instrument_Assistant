@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import json
 from collections.abc import Mapping
 from typing import Any, Protocol
 
@@ -14,6 +16,7 @@ from ai_instrument_assistant.application.ports.eda_interface import (
     EDAProtocolError,
     EDARequestTimeoutError,
     HighlightCommand,
+    HighlightRejectedError, GuardMode, ScopeExpansion, SubmissionStatus, VerificationStatus,
     HighlightResult,
     InconsistentDesignObservationError,
     NoActiveDocumentError,
@@ -25,6 +28,7 @@ from ai_instrument_assistant.protocol.schema_validator import (
     SchemaValidator,
 )
 
+from .highlight_mapping import encode_highlight
 from .errors import (
     JLCEDAConnectionLostError,
     JLCEDAProtocolError,
@@ -67,13 +71,14 @@ class JLCEDARemoteAdapter(EDAInterface):
     ) -> None:
         if request_timeout <= 0:
             raise ValueError("request_timeout must be positive")
+        self._highlight_ledger: dict[str, tuple[str, asyncio.Task[HighlightResult]]] = {}
         self._request_client = request_client
         self._validator = validator
         self._mapper = mapper
         self._request_timeout = request_timeout
         self._capabilities = EDACapabilitySet(
             frozenset(
-                {EDACapability.DOCUMENT_READ, EDACapability.SELECTION_READ}
+                {EDACapability.DOCUMENT_READ, EDACapability.SELECTION_READ, EDACapability.VIEW_HIGHLIGHT}
             )
         )
 
@@ -149,8 +154,53 @@ class JLCEDARemoteAdapter(EDAInterface):
             raise EDAProtocolError(str(error)) from error
 
     async def highlight(self, command: HighlightCommand) -> HighlightResult:
-        del command
-        raise CapabilityUnsupportedError("view.highlight is not enabled in Phase 5B.2b")
+        wire = encode_highlight(command)
+        self._validator.validate_and_freeze("aia://protocol/jlceda/v1/models/highlight-command", wire)
+        canonical = json.dumps(wire, sort_keys=True, separators=(",", ":"))
+        existing = self._highlight_ledger.get(command.idempotency_key)
+        if existing is not None:
+            if existing[0] != canonical:
+                raise HighlightRejectedError("idempotency_conflict")
+            return await asyncio.shield(existing[1])
+        if len(self._highlight_ledger) >= 1024:
+            raise HighlightRejectedError("idempotency_capacity_exceeded")
+        task = asyncio.create_task(self._submit_highlight(command, wire))
+        task.add_done_callback(lambda done: None if done.cancelled() else done.exception())
+        self._highlight_ledger[command.idempotency_key] = (canonical, task)
+        return await asyncio.shield(task)
+
+    async def _submit_highlight(self, command: HighlightCommand, wire: object) -> HighlightResult:
+        if command.guard_mode is GuardMode.STRONG_REQUIRED:
+            raise HighlightRejectedError("strong_guard_unavailable")
+        try:
+            raw = await self._request_client.request("eda.view.highlight", {"command": wire}, timeout=self._request_timeout)
+            self._validator.validate_and_freeze(MESSAGE_SCHEMA_ID, raw)
+            response = _mapping(raw)
+            if response.get("kind") != "response" or response.get("operation") != "eda.view.highlight":
+                raise JLCEDAProtocolError("Highlight response mismatch")
+            if response.get("status") == "error":
+                raise HighlightRejectedError(str(_mapping(response["error"])["code"]))
+            result = self._mapper.map_highlight_result(self._validator.validate_and_freeze(
+                "aia://protocol/jlceda/v1/models/highlight-result", _mapping(response["payload"])["result"]))
+            if (result.submitted_targets != command.targets
+                or result.guard_mode_used != command.guard_mode
+                or result.verification_status is not VerificationStatus.UNVERIFIED
+                or result.verified_applied_targets or result.expires_at is not None
+                or (result.scope_expansion is ScopeExpansion.WIRE_TO_NET and not command.allow_scope_expansion)):
+                raise JLCEDAProtocolError("Unsupported highlight evidence")
+            return result
+        except JLCEDATransportUnavailableError as error:
+            raise EDANotConnectedError("No authenticated transport; highlight was not submitted") from error
+        except (JLCEDAConnectionLostError, JLCEDARequestTimeoutError, JLCEDAProtocolError,
+                SchemaInstanceValidationError, WireToDomainMappingError):
+            return HighlightResult(
+                submission_status=SubmissionStatus.INDETERMINATE,
+                verification_status=VerificationStatus.UNVERIFIED,
+                submitted_targets=command.targets, verified_applied_targets=(),
+                guard_mode_used=command.guard_mode, scope_expansion=ScopeExpansion.NONE,
+                warnings=("Delivery/outcome unknown; not replayed. Scope expansion is unconfirmed, not proven absent.",),
+                expires_at=None,
+            )
 
     @staticmethod
     def _raise_remote_error(error: Mapping[str, Any]) -> None:

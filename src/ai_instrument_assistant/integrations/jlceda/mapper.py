@@ -5,6 +5,9 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from ai_instrument_assistant.application.ports.eda_interface import (
+    HighlightResult, SubmissionStatus, VerificationStatus, GuardMode, ScopeExpansion,
+)
 from ai_instrument_assistant.domain.eda.errors import DomainInvariantError
 from ai_instrument_assistant.domain.eda.models import (
     CircuitEndpoint,
@@ -86,6 +89,22 @@ class JLCEDADomainMapper:
             raise WireToDomainMappingError(
                 f"Cannot map JLCEDA SelectionContext: {error}"
             ) from error
+
+    def map_highlight_result(self, payload: ValidatedInstance) -> HighlightResult:
+        wire = self._validated_mapping(payload, "aia://protocol/jlceda/v1/models/highlight-result")
+        try:
+            return HighlightResult(
+                submission_status=SubmissionStatus(wire["submission_status"]),
+                verification_status=VerificationStatus(wire["verification_status"]),
+                submitted_targets=tuple(self._map_object_ref(v) for v in wire["submitted_targets"]),
+                verified_applied_targets=tuple(self._map_object_ref(v) for v in wire["verified_applied_targets"]),
+                guard_mode_used=GuardMode(wire["guard_mode_used"]),
+                scope_expansion=ScopeExpansion(wire["scope_expansion"]),
+                warnings=tuple(wire["warnings"]),
+                expires_at=None if wire["expires_at"] is None else _timestamp(wire["expires_at"], "expires_at"),
+            )
+        except (KeyError, TypeError, ValueError, DomainInvariantError) as error:
+            raise WireToDomainMappingError("Invalid highlight result") from error
 
     @staticmethod
     def _validated_mapping(

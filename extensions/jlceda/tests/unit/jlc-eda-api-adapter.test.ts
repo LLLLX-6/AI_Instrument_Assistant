@@ -256,7 +256,7 @@ test('highlight uses the static semantic cross-probe operation', async () => {
 
   assert.deepEqual(calls, [[[], [], ['PWM_OUT'], true, false]]);
   assert.deepEqual(result, {
-    status: 'applied',
+    status: 'accepted',
     componentCount: 0,
     pinCount: 0,
     netCount: 1,
@@ -283,7 +283,7 @@ test('highlight awaits an asynchronous official result instead of treating the P
 
   const result = await adapter.highlightSelection();
 
-  assert.equal(result.status, 'noop');
+  assert.equal(result.status, 'rejected');
   assert.deepEqual(result.warnings, [
     'Official cross-probe API returned false.',
     'Original selection was restored.',
@@ -314,7 +314,7 @@ test('highlight removes the selected overlay before cross-probe rendering', asyn
 
   const result = await adapter.highlightSelection();
 
-  assert.equal(result.status, 'applied');
+  assert.equal(result.status, 'accepted');
   assert.deepEqual(events, ['clear-selection', 'apply-highlight']);
 });
 

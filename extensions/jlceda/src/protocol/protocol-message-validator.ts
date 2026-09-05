@@ -1,3 +1,6 @@
+import highlight0Schema from '../../../../protocols/jlceda/v1/models/highlight-command.schema.json' with { type: 'json' };
+import highlight1Schema from '../../../../protocols/jlceda/v1/models/highlight-result.schema.json' with { type: 'json' };
+import edaHighlightSchema from '../../../../protocols/jlceda/v1/messages/eda-highlight.schema.json' with { type: 'json' };
 import { Ajv2020 } from 'ajv/dist/2020.js';
 import type { ErrorObject, ValidateFunction } from 'ajv';
 
@@ -42,7 +45,7 @@ export class ProtocolMessageValidator {
       signalExpectationSchema, circuitNetSchema, designSelectionSchema,
       selectionContextSchema,
       handshakeSchema, heartbeatSchema, edaDocumentSchema, edaSelectionSchema,
-      messageSchema,
+      highlight0Schema, highlight1Schema, edaHighlightSchema, messageSchema,
     ]) {
       ajv.addSchema(schema);
     }
