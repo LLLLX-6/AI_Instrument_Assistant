@@ -3,11 +3,11 @@
 AI Instrument Assistant is a Python-centered electronic design and instrument
 analysis system.
 
-The repository is currently implementing JLCEDA Integration V0.2. Phase 5B.1
-provides a real JLCEDA read-only runtime boundary plus an authenticated
-localhost WebSocket transport for handshake and heartbeat. EDA business
-operations are not yet carried over that transport. Agents, LLMs, VISA, SCPI,
-EDA mutation and arbitrary JavaScript execution remain excluded.
+The repository is currently implementing JLCEDA Integration V0.2. Phase 5B.2b
+adds the first authenticated read-only vertical slice,
+`eda.document.get_active`, over the hardened localhost transport. Remote
+selection and highlight are not enabled. Agents, LLMs, VISA, SCPI, EDA mutation
+and arbitrary JavaScript execution remain excluded.
 
 ## Phase 1 test commands
 

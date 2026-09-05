@@ -2,6 +2,7 @@ import extensionConfig from '../extension.json' with { type: 'json' };
 
 import { JlcEdaApiAdapter } from './runtime/jlc-eda-api-adapter.ts';
 import { ProtocolMessageValidator } from './protocol/protocol-message-validator.ts';
+import { EdaProtocolDispatcher } from './runtime/eda-protocol-dispatcher.ts';
 import { JlcEdaProtocolClient } from './transport/protocol-client.ts';
 import { JlcEdaWebSocketTransport } from './transport/jlceda-websocket-transport.ts';
 
@@ -64,12 +65,12 @@ export function about(): void {
   api.showInformation(
     [
       `AI Instrument Assistant Extension v${extensionConfig.version}`,
-      'Phase 5B.1: authenticated localhost transport',
+      'Phase 5B.2b: authenticated active-document read',
       `Editor: ${diagnostics.editorVersion ?? 'unknown'}`,
       `Environment: ${diagnostics.environment}`,
       `Edition: ${diagnostics.edition}`,
       `Backend: ${protocolClient?.state ?? 'not configured'}`,
-      'No EDA business operations, Agent, instrument, or design mutation.',
+      'Remote selection/highlight, Agent, instrument, and design mutation are disabled.',
     ].join('\n'),
     'About AI Instrument Assistant',
   );
@@ -107,6 +108,7 @@ export function configureBackendConnection(): void {
               );
             }
           },
+          requestDispatcher: new EdaProtocolDispatcher(api),
         });
         protocolClient.start();
       }

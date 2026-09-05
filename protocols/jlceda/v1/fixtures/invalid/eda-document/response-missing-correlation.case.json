@@ -1,0 +1,19 @@
+{
+  "description": "Every business response must explicitly correlate to a request message.",
+  "schema_ref": "aia://protocol/jlceda/v1/message",
+  "instance": {
+    "protocol": "aia-jlceda",
+    "protocol_version": "1.0",
+    "message_id": "44444444-4444-4444-8444-444444444444",
+    "sent_at": "2026-09-05T08:00:00Z",
+    "trace_id": "22222222-2222-4222-8222-222222222222",
+    "session_id": "33333333-3333-4333-8333-333333333333",
+    "kind": "response",
+    "operation": "eda.document.get_active",
+    "status": "error",
+    "error": {
+      "code": "no_active_document",
+      "message": "No active design document is available."
+    }
+  }
+}

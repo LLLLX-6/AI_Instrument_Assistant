@@ -23,6 +23,15 @@ IN_MEMORY_ADAPTER_PATH = (
     / "eda"
     / "in_memory.py"
 )
+JLCEDA_GATEWAY_PATH = (
+    REPOSITORY_ROOT
+    / "src"
+    / "ai_instrument_assistant"
+    / "integrations"
+    / "jlceda"
+    / "transport"
+    / "gateway.py"
+)
 
 
 def imported_modules(path: Path) -> frozenset[str]:
@@ -84,6 +93,22 @@ class EDADependencyBoundaryTests(unittest.TestCase):
         forbidden_roots = {
             "ai_instrument_assistant.protocol",
             "ai_instrument_assistant.integrations.jlceda",
+        }
+        self.assertFalse(
+            any(
+                module in forbidden_roots
+                or any(module.startswith(root + ".") for root in forbidden_roots)
+                for module in imports
+            ),
+            imports,
+        )
+
+    def test_gateway_does_not_depend_on_domain_or_mapper(self) -> None:
+        imports = imported_modules(JLCEDA_GATEWAY_PATH)
+        forbidden_roots = {
+            "ai_instrument_assistant.domain",
+            "ai_instrument_assistant.integrations.jlceda.mapper",
+            "ai_instrument_assistant.application",
         }
         self.assertFalse(
             any(

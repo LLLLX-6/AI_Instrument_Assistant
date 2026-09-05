@@ -57,6 +57,19 @@ export interface ProtocolClientOptions {
   readonly autoHeartbeat?: boolean;
   readonly scheduler?: ProtocolClientScheduler;
   readonly onDiagnostics?: (event: ProtocolClientDiagnostics) => void;
+  readonly requestDispatcher?: ProtocolRequestDispatcher;
+}
+
+export interface ProtocolDispatchOutcome {
+  readonly status: 'success' | 'error';
+  readonly payload?: Readonly<Record<string, unknown>>;
+  readonly error?: Readonly<{ code: string; message: string }>;
+}
+
+export interface ProtocolRequestDispatcher {
+  dispatch(
+    request: Readonly<Record<string, unknown>>,
+  ): Promise<ProtocolDispatchOutcome>;
 }
 
 interface PhysicalAttempt {
@@ -93,6 +106,7 @@ export class JlcEdaProtocolClient {
   readonly #autoHeartbeat: boolean;
   readonly #scheduler: ProtocolClientScheduler;
   readonly #onDiagnostics: (event: ProtocolClientDiagnostics) => void;
+  readonly #requestDispatcher: ProtocolRequestDispatcher | null;
   #state: ProtocolClientState = 'idle';
   #attempt: PhysicalAttempt | null = null;
   #currentGeneration = 0;
@@ -139,6 +153,7 @@ export class JlcEdaProtocolClient {
     this.#autoHeartbeat = options.autoHeartbeat ?? true;
     this.#scheduler = options.scheduler ?? defaultScheduler;
     this.#onDiagnostics = options.onDiagnostics ?? (() => undefined);
+    this.#requestDispatcher = options.requestDispatcher ?? null;
   }
 
   get state(): ProtocolClientState { return this.#state; }
@@ -330,6 +345,10 @@ export class JlcEdaProtocolClient {
         this.#handlePong(message, generation);
         return;
       }
+      if (message.kind === 'request') {
+        await this.#handleBusinessRequest(message, generation);
+        return;
+      }
       throw new Error('Message direction or state is not allowed on the extension client');
     }
     catch (error) {
@@ -430,6 +449,44 @@ export class JlcEdaProtocolClient {
     this.#pendingPing = null;
     this.#emit('heartbeat_received');
     if (this.#autoHeartbeat) this.#scheduleHeartbeat(generation);
+  }
+
+  async #handleBusinessRequest(
+    message: Readonly<Record<string, unknown>>,
+    generation: number,
+  ): Promise<void> {
+    if (
+      !this.#canSendAuthenticated(generation)
+      || message.session_id !== this.#sessionId
+    ) {
+      throw new SessionInvalidError('Business request session is not active');
+    }
+    const sessionId = this.#sessionId;
+    const outcome = this.#requestDispatcher === null
+      ? {
+          status: 'error' as const,
+          error: {
+            code: 'operation_not_allowed',
+            message: 'No business operation dispatcher is configured.',
+          },
+        }
+      : await this.#requestDispatcher.dispatch(message);
+    if (
+      !this.#canSendAuthenticated(generation)
+      || this.#sessionId !== sessionId
+    ) return;
+    const common = {
+      ...baseEnvelope(String(message.trace_id)),
+      session_id: sessionId,
+      kind: 'response',
+      operation: message.operation,
+      reply_to_message_id: message.message_id,
+    };
+    const response = outcome.status === 'success'
+      ? { ...common, status: 'success', payload: outcome.payload }
+      : { ...common, status: 'error', error: outcome.error };
+    this.#validator.validate(response);
+    this.#send(response, generation);
   }
 
   #scheduleHeartbeat(generation: number): void {

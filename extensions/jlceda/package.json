@@ -1,6 +1,6 @@
 {
   "name": "@aia/jlceda-extension",
-  "version": "0.2.7-dev.0",
+  "version": "0.2.8-dev.0",
   "private": true,
   "type": "module",
   "scripts": {

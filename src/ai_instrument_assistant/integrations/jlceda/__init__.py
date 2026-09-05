@@ -6,10 +6,12 @@ from .errors import (
     WireToDomainMappingError,
 )
 from .mapper import JLCEDADomainMapper
+from .remote_adapter import JLCEDARemoteAdapter
 
 __all__ = [
     "JLCEDADomainMapper",
     "JLCEDAIntegrationError",
+    "JLCEDARemoteAdapter",
     "UnvalidatedWireDataError",
     "WireToDomainMappingError",
 ]

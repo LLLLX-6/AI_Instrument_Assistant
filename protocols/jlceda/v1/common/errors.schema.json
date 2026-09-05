@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/common/errors",
+  "title": "AIA-JLCEDA Protocol v1 Structured Errors",
+  "$defs": {
+    "edaOperationError": {
+      "type": "object",
+      "required": ["code", "message"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "capability_unsupported",
+            "no_active_document",
+            "operation_not_allowed",
+            "provider_error",
+            "internal_error"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

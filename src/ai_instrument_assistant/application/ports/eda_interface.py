@@ -57,6 +57,22 @@ class OperationNotAllowedError(EDAInterfaceError):
     """Policy or current EDA state does not allow the requested operation."""
 
 
+class EDANotConnectedError(EDAInterfaceError):
+    """No authenticated EDA integration session is currently available."""
+
+
+class EDARequestTimeoutError(EDAInterfaceError):
+    """A remote EDA operation exceeded its bounded response deadline."""
+
+
+class EDAConnectionLostError(EDAInterfaceError):
+    """The active EDA integration disconnected while an operation was pending."""
+
+
+class EDAProtocolError(EDAInterfaceError):
+    """The remote peer violated the validated/correlated protocol contract."""
+
+
 @dataclass(frozen=True, slots=True)
 class HighlightCommand:
     document_ref: DesignObjectRef

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/messages/eda-document",
+  "title": "AIA-JLCEDA Protocol v1 Active Document Operation",
+  "description": "The single authenticated Phase 5B.2b business operation. Correlation, active-session ownership, timeouts, duplicate responses, and connection generation are Protocol State Machine rules.",
+  "$defs": {
+    "getActiveRequest": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields" },
+        {
+          "required": ["session_id", "kind", "operation", "payload"],
+          "properties": {
+            "session_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/sessionId" },
+            "kind": { "const": "request" },
+            "operation": { "const": "eda.document.get_active" },
+            "payload": {
+              "type": "object",
+              "maxProperties": 0,
+              "additionalProperties": false
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "getActiveSuccessResponse": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields" },
+        {
+          "required": [
+            "session_id", "kind", "operation", "reply_to_message_id",
+            "status", "payload"
+          ],
+          "properties": {
+            "session_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/sessionId" },
+            "kind": { "const": "response" },
+            "operation": { "const": "eda.document.get_active" },
+            "reply_to_message_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/messageId" },
+            "status": { "const": "success" },
+            "payload": {
+              "type": "object",
+              "required": ["document"],
+              "properties": {
+                "document": { "$ref": "aia://protocol/jlceda/v1/models/design-document" }
+              },
+              "additionalProperties": false
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "getActiveErrorResponse": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields" },
+        {
+          "required": [
+            "session_id", "kind", "operation", "reply_to_message_id",
+            "status", "error"
+          ],
+          "properties": {
+            "session_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/sessionId" },
+            "kind": { "const": "response" },
+            "operation": { "const": "eda.document.get_active" },
+            "reply_to_message_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/messageId" },
+            "status": { "const": "error" },
+            "error": { "$ref": "aia://protocol/jlceda/v1/common/errors#/$defs/edaOperationError" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

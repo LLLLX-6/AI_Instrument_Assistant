@@ -3,7 +3,7 @@
   "uuid": "a1a5eda000024e5a9000000000000001",
   "displayName": "AI Instrument Assistant",
   "description": "Read-only EDA runtime validation for normalized instrument-analysis context.",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "publisher": "AI Instrument Assistant Project",
   "engines": {
     "eda": "^3.2.0"

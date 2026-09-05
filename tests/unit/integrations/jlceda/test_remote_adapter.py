@@ -1,0 +1,159 @@
+from __future__ import annotations
+
+import unittest
+from pathlib import Path
+from typing import Any
+
+from ai_instrument_assistant.application.ports.eda_interface import (
+    CapabilityUnsupportedError,
+    EDAConnectionLostError,
+    EDACapability,
+    EDANotConnectedError,
+    EDARequestTimeoutError,
+    NoActiveDocumentError,
+)
+from ai_instrument_assistant.integrations.jlceda.errors import (
+    JLCEDAConnectionLostError,
+    JLCEDARequestTimeoutError,
+    JLCEDATransportUnavailableError,
+)
+from ai_instrument_assistant.integrations.jlceda.mapper import JLCEDADomainMapper
+from ai_instrument_assistant.integrations.jlceda.remote_adapter import (
+    JLCEDARemoteAdapter,
+)
+from ai_instrument_assistant.protocol.schema_registry import SchemaRegistry
+from ai_instrument_assistant.protocol.schema_validator import SchemaValidator
+
+
+ROOT = Path(__file__).resolve().parents[4]
+PROTOCOL_ROOT = ROOT / "protocols" / "jlceda" / "v1"
+
+
+class StubRequestClient:
+    def __init__(self, response: object) -> None:
+        self.response = response
+        self.calls: list[tuple[str, object, float]] = []
+
+    async def request(
+        self, operation: str, payload: object, *, timeout: float
+    ) -> object:
+        self.calls.append((operation, payload, timeout))
+        if isinstance(self.response, Exception):
+            raise self.response
+        return self.response
+
+
+class JLCEDARemoteAdapterTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self) -> None:
+        self.validator = SchemaValidator(SchemaRegistry.from_directory(PROTOCOL_ROOT))
+
+    async def test_maps_valid_response_to_provider_neutral_document(self) -> None:
+        client = StubRequestClient(_success_response())
+        adapter = JLCEDARemoteAdapter(
+            request_client=client,
+            validator=self.validator,
+            mapper=JLCEDADomainMapper(),
+            request_timeout=1.25,
+        )
+
+        document = await adapter.get_active_document()
+
+        self.assertEqual("jlceda-pro", document.document_ref.provider)
+        self.assertEqual("official-document-uuid", document.document_ref.native_id)
+        self.assertIsNone(document.document_name)
+        self.assertIsNone(document.fingerprint)
+        self.assertIsNone(document.is_dirty)
+        self.assertEqual(
+            [("eda.document.get_active", {}, 1.25)], client.calls
+        )
+        self.assertTrue(adapter.capabilities.supports(EDACapability.DOCUMENT_READ))
+        self.assertFalse(adapter.capabilities.supports(EDACapability.SELECTION_READ))
+
+    async def test_maps_structured_no_document_error(self) -> None:
+        adapter = self._adapter(_error_response("no_active_document"))
+        with self.assertRaises(NoActiveDocumentError):
+            await adapter.get_active_document()
+
+    async def test_maps_structured_unsupported_error(self) -> None:
+        adapter = self._adapter(_error_response("capability_unsupported"))
+        with self.assertRaises(CapabilityUnsupportedError):
+            await adapter.get_active_document()
+
+    async def test_rejects_malformed_remote_response_before_mapping(self) -> None:
+        response = _success_response()
+        response["payload"]["document"]["tabId"] = "must-not-cross-boundary"
+        adapter = self._adapter(response)
+        with self.assertRaisesRegex(RuntimeError, "protocol"):
+            await adapter.get_active_document()
+
+    async def test_maps_transport_failures_to_provider_neutral_port_errors(self) -> None:
+        cases = (
+            (JLCEDATransportUnavailableError("offline"), EDANotConnectedError),
+            (JLCEDARequestTimeoutError("late"), EDARequestTimeoutError),
+            (JLCEDAConnectionLostError("gone"), EDAConnectionLostError),
+        )
+        for transport_error, port_error in cases:
+            with self.subTest(error=type(transport_error).__name__):
+                with self.assertRaises(port_error):
+                    await self._adapter(transport_error).get_active_document()
+
+    def _adapter(self, response: object) -> JLCEDARemoteAdapter:
+        return JLCEDARemoteAdapter(
+            request_client=StubRequestClient(response),
+            validator=self.validator,
+            mapper=JLCEDADomainMapper(),
+        )
+
+
+def _base() -> dict[str, Any]:
+    return {
+        "protocol": "aia-jlceda",
+        "protocol_version": "1.0",
+        "message_id": "44444444-4444-4444-8444-444444444444",
+        "sent_at": "2026-09-05T08:00:00Z",
+        "trace_id": "22222222-2222-4222-8222-222222222222",
+        "session_id": "33333333-3333-4333-8333-333333333333",
+        "kind": "response",
+        "operation": "eda.document.get_active",
+        "reply_to_message_id": "11111111-1111-4111-8111-111111111111",
+    }
+
+
+def _success_response() -> dict[str, Any]:
+    return _base() | {
+        "status": "success",
+        "payload": {
+            "document": {
+                "model_version": "1.0",
+                "document_ref": {
+                    "model_version": "1.0",
+                    "provider": "jlceda-pro",
+                    "object_type": "document",
+                    "document_id": "official-document-uuid",
+                    "snapshot_id": "55555555-5555-4555-8555-555555555555",
+                    "native_id": "official-document-uuid",
+                    "canonical_id": "jlceda-pro:document:official-document-uuid",
+                    "display_name": None,
+                },
+                "project_id": None,
+                "project_name": None,
+                "document_name": None,
+                "document_type": "schematic",
+                "native_revision": None,
+                "fingerprint": None,
+                "is_dirty": None,
+                "captured_at": "2026-09-05T08:00:00Z",
+            }
+        },
+    }
+
+
+def _error_response(code: str) -> dict[str, Any]:
+    return _base() | {
+        "status": "error",
+        "error": {"code": code, "message": "bounded remote error"},
+    }
+
+
+if __name__ == "__main__":
+    unittest.main()

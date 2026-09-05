@@ -75,4 +75,26 @@ Reconnect uses one bounded sequence of 500 ms, 1 s, 2 s, and 5 s against the sam
 
 Official host callbacks are synchronous boundaries: they always return `undefined`. Synchronous callback failures and rejected callback Promises are consumed and routed to finite transport diagnostics so no rejection can escape into the JLCEDA host event loop.
 
-The current Phase 5B.1 root schema contains only handshake and heartbeat messages. Unknown operations, malformed JSON, binary frames, and unknown fields are rejected before state-machine dispatch. EDA document, selection and highlight operations are intentionally absent.
+## Authenticated business request lifecycle
+
+Phase 5B.2b adds exactly one operation, `eda.document.get_active`. The Python
+gateway sends it only after exactly one authenticated session is active. The
+request `message_id` is its request identity; a response must carry the same
+session, operation and trace identifiers and name that request in
+`reply_to_message_id`.
+
+The gateway owns one pending future per request message ID. A response completes
+that future at most once. Unknown, duplicate, wrong-session, wrong-operation or
+wrong-trace responses are protocol violations and never reach a mapper. Timeout
+removes the pending entry. Socket disconnect fails every pending request for that
+physical connection. A later authenticated connection has a new session and
+cannot complete requests from the previous connection generation.
+
+JSON Schema enforces individual request/response shape, the static operation
+name, required session/correlation fields and bounded payload/error fields. The
+rules in the previous paragraph are cross-message semantics and are enforced by
+the transport lifecycle, not claimed as Schema guarantees.
+
+Unknown operations, malformed JSON, binary frames, and unknown fields are
+rejected before business dispatch. Remote selection and highlight operations
+remain intentionally absent.

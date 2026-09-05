@@ -23,7 +23,7 @@ PROTOCOL_ROOT = REPOSITORY_ROOT / "protocols" / "jlceda" / "v1"
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the Phase 5B.1 localhost gateway")
+    parser = argparse.ArgumentParser(description="Run the AIA-JLCEDA v1 localhost gateway")
     parser.add_argument("--port", type=stable_port, default=49624)
     parser.add_argument("--secret-file", type=Path, default=DEFAULT_SECRET_PATH)
     return parser.parse_args()
@@ -56,7 +56,7 @@ async def run(port: int, secret_path: Path) -> None:
     )
     await gateway.start(port=port)
     print(f"AIA-JLCEDA gateway listening at {gateway.uri}")
-    print("Only Phase 5B.1 handshake and heartbeat messages are enabled.")
+    print("Enabled remote operation: eda.document.get_active")
     try:
         await asyncio.Future()
     finally:

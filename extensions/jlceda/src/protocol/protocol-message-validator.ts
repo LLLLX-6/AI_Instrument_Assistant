@@ -4,7 +4,11 @@ import type { ErrorObject, ValidateFunction } from 'ajv';
 import envelopeSchema from '../../../../protocols/jlceda/v1/common/envelope.schema.json' with { type: 'json' };
 import identifiersSchema from '../../../../protocols/jlceda/v1/common/identifiers.schema.json' with { type: 'json' };
 import securitySchema from '../../../../protocols/jlceda/v1/common/security.schema.json' with { type: 'json' };
+import errorsSchema from '../../../../protocols/jlceda/v1/common/errors.schema.json' with { type: 'json' };
+import designObjectRefSchema from '../../../../protocols/jlceda/v1/models/design-object-ref.schema.json' with { type: 'json' };
+import designDocumentSchema from '../../../../protocols/jlceda/v1/models/design-document.schema.json' with { type: 'json' };
 import messageSchema from '../../../../protocols/jlceda/v1/message.schema.json' with { type: 'json' };
+import edaDocumentSchema from '../../../../protocols/jlceda/v1/messages/eda-document.schema.json' with { type: 'json' };
 import handshakeSchema from '../../../../protocols/jlceda/v1/messages/handshake.schema.json' with { type: 'json' };
 import heartbeatSchema from '../../../../protocols/jlceda/v1/messages/heartbeat.schema.json' with { type: 'json' };
 
@@ -27,8 +31,9 @@ export class ProtocolMessageValidator {
   constructor() {
     const ajv = new Ajv2020({ allErrors: true, strict: true });
     for (const schema of [
-      identifiersSchema, envelopeSchema, securitySchema,
-      handshakeSchema, heartbeatSchema, messageSchema,
+      identifiersSchema, envelopeSchema, securitySchema, errorsSchema,
+      designObjectRefSchema, designDocumentSchema,
+      handshakeSchema, heartbeatSchema, edaDocumentSchema, messageSchema,
     ]) {
       ajv.addSchema(schema);
     }

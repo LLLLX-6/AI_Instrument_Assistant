@@ -1,8 +1,9 @@
 # JLCEDA Extension Workspace
 
-Phase 5A is a real, read-only JLCEDA Pro extension runtime. It validates the
-official `eda.*` API to normalized Transport DTO boundary without a Python
-Backend, WebSocket, Agent, LLM, or design mutation.
+Phase 5B.2b enables one authenticated, read-only remote operation:
+`eda.document.get_active`. The official API remains isolated behind the finite
+DTO boundary. Remote selection/highlight, Agent, LLM and design mutation remain
+disabled.
 
 Compatibility baseline:
 

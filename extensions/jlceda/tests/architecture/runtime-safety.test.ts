@@ -7,6 +7,7 @@ import ts from 'typescript';
 const extensionRoot = resolve(import.meta.dirname, '../..');
 const sourceRoot = join(extensionRoot, 'src');
 const officialAdapter = join(sourceRoot, 'runtime', 'jlc-eda-api-adapter.ts');
+const dispatcherPath = join(sourceRoot, 'runtime', 'eda-protocol-dispatcher.ts');
 
 function sourceFiles(root: string): string[] {
   return readdirSync(root)
@@ -127,4 +128,22 @@ test('official WebSocket calls are a static allowlist inside JlcEdaApiAdapter', 
   };
   visit(tree);
   assert.deepEqual([...observed].sort(), [...allowed].sort());
+});
+
+test('remote EDA dispatcher exposes only the active-document static operation', () => {
+  const tree = parse(dispatcherPath);
+  const operationStrings = new Set<string>();
+  let dynamicCallCount = 0;
+  const visit = (node: ts.Node): void => {
+    if (ts.isStringLiteral(node) && node.text.startsWith('eda.')) {
+      operationStrings.add(node.text);
+    }
+    if (ts.isCallExpression(node) && ts.isElementAccessExpression(node.expression)) {
+      dynamicCallCount += 1;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  assert.deepEqual([...operationStrings], ['eda.document.get_active']);
+  assert.equal(dynamicCallCount, 0);
 });
