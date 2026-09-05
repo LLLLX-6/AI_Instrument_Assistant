@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "aia://protocol/jlceda/v1/models/design-object-ref",
   "title": "DesignObjectRef",
-  "description": "A stable wire reference to a design object within one system-captured snapshot. Phase 2 supports only document and net object kinds.",
+  "description": "A bounded reference to a design object within one AIA observation. provider_kind may retain a finite provider-native classification without exposing the provider object.",
   "type": "object",
   "required": [
     "model_version",
@@ -25,7 +25,10 @@
       "type": "string",
       "enum": [
         "document",
-        "net"
+        "net",
+        "wire",
+        "component",
+        "other"
       ]
     },
     "document_id": {
@@ -53,6 +56,19 @@
       "oneOf": [
         {
           "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/displayName"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provider_kind": {
+      "description": "Optional finite provider-native object classification for diagnostics and compatibility.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
         },
         {
           "type": "null"

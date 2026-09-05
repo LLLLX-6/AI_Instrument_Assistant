@@ -1,0 +1,52 @@
+{
+  "description": "A selected wire and its derived net are distinct references in one observation.",
+  "schema_ref": "aia://protocol/jlceda/v1/models/selection-context",
+  "instance": {
+    "model_version": "1.0",
+    "selection": {
+      "model_version": "1.0",
+      "document_ref": {
+        "model_version": "1.0",
+        "provider": "jlceda-pro",
+        "object_type": "document",
+        "document_id": "document-1",
+        "snapshot_id": "11111111-1111-4111-8111-111111111111",
+        "native_id": "document-1",
+        "canonical_id": "jlceda-pro:document:document-1",
+        "display_name": null
+      },
+      "selected_objects": [
+        {
+          "model_version": "1.0",
+          "provider": "jlceda-pro",
+          "object_type": "wire",
+          "document_id": "document-1",
+          "snapshot_id": "11111111-1111-4111-8111-111111111111",
+          "native_id": "primitive-1",
+          "canonical_id": "jlceda-pro:wire:document-1:primitive-1",
+          "display_name": "PWM_OUT",
+          "provider_kind": "Wire"
+        }
+      ],
+      "primary_object": null
+    },
+    "nets": [
+      {
+        "model_version": "1.0",
+        "ref": {
+          "model_version": "1.0",
+          "provider": "jlceda-pro",
+          "object_type": "net",
+          "document_id": "document-1",
+          "snapshot_id": "11111111-1111-4111-8111-111111111111",
+          "native_id": null,
+          "canonical_id": "jlceda-pro:net:document-1:pwm-out",
+          "display_name": "PWM_OUT"
+        },
+        "endpoints": [],
+        "source": null,
+        "signal_expectation": null
+      }
+    ]
+  }
+}

@@ -100,6 +100,25 @@ def probe_target(snapshot_id: UUID = SNAPSHOT_A) -> ProbeTarget:
 
 
 class DesignIdentityTests(unittest.TestCase):
+    def test_selection_object_kinds_include_wire_component_and_other(self) -> None:
+        self.assertEqual("wire", DesignObjectKind.WIRE.value)
+        self.assertEqual("component", DesignObjectKind.COMPONENT.value)
+        self.assertEqual("other", DesignObjectKind.OTHER.value)
+
+    def test_provider_kind_is_retained_but_optional(self) -> None:
+        wire = DesignObjectRef(
+            provider="jlceda-pro",
+            object_type=DesignObjectKind.WIRE,
+            document_id="document-1",
+            snapshot_id=SNAPSHOT_A,
+            native_id="primitive-1",
+            canonical_id="jlceda-pro:wire:document-1:primitive-1",
+            display_name="PWM_OUT",
+            provider_kind="Wire",
+        )
+        self.assertEqual("Wire", wire.provider_kind)
+        self.assertIsNone(net_ref().provider_kind)
+
     def test_design_object_ref_is_provider_neutral_and_immutable(self) -> None:
         reference = net_ref(provider="altium")
 
@@ -226,6 +245,49 @@ class DesignSelectionTests(unittest.TestCase):
 
 
 class CircuitModelTests(unittest.TestCase):
+    def test_empty_net_endpoints_mean_unresolved_connectivity(self) -> None:
+        net = CircuitNet(ref=net_ref(), endpoints=(), source=None)
+
+        self.assertEqual((), net.endpoints)
+        self.assertTrue(net.connectivity_unresolved)
+        self.assertIn("unresolved connectivity", CircuitNet.__doc__ or "")
+
+    def test_source_is_rejected_when_empty_endpoints_are_unresolved(self) -> None:
+        with self.assertRaises(DomainInvariantError):
+            CircuitNet(
+                ref=net_ref(),
+                endpoints=(),
+                source=CircuitEndpoint(component_reference="U1", pin_name="PA0"),
+            )
+
+    def test_derived_net_need_not_be_a_selected_primitive(self) -> None:
+        selected_wire = DesignObjectRef(
+            provider="kicad",
+            object_type=DesignObjectKind.WIRE,
+            document_id="main-schematic",
+            snapshot_id=SNAPSHOT_A,
+            native_id="wire-1",
+            canonical_id="kicad:wire:main-schematic:wire-1",
+            display_name="PWM_OUT",
+            provider_kind="Wire",
+        )
+        context = SelectionContext(
+            selection=DesignSelection(
+                document_ref=document_ref(),
+                selected_objects=(selected_wire,),
+            ),
+            nets=(CircuitNet(ref=net_ref(), endpoints=()),),
+        )
+
+        self.assertNotIn(context.nets[0].ref, context.selection.selected_objects)
+
+    def test_derived_net_must_share_selection_observation(self) -> None:
+        with self.assertRaises(DomainInvariantError):
+            SelectionContext(
+                selection=DesignSelection(document_ref=document_ref(SNAPSHOT_A)),
+                nets=(CircuitNet(ref=net_ref(SNAPSHOT_B), endpoints=()),),
+            )
+
     def test_duty_cycle_has_ratio_canonical_form_and_explicit_percent_view(self) -> None:
         cases = (
             (DutyCycle.from_percent(0.0), 0.0, 0.0),

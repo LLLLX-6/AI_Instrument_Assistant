@@ -22,9 +22,20 @@ confirmation is a separate `ProbeConnectionConfirmation` referenced by
 `MeasurementContext` references general evidence and results. Large artifacts are
 represented by `ArtifactReference`; completion does not require a waveform.
 
+Provider-neutral selection kinds include document, net, wire, component and
+other. `provider_kind` may retain a bounded provider-native classification for
+diagnostics, but never a provider runtime object. A selected wire and a derived
+network are distinct references.
+
+An observed `CircuitNet` may have an empty endpoint tuple when connectivity is
+unresolved. Empty endpoints do not assert a known zero-endpoint topology. Derived
+nets must share the selection provider, document and AIA observation token, but
+their references need not be members of the selected primitive set.
+
 ## Consequences
 
 - Domain code is not coupled to JLCEDA naming or runtime objects.
 - A future multimeter measurement can complete with scalar evidence.
 - Probe guidance and human confirmation have distinct audit histories.
-
+- Partial provider observations remain representable without inventing graph
+  connectivity or collapsing selected primitives into semantic networks.

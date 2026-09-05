@@ -17,6 +17,9 @@ MeasurementScalar = str | int | float | bool | None
 class DesignObjectKind(StrEnum):
     DOCUMENT = "document"
     NET = "net"
+    WIRE = "wire"
+    COMPONENT = "component"
+    OTHER = "other"
 
 
 class ProbeTargetKind(StrEnum):
@@ -33,6 +36,7 @@ class DesignObjectRef:
     native_id: str | None
     canonical_id: str
     display_name: str | None
+    provider_kind: str | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "provider", _non_empty(self.provider, "provider"))
@@ -57,6 +61,12 @@ class DesignObjectRef:
                 self,
                 "native_id",
                 _non_empty(self.native_id, "native_id"),
+            )
+        if self.provider_kind is not None:
+            object.__setattr__(
+                self,
+                "provider_kind",
+                _non_empty(self.provider_kind, "provider_kind"),
             )
         _require_uuid(self.snapshot_id, "snapshot_id")
         if not isinstance(self.object_type, DesignObjectKind):
@@ -225,6 +235,12 @@ class SignalExpectation:
 
 @dataclass(frozen=True, slots=True)
 class CircuitNet:
+    """Observed network context.
+
+    An empty endpoints tuple means unresolved connectivity. It never asserts a
+    known network topology containing zero endpoints.
+    """
+
     ref: DesignObjectRef
     endpoints: tuple[CircuitEndpoint, ...]
     source: CircuitEndpoint | None = None
@@ -234,8 +250,6 @@ class CircuitNet:
         if self.ref.object_type is not DesignObjectKind.NET:
             raise DomainInvariantError("CircuitNet ref must reference a net")
         endpoints = tuple(self.endpoints)
-        if not endpoints:
-            raise DomainInvariantError("CircuitNet must contain at least one endpoint")
         if not all(isinstance(endpoint, CircuitEndpoint) for endpoint in endpoints):
             raise DomainInvariantError(
                 "CircuitNet endpoints must contain only CircuitEndpoint values"
@@ -245,6 +259,11 @@ class CircuitNet:
         if self.source is not None and self.source not in endpoints:
             raise DomainInvariantError("CircuitNet source must belong to endpoints")
         object.__setattr__(self, "endpoints", endpoints)
+
+    @property
+    def connectivity_unresolved(self) -> bool:
+        """True only when no endpoint connectivity could be resolved."""
+        return not self.endpoints
 
 
 @dataclass(frozen=True, slots=True)
@@ -306,9 +325,14 @@ class SelectionContext:
         if len(net_refs) != len(set(net_refs)):
             raise DomainInvariantError("SelectionContext nets must be unique")
         for net_ref in net_refs:
-            if net_ref not in self.selection.selected_objects:
+            document_ref = self.selection.document_ref
+            if (
+                net_ref.provider != document_ref.provider
+                or net_ref.document_id != document_ref.document_id
+                or net_ref.snapshot_id != document_ref.snapshot_id
+            ):
                 raise DomainInvariantError(
-                    "SelectionContext nets must belong to selected_objects"
+                    "SelectionContext nets must belong to the selection observation"
                 )
         object.__setattr__(self, "nets", nets)
 

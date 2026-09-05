@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "aia://protocol/jlceda/v1/models/circuit-net",
   "title": "CircuitNet",
-  "description": "Minimal circuit context for a selected net without a complete component/pin graph.",
+  "description": "Minimal observed circuit context. An empty endpoints array means connectivity is unresolved; it does not assert a known zero-endpoint topology.",
   "type": "object",
   "required": [
     "model_version",
@@ -32,7 +32,7 @@
     },
     "endpoints": {
       "type": "array",
-      "minItems": 1,
+      "minItems": 0,
       "maxItems": 4096,
       "uniqueItems": true,
       "items": {

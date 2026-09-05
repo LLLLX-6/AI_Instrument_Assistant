@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "aia://protocol/jlceda/v1/models/selection-context",
   "title": "SelectionContext",
-  "description": "Selection state plus the minimal circuit-net context needed by the PWM_OUT use case.",
+  "description": "Selection state plus safely derived circuit-net context from the same provider/document/snapshot observation. A derived net need not itself be a selected primitive.",
   "type": "object",
   "required": [
     "model_version",

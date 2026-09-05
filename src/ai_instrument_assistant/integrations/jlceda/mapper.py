@@ -112,6 +112,7 @@ class JLCEDADomainMapper:
             native_id=_optional_string(wire["native_id"], "native_id"),
             canonical_id=_string(wire["canonical_id"], "canonical_id"),
             display_name=_optional_string(wire["display_name"], "display_name"),
+            provider_kind=_optional_string(wire.get("provider_kind"), "provider_kind"),
         )
 
     def _map_endpoint(self, value: Any) -> CircuitEndpoint:
