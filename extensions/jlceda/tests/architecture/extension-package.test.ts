@@ -23,6 +23,7 @@ test('extension manifest pins the reviewed engine and static menu allowlist', ()
   assert.deepEqual(
     menus.sch[0].menuItems.map((item) => item.registerFn),
     [
+      'configureBackendConnection',
       'inspectCurrentDocument',
       'inspectSelection',
       'highlightSelection',

@@ -1,56 +1,78 @@
 # AIA-JLCEDA Protocol v1 State Machine
 
-Status: Phase 1 boundary definition. Transition implementation begins in Phase 3.
+JSON Schema is the single source of truth for each message's wire shape. This document is the source of truth for ordering, authentication, correlation, expiry, replay and connection lifetime rules.
 
-JSON Schema is the single source of truth for the wire-format structure of an
-individual message. It does not define message ordering, correlation, nonce use,
-session ownership, replay protection, or legal protocol transitions. Those rules
-belong to this protocol state machine and its executable semantic tests.
+## Proof bytes
 
-## Message classes
+Both peers compute HMAC-SHA256 over the UTF-8 bytes of these seven lines, with exactly one LF (`0x0A`) between adjacent values and no trailing LF:
 
-### Pre-authentication messages
+1. `aia-jlceda`
+2. `1.0`
+3. `client_instance_id`
+4. `challenge_id`
+5. `client_nonce`
+6. `server_nonce`
+7. `expires_at` exactly as sent by the server
 
-- `hello/init`
-- `hello_ack/challenge`
-- `hello/prove`
-- `hello_ack/accepted`
-- `hello_ack/rejected`
+The result is unpadded base64url. The pre-shared secret is at least 256 random bits, is never sent on the wire, placed in a URL, or written to diagnostics. The Python verifier uses a constant-time comparison.
 
-The first three messages do not require a `session_id`. An accepted acknowledgement
-creates the session. A rejected acknowledgement terminates the handshake attempt.
+## Authentication transitions
 
-### Session messages
+| Current state | Input | Required semantic checks | Output / next state |
+|---|---|---|---|
+| Connected | `hello/init` | Loopback peer; no session; fresh client nonce | `hello_ack/challenge` / Challenged |
+| Challenged | `hello/prove` | Same connection; matching challenge and reply IDs; unexpired; unused; valid HMAC | `hello_ack/accepted` / Authenticated |
+| Challenged | invalid proof | Challenge is consumed | `hello_ack/rejected(authentication_failed)` / Connected |
+| Challenged | expired proof | Challenge is consumed | `hello_ack/rejected(challenge_expired)` / Connected |
+| Any | reused challenge | Challenge ID was consumed | `hello_ack/rejected(replay_detected)` |
+| Authenticated | `ping` | Session belongs to this connection | Correlated `pong`; refresh last-seen |
+| Any | socket disconnect | — | Remove challenges and invalidate every session for that connection |
 
-- `ping`
-- `pong`
-- `eda.document.get_active` request and response
-- `eda.selection.get` request and response
-- `eda.view.highlight` request and response
+`hello/init`, `hello_ack/challenge`, `hello/prove`, and rejected acknowledgements are pre-auth messages. `hello_ack/accepted` establishes and therefore carries the new `session_id`. Every subsequent heartbeat or business message is a session message and must carry that ID.
 
-Every session message requires a valid `session_id` issued by a completed handshake.
+## Heartbeat and cancellation
 
-## State outline
+The accepted acknowledgement supplies bounded heartbeat interval and timeout values. A pong must echo the ping nonce and reference its message ID. Missing heartbeats invalidate the session and cause the gateway to close the socket. Gateway shutdown cancels the monitor, closes active sockets, and invalidates their sessions.
+
+### Extension physical transport states
+
+The Extension owns an explicit physical lifecycle independent of the authentication states above:
 
 ```text
-DISCONNECTED
-  -> WAITING_FOR_INIT
-  -> WAITING_FOR_PROOF
-  -> AUTHENTICATED
-  -> CLOSED
+DISCONNECTED -> CONNECTING -> SOCKET_OPEN -> AUTHENTICATING -> AUTHENTICATED
+       ^              |              |              |              |
+       |              +--------------+--------------+--------------+
+       |                          DISCONNECTING
+       |                                |
+       +---- RETRY_WAIT <---------------+
+                    |
+                    +---- reconnect attempt
+                    +---- RECONNECT_EXHAUSTED
 ```
 
-Only `hello/init` is legal in `WAITING_FOR_INIT`. Only a matching `hello/prove` is
-legal in `WAITING_FOR_PROOF`. Business and heartbeat messages are legal only in
-`AUTHENTICATED`.
+Every physical registration gets both a unique WebSocket attempt ID and a monotonically increasing connection generation. Connected callbacks, message callbacks, handshake continuations, heartbeat callbacks and reconnect timers capture that generation. They are no-ops unless it still identifies the current physical attempt. A successful authentication never reuses an old session, client nonce, server nonce or challenge.
 
-The Phase 3 state-machine specification and tests will define at least:
+There is no timer that pretends a socket opened. Only the official connected callback can move `CONNECTING` to `SOCKET_OPEN`. A connection timeout moves directly to retry handling without calling close on the unopened socket.
 
-- handshake and nonce correlation;
-- handshake expiry and replay rejection;
-- session creation and ownership;
-- ping/pong correlation;
-- business response correlation;
-- invalid-transition handling;
-- session close and re-authentication behavior.
+The Extension teardown order is fixed: disable sends and clear heartbeat/connect timers, optionally perform a best-effort close, then in a `finally` path invalidate session and correlation state, release the physical attempt and schedule at most one reconnect timer. Disconnect is idempotent while disconnecting, disconnected, waiting to retry, exhausted, or stopped.
 
+The Extension calls `SYS_WebSocket.close` only for a locally initiated shutdown of the current generation after that generation reached `SOCKET_OPEN`. It does not call close after a connection failure, a send failure that proves the socket dead, backend disappearance, or a stale-generation callback. This avoids asking the official host to close a socket that is still connecting or already closed.
+
+Client-initiated WebSocket close codes are an application mapping and are not protocol messages:
+
+| Code | Meaning |
+|---|---|
+| `1000` | Normal Extension stop |
+| `4001` | Authentication failure |
+| `4002` | Heartbeat timeout |
+| `4003` | Protocol violation |
+| `4004` | Session or correlation invalid |
+| `4005` | Local transport failure |
+
+Codes `4002` and `4005` remain reserved application mappings; current dead-socket and timeout paths deliberately do not call close. The official runtime boundary rejects every other client close code before calling `SYS_WebSocket.close`.
+
+Reconnect uses one bounded sequence of 500 ms, 1 s, 2 s, and 5 s against the same configured loopback endpoint. Each retry uses a new physical attempt ID. Successful authentication cancels retry state, creates a fresh session, and starts a fresh heartbeat. Exhaustion is explicit and requires the user to configure the backend connection again. The production gateway CLI defaults to stable port `49624` and rejects port `0`; an explicitly configured port must match the Extension endpoint.
+
+Official host callbacks are synchronous boundaries: they always return `undefined`. Synchronous callback failures and rejected callback Promises are consumed and routed to finite transport diagnostics so no rejection can escape into the JLCEDA host event loop.
+
+The current Phase 5B.1 root schema contains only handshake and heartbeat messages. Unknown operations, malformed JSON, binary frames, and unknown fields are rejected before state-machine dispatch. EDA document, selection and highlight operations are intentionally absent.

@@ -290,3 +290,81 @@ test('runtime diagnostics expose version and capability booleans only', () => {
     },
   });
 });
+
+test('official WebSocket boundary accepts only explicit loopback text transport', async () => {
+  const registrations: unknown[][] = [];
+  const sent: unknown[][] = [];
+  const closed: unknown[][] = [];
+  const adapter = new JlcEdaApiAdapter(runtime({
+    sys_WebSocket: {
+      register: (...args: unknown[]) => { registrations.push(args); },
+      send: (...args: unknown[]) => { sent.push(args); },
+      close: (...args: unknown[]) => { closed.push(args); },
+    },
+  }));
+  let received = '';
+  adapter.registerWebSocket(
+    'aia-test', 'ws://127.0.0.1:49624',
+    (data) => { received = data; },
+    () => undefined,
+  );
+  const messageCallback = registrations[0]![2] as (event: { data: string }) => void;
+  assert.equal(messageCallback({ data: '{"kind":"ping"}' }), undefined);
+  adapter.sendWebSocket('aia-test', '{"kind":"hello"}');
+  adapter.closeWebSocket('aia-test', 1000, 'done');
+
+  assert.equal(received, '{"kind":"ping"}');
+  assert.deepEqual(sent[0], ['aia-test', '{"kind":"hello"}']);
+  assert.deepEqual(closed[0], ['aia-test', 1000, 'done']);
+  assert.throws(
+    () => adapter.registerWebSocket('bad', 'ws://0.0.0.0:49624', () => undefined, () => undefined),
+    JlcEdaApiCallError,
+  );
+});
+
+test('official host callbacks never return rejected Promises', async () => {
+  const registrations: unknown[][] = [];
+  const boundaryFailures: string[] = [];
+  const adapter = new JlcEdaApiAdapter(runtime({
+    sys_WebSocket: {
+      register: (...args: unknown[]) => { registrations.push(args); },
+      send: () => undefined,
+      close: () => undefined,
+    },
+  }));
+  adapter.registerWebSocket(
+    'aia-test', 'ws://127.0.0.1:49624',
+    () => Promise.reject(new Error('message callback rejected')),
+    () => Promise.reject(new Error('connected callback rejected')),
+    (detail) => { boundaryFailures.push(detail); },
+  );
+  const messageCallback = registrations[0]![2] as (event: { data: string }) => void;
+  const connectedCallback = registrations[0]![3] as () => void;
+
+  assert.equal(messageCallback({ data: '{"kind":"pong"}' }), undefined);
+  assert.equal(connectedCallback(), undefined);
+  await Promise.resolve();
+  await Promise.resolve();
+
+  assert.deepEqual(boundaryFailures.sort(), [
+    'connected callback rejected',
+    'message callback rejected',
+  ]);
+});
+
+test('invalid client close code is rejected before reaching official runtime', () => {
+  const closed: unknown[][] = [];
+  const adapter = new JlcEdaApiAdapter(runtime({
+    sys_WebSocket: {
+      register: () => undefined,
+      send: () => undefined,
+      close: (...args: unknown[]) => { closed.push(args); },
+    },
+  }));
+
+  assert.throws(
+    () => adapter.closeWebSocket('aia-test', 1008, 'policy violation'),
+    JlcEdaApiCallError,
+  );
+  assert.deepEqual(closed, []);
+});

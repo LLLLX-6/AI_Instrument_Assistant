@@ -3,7 +3,7 @@
   "uuid": "a1a5eda000024e5a9000000000000001",
   "displayName": "AI Instrument Assistant",
   "description": "Read-only EDA runtime validation for normalized instrument-analysis context.",
-  "version": "0.2.4",
+  "version": "0.2.7",
   "publisher": "AI Instrument Assistant Project",
   "engines": {
     "eda": "^3.2.0"
@@ -30,6 +30,11 @@
         "id": "AI Instrument Assistant",
         "title": "AI Instrument Assistant",
         "menuItems": [
+          {
+            "id": "Configure Backend Connection",
+            "title": "Configure Backend Connection",
+            "registerFn": "configureBackendConnection"
+          },
           {
             "id": "Inspect Current Document",
             "title": "Inspect Current Document",

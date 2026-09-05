@@ -1,0 +1,13 @@
+{
+  "description": "Heartbeat messages are session messages and require session_id.",
+  "schema_ref": "aia://protocol/jlceda/v1/message",
+  "instance": {
+    "protocol": "aia-jlceda",
+    "protocol_version": "1.0",
+    "message_id": "99999999-9999-4999-8999-999999999999",
+    "sent_at": "2026-08-23T08:00:08Z",
+    "trace_id": "22222222-2222-4222-8222-222222222222",
+    "kind": "ping",
+    "nonce": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+  }
+}

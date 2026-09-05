@@ -7,7 +7,12 @@ __pycache__/
 .venv/
 dist/
 build/
+*.eext
+*.log
+*.tmp
 *.egg-info/
+.aia-secrets/
+jlceda-psk.txt
 
 node_modules/
 .npm-cache/

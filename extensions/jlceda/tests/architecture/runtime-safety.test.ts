@@ -45,7 +45,7 @@ test('all official eda property access stays inside JlcEdaApiAdapter', () => {
   assert.deepEqual(violations, []);
 });
 
-test('product source has no dynamic execution, raw dispatch, transport, or design mutation', () => {
+test('product source has no dynamic execution, raw dispatch, network API import, or design mutation', () => {
   const violations: string[] = [];
   const forbiddenCalls = new Set([
     'eval',
@@ -84,7 +84,9 @@ test('product source has no dynamic execution, raw dispatch, transport, or desig
           `${relative(extensionRoot, path)}:new-${node.expression.text}`,
         );
       }
-      if (ts.isPropertyAccessExpression(node) && node.name.text === 'sys_WebSocket') {
+      if (path !== officialAdapter
+        && ts.isPropertyAccessExpression(node)
+        && node.name.text === 'sys_WebSocket') {
         violations.push(`${relative(extensionRoot, path)}:sys_WebSocket`);
       }
       if (ts.isPropertyAccessExpression(node)
@@ -107,4 +109,22 @@ test('product source has no dynamic execution, raw dispatch, transport, or desig
     visit(tree);
   }
   assert.deepEqual(violations, []);
+});
+
+test('official WebSocket calls are a static allowlist inside JlcEdaApiAdapter', () => {
+  const tree = parse(officialAdapter);
+  const allowed = new Set(['register', 'send', 'close']);
+  const observed = new Set<string>();
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node)
+      && ts.isPropertyAccessExpression(node.expression)
+      && ts.isIdentifier(node.expression.expression)
+      && node.expression.expression.text === 'service') {
+      const name = node.expression.name.text;
+      if (allowed.has(name)) observed.add(name);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(tree);
+  assert.deepEqual([...observed].sort(), [...allowed].sort());
 });

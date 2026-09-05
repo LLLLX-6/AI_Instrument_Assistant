@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/common/security",
+  "title": "AIA-JLCEDA Protocol v1 Security Values",
+  "description": "Wire encodings only. One-time use, expiry, replay detection and constant-time proof comparison are Protocol State Machine rules.",
+  "$defs": {
+    "nonce": {
+      "description": "Exactly 32 random bytes encoded as unpadded base64url.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$"
+    },
+    "hmacSha256Proof": {
+      "description": "A 32-byte HMAC-SHA256 result encoded as unpadded base64url.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{43}$"
+    }
+  }
+}

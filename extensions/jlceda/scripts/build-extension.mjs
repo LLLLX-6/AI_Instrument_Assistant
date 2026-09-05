@@ -1,5 +1,5 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { build } from 'esbuild';
@@ -23,9 +23,8 @@ await mkdir(distDirectory, { recursive: true });
 await mkdir(packageDirectory, { recursive: true });
 
 await build({
-  absWorkingDir: extensionRoot,
-  entryPoints: ['./src/index.ts'],
-  outfile: 'dist/index.js',
+  entryPoints: [join(extensionRoot, 'src', 'index.ts')],
+  outfile: compiledEntryPath,
   bundle: true,
   format: 'iife',
   globalName: 'edaEsbuildExportName',
@@ -35,6 +34,24 @@ await build({
   ignoreAnnotations: true,
   sourcemap: false,
   legalComments: 'none',
+  plugins: [
+    {
+      name: 'aia-protocol-schema-source',
+      setup(buildContext) {
+        buildContext.onResolve({ filter: /\.schema\.json$/ }, (args) => ({
+          path: resolve(args.resolveDir, args.path),
+          namespace: 'aia-protocol-schema',
+        }));
+        buildContext.onLoad(
+          { filter: /.*/, namespace: 'aia-protocol-schema' },
+          async (args) => ({
+            contents: await readFile(args.path, 'utf8'),
+            loader: 'json',
+          }),
+        );
+      },
+    },
+  ],
 });
 
 const zip = new JSZip();

@@ -1,0 +1,16 @@
+{
+  "description": "The client proves possession of the pre-shared secret.",
+  "schema_ref": "aia://protocol/jlceda/v1/message",
+  "instance": {
+    "protocol": "aia-jlceda",
+    "protocol_version": "1.0",
+    "message_id": "66666666-6666-4666-8666-666666666666",
+    "sent_at": "2026-08-23T08:00:02Z",
+    "trace_id": "22222222-2222-4222-8222-222222222222",
+    "kind": "hello",
+    "phase": "prove",
+    "reply_to_message_id": "44444444-4444-4444-8444-444444444444",
+    "challenge_id": "55555555-5555-4555-8555-555555555555",
+    "proof": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+  }
+}

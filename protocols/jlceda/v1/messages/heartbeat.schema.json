@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/messages/heartbeat",
+  "title": "AIA-JLCEDA Protocol v1 Heartbeat Messages",
+  "description": "Authenticated heartbeat wire shapes. Correlation and timeout are Protocol State Machine rules.",
+  "$defs": {
+    "ping": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields" },
+        {
+          "required": ["session_id", "kind", "nonce"],
+          "properties": {
+            "session_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/sessionId" },
+            "kind": { "const": "ping" },
+            "nonce": { "$ref": "aia://protocol/jlceda/v1/common/security#/$defs/nonce" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "pong": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields" },
+        {
+          "required": ["session_id", "kind", "reply_to_message_id", "nonce"],
+          "properties": {
+            "session_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/sessionId" },
+            "kind": { "const": "pong" },
+            "reply_to_message_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/messageId" },
+            "nonce": { "$ref": "aia://protocol/jlceda/v1/common/security#/$defs/nonce" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

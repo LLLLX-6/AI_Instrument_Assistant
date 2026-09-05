@@ -96,8 +96,9 @@ export interface JlcEdaRuntimeBoundary {
       | 'isEasyEDAProEdition'
     >
   >;
-  readonly sys_Dialog?: Partial<Pick<SYS_Dialog, 'showInformationMessage'>>;
+  readonly sys_Dialog?: Partial<Pick<SYS_Dialog, 'showInformationMessage' | 'showInputDialog'>>;
   readonly sys_Message?: Partial<Pick<SYS_Message, 'showToastMessage'>>;
+  readonly sys_WebSocket?: Partial<Pick<SYS_WebSocket, 'register' | 'send' | 'close'>>;
 }
 
 export class JlcEdaCapabilityUnavailableError extends Error {
@@ -375,6 +376,91 @@ export class JlcEdaApiAdapter {
       throw apiCallError(operation, error);
     }
   }
+
+  registerWebSocket(
+    id: string,
+    serviceUri: string,
+    onMessage: (data: string) => void | Promise<void>,
+    onConnected: () => void | Promise<void>,
+    onBoundaryFailure: (detail: string) => void = () => undefined,
+  ): void {
+    const operation = 'sys_WebSocket.register';
+    const service = this.#runtime.sys_WebSocket;
+    if (typeof service?.register !== 'function') {
+      throw new JlcEdaCapabilityUnavailableError(operation);
+    }
+    try {
+      service.register(
+        requiredFiniteText(id, 'WebSocket id'),
+        requiredLoopbackWebSocketUri(serviceUri),
+        (event) => {
+          if (typeof event.data !== 'string') {
+            reportHostCallbackFailure(
+              onBoundaryFailure, 'AIA-JLCEDA accepts text messages only',
+            );
+            return;
+          }
+          invokeHostCallbackSafely(
+            () => onMessage(event.data), onBoundaryFailure,
+          );
+        },
+        () => invokeHostCallbackSafely(onConnected, onBoundaryFailure),
+      );
+    }
+    catch (error) {
+      throw apiCallError(operation, error);
+    }
+  }
+
+  sendWebSocket(id: string, data: string): void {
+    const operation = 'sys_WebSocket.send';
+    const service = this.#runtime.sys_WebSocket;
+    if (typeof service?.send !== 'function') {
+      throw new JlcEdaCapabilityUnavailableError(operation);
+    }
+    try {
+      service.send(
+        requiredFiniteText(id, 'WebSocket id'),
+        requiredFiniteText(data, 'WebSocket message', 65_536),
+      );
+    }
+    catch (error) {
+      throw apiCallError(operation, error);
+    }
+  }
+
+  closeWebSocket(id: string, code?: number, reason?: string): void {
+    const operation = 'sys_WebSocket.close';
+    const service = this.#runtime.sys_WebSocket;
+    if (typeof service?.close !== 'function') return;
+    try {
+      service.close(
+        requiredFiniteText(id, 'WebSocket id'),
+        validClientCloseCode(code),
+        reason === undefined ? undefined : requiredFiniteText(reason, 'close reason', 123),
+      );
+    }
+    catch (error) {
+      throw apiCallError(operation, error);
+    }
+  }
+
+  requestBackendSecret(callback: (secret: string | null) => void): void {
+    const operation = 'sys_Dialog.showInputDialog';
+    const dialog = this.#runtime.sys_Dialog;
+    if (typeof dialog?.showInputDialog !== 'function') {
+      throw new JlcEdaCapabilityUnavailableError(operation);
+    }
+    dialog.showInputDialog(
+      'Paste the 43-character backend secret.',
+      'It is kept in memory only and is never placed in the URL or logs.',
+      'AI Instrument Assistant — Backend Authentication',
+      'password',
+      '',
+      { minlength: 43, maxlength: 43, placeholder: 'Base64url secret' },
+      (value) => callback(typeof value === 'string' ? value.trim() : null),
+    );
+  }
 }
 
 async function restoreSelection(
@@ -479,6 +565,57 @@ function optionalFiniteText(
   const normalized = value.trim();
   if (normalized.length === 0) return null;
   return normalized.slice(0, maxLength);
+}
+
+function requiredLoopbackWebSocketUri(value: unknown): string {
+  const uri = requiredFiniteText(value, 'WebSocket service URI');
+  if (!/^ws:\/\/127\.0\.0\.1:\d{1,5}$/.test(uri)) {
+    throw new TypeError('WebSocket service URI must use explicit 127.0.0.1');
+  }
+  return uri;
+}
+
+function validClientCloseCode(value: number | undefined): number | undefined {
+  if (value === undefined) return undefined;
+  if (!Number.isInteger(value) || (value !== 1000 && (value < 3000 || value > 4999))) {
+    throw new RangeError('Client WebSocket close code must be 1000 or 3000-4999');
+  }
+  return value;
+}
+
+function invokeHostCallbackSafely(
+  callback: () => void | Promise<void>,
+  onFailure: (detail: string) => void,
+): void {
+  try {
+    const result = callback();
+    if (result !== undefined) {
+      void Promise.resolve(result).catch((error: unknown) => {
+        reportHostCallbackFailure(onFailure, errorDetail(error));
+      });
+    }
+  }
+  catch (error) {
+    reportHostCallbackFailure(onFailure, errorDetail(error));
+  }
+}
+
+function reportHostCallbackFailure(
+  onFailure: (detail: string) => void,
+  detail: string,
+): void {
+  try {
+    onFailure(detail.slice(0, 256));
+  }
+  catch {
+    // The official host callback boundary must never throw or return rejection.
+  }
+}
+
+function errorDetail(error: unknown): string {
+  return error instanceof Error
+    ? optionalFiniteText(error.message, 256) ?? 'unknown callback error'
+    : 'unknown callback error';
 }
 
 function uniqueFiniteValues(values: readonly (string | undefined)[]): string[] {

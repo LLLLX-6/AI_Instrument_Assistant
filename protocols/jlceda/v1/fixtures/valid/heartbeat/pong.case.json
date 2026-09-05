@@ -1,0 +1,15 @@
+{
+  "description": "A pong correlates to one ping and echoes its nonce.",
+  "schema_ref": "aia://protocol/jlceda/v1/message",
+  "instance": {
+    "protocol": "aia-jlceda",
+    "protocol_version": "1.0",
+    "message_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "sent_at": "2026-08-23T08:00:09Z",
+    "trace_id": "22222222-2222-4222-8222-222222222222",
+    "session_id": "88888888-8888-4888-8888-888888888888",
+    "kind": "pong",
+    "reply_to_message_id": "99999999-9999-4999-8999-999999999999",
+    "nonce": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+  }
+}

@@ -9,6 +9,7 @@ description = "Contract-first AI and electronic instrument integration platform"
 requires-python = ">=3.11"
 dependencies = [
     "jsonschema>=4.23,<5",
+    "websockets==17.0.1",
 ]
 
 [tool.setuptools]

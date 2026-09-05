@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/messages/handshake",
+  "title": "AIA-JLCEDA Protocol v1 Handshake Messages",
+  "description": "Closed wire shapes for the pre-authentication challenge-response exchange. Ordering and correlation are defined by the Protocol State Machine.",
+  "$defs": {
+    "helloInit": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields" },
+        {
+          "required": ["kind", "phase", "provider", "client_instance_id", "client_nonce"],
+          "properties": {
+            "kind": { "const": "hello" },
+            "phase": { "const": "init" },
+            "provider": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/provider" },
+            "client_instance_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/uuid" },
+            "client_nonce": { "$ref": "aia://protocol/jlceda/v1/common/security#/$defs/nonce" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "helloAckChallenge": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields" },
+        {
+          "required": ["kind", "phase", "reply_to_message_id", "challenge_id", "client_nonce", "server_nonce", "expires_at"],
+          "properties": {
+            "kind": { "const": "hello_ack" },
+            "phase": { "const": "challenge" },
+            "reply_to_message_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/messageId" },
+            "challenge_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/uuid" },
+            "client_nonce": { "$ref": "aia://protocol/jlceda/v1/common/security#/$defs/nonce" },
+            "server_nonce": { "$ref": "aia://protocol/jlceda/v1/common/security#/$defs/nonce" },
+            "expires_at": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/utcTimestamp" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "helloProve": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields" },
+        {
+          "required": ["kind", "phase", "reply_to_message_id", "challenge_id", "proof"],
+          "properties": {
+            "kind": { "const": "hello" },
+            "phase": { "const": "prove" },
+            "reply_to_message_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/messageId" },
+            "challenge_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/uuid" },
+            "proof": { "$ref": "aia://protocol/jlceda/v1/common/security#/$defs/hmacSha256Proof" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "helloAckAccepted": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields" },
+        {
+          "required": ["kind", "phase", "reply_to_message_id", "session_id", "heartbeat_interval_ms", "heartbeat_timeout_ms"],
+          "properties": {
+            "kind": { "const": "hello_ack" },
+            "phase": { "const": "accepted" },
+            "reply_to_message_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/messageId" },
+            "session_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/sessionId" },
+            "heartbeat_interval_ms": { "type": "integer", "minimum": 1000, "maximum": 60000 },
+            "heartbeat_timeout_ms": { "type": "integer", "minimum": 2000, "maximum": 180000 }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "helloAckRejected": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields" },
+        {
+          "required": ["kind", "phase", "reply_to_message_id", "reason_code"],
+          "properties": {
+            "kind": { "const": "hello_ack" },
+            "phase": { "const": "rejected" },
+            "reply_to_message_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/messageId" },
+            "reason_code": {
+              "type": "string",
+              "enum": ["authentication_failed", "challenge_expired", "replay_detected", "protocol_error"]
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}
