@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import math
-import re
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
+from ..artifacts import ArtifactReference
 from .errors import DomainInvariantError
 from ..values import DutyCycle
 
@@ -354,42 +354,6 @@ class ProbeConnectionConfirmation:
             "confirmed_by",
             _non_empty(self.confirmed_by, "confirmed_by"),
         )
-
-
-@dataclass(frozen=True, slots=True)
-class ArtifactReference:
-    artifact_id: UUID
-    uri: str
-    media_type: str
-    size_bytes: int | None = None
-    sha256: str | None = None
-
-    def __post_init__(self) -> None:
-        _require_uuid(self.artifact_id, "artifact_id")
-        object.__setattr__(self, "uri", _non_empty(self.uri, "uri"))
-        object.__setattr__(
-            self,
-            "media_type",
-            _non_empty(self.media_type, "media_type"),
-        )
-        if ":" not in self.uri:
-            raise DomainInvariantError("uri must include a scheme")
-        if "/" not in self.media_type:
-            raise DomainInvariantError("media_type must be a MIME type")
-        if self.size_bytes is not None:
-            if (
-                isinstance(self.size_bytes, bool)
-                or not isinstance(self.size_bytes, int)
-                or self.size_bytes < 0
-            ):
-                raise DomainInvariantError("size_bytes must be a non-negative integer")
-        if self.sha256 is not None:
-            if not isinstance(self.sha256, str):
-                raise DomainInvariantError("sha256 must be a hexadecimal string")
-            normalized_digest = self.sha256.lower()
-            if re.fullmatch(r"[0-9a-f]{64}", normalized_digest) is None:
-                raise DomainInvariantError("sha256 must contain 64 hexadecimal characters")
-            object.__setattr__(self, "sha256", normalized_digest)
 
 
 @dataclass(frozen=True, slots=True)

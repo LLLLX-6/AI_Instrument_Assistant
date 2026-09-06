@@ -64,6 +64,54 @@ class HardwareArchitectureTests(unittest.TestCase):
         self.assertNotIn("measure_pwm", port)
         self.assertNotIn("analyze", port)
 
+    def test_phase6e_service_and_tool_contract_obey_dependency_direction(self) -> None:
+        service = ROOT / "src/ai_instrument_assistant/application/services/measurement.py"
+        tool_contract = ROOT / "src/ai_instrument_assistant/application/tool_contracts/hardware.py"
+        self.assertTrue(service.exists())
+        self.assertTrue(tool_contract.exists())
+        forbidden = (
+            "pyvisa",
+            "ai_instrument_assistant.communication",
+            "ai_instrument_assistant.drivers",
+            "ai_instrument_assistant.integrations",
+            "ai_instrument_assistant.domain.eda",
+        )
+        for path in (service, tool_contract):
+            found = imports(path)
+            self.assertFalse(any(name.startswith(forbidden) for name in found), (path, found))
+        tool_source = tool_contract.read_text(encoding="utf-8")
+        for forbidden_marker in ("send_scpi", "query_scpi", "visa_resource", "DS1102ZE"):
+            self.assertNotIn(forbidden_marker, tool_source)
+
+    def test_measurement_domain_is_independent_of_eda_analysis_and_hardware_adapters(self) -> None:
+        paths = tuple((ROOT / "src/ai_instrument_assistant/domain/measurement").glob("*.py"))
+        self.assertGreater(len(paths), 0)
+        forbidden = (
+            "ai_instrument_assistant.domain.eda",
+            "ai_instrument_assistant.analysis",
+            "ai_instrument_assistant.application",
+            "ai_instrument_assistant.drivers",
+            "ai_instrument_assistant.integrations",
+            "pyvisa",
+        )
+        for path in paths:
+            found = imports(path)
+            self.assertFalse(any(name.startswith(forbidden) for name in found), (path, found))
+
+    def test_analysis_and_artifact_ports_are_provider_neutral(self) -> None:
+        for relative in (
+            "src/ai_instrument_assistant/application/ports/waveform_analysis.py",
+            "src/ai_instrument_assistant/application/ports/artifact_store.py",
+        ):
+            path = ROOT / relative
+            self.assertTrue(path.exists())
+            found = imports(path)
+            self.assertFalse(any(name.startswith((
+                "ai_instrument_assistant.drivers",
+                "ai_instrument_assistant.integrations",
+                "pyvisa",
+            )) for name in found), (path, found))
+
     def test_generic_binary_parser_has_no_driver_dependency(self) -> None:
         found = imports(ROOT / "src/ai_instrument_assistant/communication/ieee4882.py")
         self.assertFalse(any(name.startswith(

@@ -23,6 +23,13 @@ _PERIOD_INLIER_RELATIVE_TOLERANCE = 0.10
 _MINIMUM_PERIODS = 2
 
 
+class DeterministicWaveformAnalysisEngine:
+    """Stateless adapter exposing deterministic analysis as an application port."""
+
+    def analyze(self, waveform: Waveform) -> WaveformAnalysisResult:
+        return analyze_waveform(waveform)
+
+
 def analyze_waveform(waveform: Waveform) -> WaveformAnalysisResult:
     """Deterministically analyze one provider-neutral waveform without I/O."""
 

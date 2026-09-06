@@ -1,0 +1,277 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/hardware/v1/hardware-tool.schema.json",
+  "title": "AI Instrument Assistant Hardware Tool Contract v1",
+  "oneOf": [
+    { "$ref": "#/$defs/statusRequest" },
+    { "$ref": "#/$defs/measurementRequest" },
+    { "$ref": "#/$defs/statusResponse" },
+    { "$ref": "#/$defs/measurementResponse" }
+  ],
+  "$defs": {
+    "statusRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "operation", "arguments"],
+      "properties": {
+        "contract_version": { "const": "1.0" },
+        "operation": { "const": "hardware.get_status" },
+        "arguments": { "type": "object", "additionalProperties": false }
+      }
+    },
+    "measurementRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "operation", "arguments"],
+      "properties": {
+        "contract_version": { "const": "1.0" },
+        "operation": {
+          "enum": [
+            "hardware.measure_frequency",
+            "hardware.measure_vpp",
+            "hardware.capture_waveform",
+            "hardware.measure_pwm"
+          ]
+        },
+        "arguments": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["channel"],
+          "properties": {
+            "channel": { "type": "integer", "enum": [1, 2] },
+            "context_id": { "type": ["string", "null"], "minLength": 1, "maxLength": 512 }
+          }
+        }
+      }
+    },
+    "statusResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "operation", "result"],
+      "properties": {
+        "contract_version": { "const": "1.0" },
+        "operation": { "const": "hardware.get_status" },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["instrument", "observed_at"],
+          "properties": {
+            "instrument": { "$ref": "#/$defs/instrument" },
+            "observed_at": { "$ref": "#/$defs/timestamp" }
+          }
+        }
+      }
+    },
+    "measurementResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "operation", "result"],
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "operation": { "const": "hardware.measure_frequency" },
+                "result": { "properties": { "kind": { "const": "frequency" } } }
+              }
+            },
+            {
+              "properties": {
+                "operation": { "const": "hardware.measure_vpp" },
+                "result": { "properties": { "kind": { "const": "vpp" } } }
+              }
+            },
+            {
+              "properties": {
+                "operation": { "const": "hardware.capture_waveform" },
+                "result": { "properties": { "kind": { "const": "waveform" } } }
+              }
+            },
+            {
+              "properties": {
+                "operation": { "const": "hardware.measure_pwm" },
+                "result": { "properties": { "kind": { "const": "pwm" } } }
+              }
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "contract_version": { "const": "1.0" },
+        "operation": {
+          "enum": [
+            "hardware.measure_frequency",
+            "hardware.measure_vpp",
+            "hardware.capture_waveform",
+            "hardware.measure_pwm"
+          ]
+        },
+        "result": { "$ref": "#/$defs/measurementResult" }
+      }
+    },
+    "measurementResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id", "kind", "channel", "context_id", "instrument",
+        "waveform", "observations", "quality", "warnings", "coherence", "provenance"
+      ],
+      "properties": {
+        "request_id": { "$ref": "#/$defs/uuid" },
+        "kind": { "enum": ["frequency", "vpp", "waveform", "pwm"] },
+        "channel": { "type": "integer", "enum": [1, 2] },
+        "context_id": { "type": ["string", "null"], "minLength": 1, "maxLength": 512 },
+        "instrument": { "$ref": "#/$defs/instrument" },
+        "waveform": { "oneOf": [{ "$ref": "#/$defs/waveform" }, { "type": "null" }] },
+        "observations": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "instrument_frequency": { "$ref": "#/$defs/observation" },
+            "instrument_vpp": { "$ref": "#/$defs/observation" },
+            "software_frequency": { "$ref": "#/$defs/observation" },
+            "software_period": { "$ref": "#/$defs/observation" },
+            "software_duty_cycle": { "$ref": "#/$defs/observation" },
+            "software_vpp": { "$ref": "#/$defs/observation" },
+            "software_mean": { "$ref": "#/$defs/observation" },
+            "software_rms": { "$ref": "#/$defs/observation" }
+          }
+        },
+        "quality": { "enum": ["good", "degraded", "failed"] },
+        "warnings": { "$ref": "#/$defs/warnings" },
+        "coherence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["software_observations", "instrument_vs_software"],
+          "properties": {
+            "software_observations": { "enum": ["same_artifact", "unknown"] },
+            "instrument_vs_software": { "enum": ["sequential_same_session", "unknown"] }
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["started_at", "completed_at", "analysis_algorithm"],
+          "properties": {
+            "started_at": { "$ref": "#/$defs/timestamp" },
+            "completed_at": { "$ref": "#/$defs/timestamp" },
+            "analysis_algorithm": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["name", "version"],
+                  "properties": {
+                    "name": { "type": "string", "minLength": 1, "maxLength": 128 },
+                    "version": { "type": "string", "minLength": 1, "maxLength": 64 }
+                  }
+                },
+                { "type": "null" }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value", "source", "method", "observed_at", "quality",
+        "warnings", "evidence_artifact_ids"
+      ],
+      "properties": {
+        "value": {
+          "oneOf": [
+            { "type": "number" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["ratio", "percent"],
+              "properties": {
+                "ratio": { "type": "number", "minimum": 0, "maximum": 1 },
+                "percent": { "type": "number", "minimum": 0, "maximum": 100 }
+              }
+            },
+            { "type": "null" }
+          ]
+        },
+        "source": { "enum": ["instrument", "software_analysis", "simulated"] },
+        "method": { "type": "string", "minLength": 1, "maxLength": 512 },
+        "observed_at": { "$ref": "#/$defs/timestamp" },
+        "quality": { "enum": ["good", "degraded", "unavailable"] },
+        "warnings": { "$ref": "#/$defs/warnings" },
+        "evidence_artifact_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/uuid" }
+        }
+      }
+    },
+    "waveform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact", "channel", "point_count", "sample_interval_seconds",
+        "time_range_seconds", "voltage_range_v", "acquisition_mode", "captured_at"
+      ],
+      "properties": {
+        "artifact": { "$ref": "#/$defs/artifact" },
+        "channel": { "type": "integer", "enum": [1, 2] },
+        "point_count": { "type": "integer", "minimum": 1 },
+        "sample_interval_seconds": { "type": "number", "exclusiveMinimum": 0 },
+        "time_range_seconds": { "$ref": "#/$defs/range" },
+        "voltage_range_v": { "$ref": "#/$defs/range" },
+        "acquisition_mode": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "captured_at": { "$ref": "#/$defs/timestamp" }
+      }
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_id", "uri", "media_type"],
+      "properties": {
+        "artifact_id": { "$ref": "#/$defs/uuid" },
+        "uri": { "type": "string", "minLength": 3, "maxLength": 2048 },
+        "media_type": { "type": "string", "minLength": 3, "maxLength": 255 },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "instrument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manufacturer", "model", "serial_number", "firmware_version"],
+      "properties": {
+        "manufacturer": { "$ref": "#/$defs/text" },
+        "model": { "$ref": "#/$defs/text" },
+        "serial_number": { "$ref": "#/$defs/text" },
+        "firmware_version": { "$ref": "#/$defs/text" }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 512 }
+    },
+    "range": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "type": "number" }
+    },
+    "uuid": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    }
+  }
+}

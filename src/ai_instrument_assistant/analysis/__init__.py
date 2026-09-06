@@ -7,12 +7,13 @@ from .models import (
     WaveformAnalysisResult,
     WaveformProvenance,
 )
-from .waveform import analyze_waveform
+from .waveform import DeterministicWaveformAnalysisEngine, analyze_waveform
 
 __all__ = [
     "AnalysisAlgorithmMetadata",
     "AnalysisQuality",
     "AnalysisWarning",
+    "DeterministicWaveformAnalysisEngine",
     "WaveformAnalysisResult",
     "WaveformProvenance",
     "analyze_waveform",

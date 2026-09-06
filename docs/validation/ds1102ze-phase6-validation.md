@@ -286,3 +286,20 @@ Phase 6D，等待独立极性/有效电平确认。详见 Phase 6D validation re
 软件使用 2 个完整周期，没有明显倍频、半频或漏边沿。Phase 6D real analysis HIL 因此
 判定为 **PASS with bounded observations**。仪器查询与 waveform capture 非原子记录，
 不据此建立任意准确度合格阈值；详细数值见 Phase 6D validation record。
+
+## 18. Phase 6E measurement workflow baseline
+
+Phase 6E 建立独立于 EDA 的 `MeasurementRequest -> MeasurementService -> MeasurementResult`
+业务语义，并通过 provider-neutral `OscilloscopeInterface`、analysis port 和 `ArtifactStore`
+组合既有能力。instrument facts 与 software-derived analysis 保持分离；PWM software evidence
+标记 `same_artifact`，instrument query 与 software evidence 标记
+`sequential_same_session`。单项 instrument query 失败保留 partial result，不制造 accuracy
+agreement 或 pass/fail。
+
+Hardware Tool Contract 仅定义五个静态语义 operation 和有限 JSON DTO，不包含 Agent runtime、
+SCPI、VISA resource 或完整 waveform arrays。当前 InMemory ArtifactStore 仅用于测试/开发，
+不声称持久化。详细设计、TDD 和边界见 Phase 6E validation record。
+
+Phase 6E architecture review 判定为 **PASS**，证据限于 Domain、Service、FakeOscilloscope、
+Tool Schema 和 architecture tests。真实 DS1102Z-E 已分别验证底层 capture/analysis，但尚未
+验证由 MeasurementService 编排的真实端到端 workflow；该项留待 Phase 6F HIL。
