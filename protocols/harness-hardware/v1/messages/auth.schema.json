@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/harness-hardware/v1/messages/auth.schema.json",
+  "title": "AIA Harness Hardware v1 pre-authentication messages",
+  "$defs": {
+    "hello": {
+      "allOf": [
+        { "$ref": "../common/envelope.schema.json#/$defs/preAuthEnvelope" },
+        {
+          "type": "object",
+          "required": ["client_instance_id", "client_nonce"],
+          "properties": {
+            "type": { "const": "hello" },
+            "client_instance_id": { "$ref": "../common/identifiers.schema.json#/$defs/uuid" },
+            "client_nonce": { "$ref": "../common/identifiers.schema.json#/$defs/nonce" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "challenge": {
+      "allOf": [
+        { "$ref": "../common/envelope.schema.json#/$defs/preAuthEnvelope" },
+        {
+          "type": "object",
+          "required": ["reply_to", "challenge_id", "client_nonce", "server_nonce", "algorithm", "expires_at"],
+          "properties": {
+            "type": { "const": "challenge" },
+            "reply_to": { "$ref": "../common/identifiers.schema.json#/$defs/uuid" },
+            "challenge_id": { "$ref": "../common/identifiers.schema.json#/$defs/uuid" },
+            "client_nonce": { "$ref": "../common/identifiers.schema.json#/$defs/nonce" },
+            "server_nonce": { "$ref": "../common/identifiers.schema.json#/$defs/nonce" },
+            "algorithm": { "const": "hmac-sha256" },
+            "expires_at": { "$ref": "../common/identifiers.schema.json#/$defs/timestamp" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "prove": {
+      "allOf": [
+        { "$ref": "../common/envelope.schema.json#/$defs/preAuthEnvelope" },
+        {
+          "type": "object",
+          "required": ["reply_to", "challenge_id", "proof"],
+          "properties": {
+            "type": { "const": "prove" },
+            "reply_to": { "$ref": "../common/identifiers.schema.json#/$defs/uuid" },
+            "challenge_id": { "$ref": "../common/identifiers.schema.json#/$defs/uuid" },
+            "proof": { "$ref": "../common/identifiers.schema.json#/$defs/hmacSha256" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "accepted": {
+      "allOf": [
+        { "$ref": "../common/envelope.schema.json#/$defs/preAuthEnvelope" },
+        {
+          "type": "object",
+          "required": ["reply_to", "session_id", "connection_generation", "expires_at"],
+          "properties": {
+            "type": { "const": "accepted" },
+            "reply_to": { "$ref": "../common/identifiers.schema.json#/$defs/uuid" },
+            "session_id": { "$ref": "../common/identifiers.schema.json#/$defs/uuid" },
+            "connection_generation": { "$ref": "../common/identifiers.schema.json#/$defs/connectionGeneration" },
+            "expires_at": { "$ref": "../common/identifiers.schema.json#/$defs/timestamp" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "rejected": {
+      "allOf": [
+        { "$ref": "../common/envelope.schema.json#/$defs/preAuthEnvelope" },
+        {
+          "type": "object",
+          "required": ["reply_to", "code", "message"],
+          "properties": {
+            "type": { "const": "rejected" },
+            "reply_to": { "$ref": "../common/identifiers.schema.json#/$defs/uuid" },
+            "code": { "enum": ["authentication_failed", "challenge_expired", "protocol_mismatch", "replay_rejected"] },
+            "message": { "type": "string", "minLength": 1, "maxLength": 256 }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/$defs/hello" },
+    { "$ref": "#/$defs/challenge" },
+    { "$ref": "#/$defs/prove" },
+    { "$ref": "#/$defs/accepted" },
+    { "$ref": "#/$defs/rejected" }
+  ]
+}

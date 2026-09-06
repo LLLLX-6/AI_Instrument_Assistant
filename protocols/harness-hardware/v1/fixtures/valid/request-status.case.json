@@ -1,0 +1,10 @@
+{
+  "description": "Valid status request",
+  "schema_ref": "https://aia.local/protocols/harness-hardware/v1/message.schema.json",
+  "instance": {
+    "protocol": "aia-harness-hardware", "version": 1,
+    "message_id": "00000000-0000-4000-8000-000000000009",
+    "session_id": "00000000-0000-4000-8000-000000000007", "type": "request",
+    "operation": "hardware.get_status", "arguments": {}
+  }
+}

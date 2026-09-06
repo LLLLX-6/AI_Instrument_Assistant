@@ -1,0 +1,14 @@
+{
+  "description": "Valid challenge bound to hello and client nonce",
+  "schema_ref": "https://aia.local/protocols/harness-hardware/v1/message.schema.json",
+  "instance": {
+    "protocol": "aia-harness-hardware", "version": 1,
+    "message_id": "00000000-0000-4000-8000-000000000003", "type": "challenge",
+    "reply_to": "00000000-0000-4000-8000-000000000001",
+    "challenge_id": "00000000-0000-4000-8000-000000000004",
+    "client_nonce": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "server_nonce": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+    "algorithm": "hmac-sha256",
+    "expires_at": "2026-09-06T12:00:30Z"
+  }
+}

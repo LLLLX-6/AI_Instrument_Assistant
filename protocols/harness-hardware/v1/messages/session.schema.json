@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/harness-hardware/v1/messages/session.schema.json",
+  "title": "AIA Harness Hardware v1 authenticated session messages",
+  "$defs": {
+    "request": {
+      "allOf": [
+        { "$ref": "../common/envelope.schema.json#/$defs/sessionEnvelope" },
+        {
+          "type": "object",
+          "required": ["operation", "arguments"],
+          "properties": {
+            "type": { "const": "request" },
+            "operation": {
+              "enum": [
+                "hardware.get_status",
+                "hardware.measure_frequency",
+                "hardware.measure_vpp",
+                "hardware.capture_waveform",
+                "hardware.measure_pwm"
+              ]
+            },
+            "arguments": { "type": "object" }
+          },
+          "allOf": [
+            {
+              "oneOf": [
+                {
+                  "properties": {
+                    "operation": { "const": "hardware.get_status" },
+                    "arguments": { "$ref": "https://aia.local/protocols/hardware/v1/hardware-tool.schema.json#/$defs/statusRequest/properties/arguments" }
+                  }
+                },
+                {
+                  "properties": {
+                    "operation": { "const": "hardware.measure_frequency" },
+                    "arguments": { "$ref": "https://aia.local/protocols/hardware/v1/hardware-tool.schema.json#/$defs/measurementRequest/properties/arguments" }
+                  }
+                },
+                {
+                  "properties": {
+                    "operation": { "const": "hardware.measure_vpp" },
+                    "arguments": { "$ref": "https://aia.local/protocols/hardware/v1/hardware-tool.schema.json#/$defs/measurementRequest/properties/arguments" }
+                  }
+                },
+                {
+                  "properties": {
+                    "operation": { "const": "hardware.capture_waveform" },
+                    "arguments": { "$ref": "https://aia.local/protocols/hardware/v1/hardware-tool.schema.json#/$defs/measurementRequest/properties/arguments" }
+                  }
+                },
+                {
+                  "properties": {
+                    "operation": { "const": "hardware.measure_pwm" },
+                    "arguments": { "$ref": "https://aia.local/protocols/hardware/v1/hardware-tool.schema.json#/$defs/measurementRequest/properties/arguments" }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "response": {
+      "allOf": [
+        { "$ref": "../common/envelope.schema.json#/$defs/sessionEnvelope" },
+        {
+          "type": "object",
+          "required": ["reply_to", "operation", "hardware_result"],
+          "properties": {
+            "type": { "const": "response" },
+            "reply_to": { "$ref": "../common/identifiers.schema.json#/$defs/uuid" },
+            "operation": {
+              "enum": [
+                "hardware.get_status",
+                "hardware.measure_frequency",
+                "hardware.measure_vpp",
+                "hardware.capture_waveform",
+                "hardware.measure_pwm"
+              ]
+            },
+            "hardware_result": {
+              "oneOf": [
+                { "$ref": "https://aia.local/protocols/hardware/v1/hardware-tool.schema.json#/$defs/runtimeStatusSuccess" },
+                { "$ref": "https://aia.local/protocols/hardware/v1/hardware-tool.schema.json#/$defs/runtimeMeasurementSuccess" },
+                { "$ref": "https://aia.local/protocols/hardware/v1/hardware-tool.schema.json#/$defs/runtimeError" }
+              ]
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "error": {
+      "allOf": [
+        { "$ref": "../common/envelope.schema.json#/$defs/sessionEnvelope" },
+        {
+          "type": "object",
+          "required": ["reply_to", "code", "message"],
+          "properties": {
+            "type": { "const": "error" },
+            "reply_to": { "$ref": "../common/identifiers.schema.json#/$defs/uuid" },
+            "code": {
+              "enum": [
+                "ipc_authentication_failed",
+                "backend_protocol_mismatch",
+                "backend_unreachable",
+                "backend_response_invalid",
+                "indeterminate_execution"
+              ]
+            },
+            "message": { "type": "string", "minLength": 1, "maxLength": 256 }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "ping": {
+      "allOf": [
+        { "$ref": "../common/envelope.schema.json#/$defs/sessionEnvelope" },
+        {
+          "type": "object",
+          "required": ["sent_at"],
+          "properties": {
+            "type": { "const": "ping" },
+            "sent_at": { "$ref": "../common/identifiers.schema.json#/$defs/timestamp" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "pong": {
+      "allOf": [
+        { "$ref": "../common/envelope.schema.json#/$defs/sessionEnvelope" },
+        {
+          "type": "object",
+          "required": ["reply_to", "sent_at"],
+          "properties": {
+            "type": { "const": "pong" },
+            "reply_to": { "$ref": "../common/identifiers.schema.json#/$defs/uuid" },
+            "sent_at": { "$ref": "../common/identifiers.schema.json#/$defs/timestamp" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  },
+  "oneOf": [
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/response" },
+    { "$ref": "#/$defs/error" },
+    { "$ref": "#/$defs/ping" },
+    { "$ref": "#/$defs/pong" }
+  ]
+}

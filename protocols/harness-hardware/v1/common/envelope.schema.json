@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/harness-hardware/v1/common/envelope.schema.json",
+  "title": "AIA Harness Hardware v1 base envelopes",
+  "$defs": {
+    "preAuthEnvelope": {
+      "type": "object",
+      "required": ["protocol", "version", "message_id", "type"],
+      "properties": {
+        "protocol": { "const": "aia-harness-hardware" },
+        "version": { "const": 1 },
+        "message_id": { "$ref": "identifiers.schema.json#/$defs/uuid" },
+        "type": { "type": "string" }
+      }
+    },
+    "sessionEnvelope": {
+      "type": "object",
+      "required": ["protocol", "version", "message_id", "session_id", "type"],
+      "properties": {
+        "protocol": { "const": "aia-harness-hardware" },
+        "version": { "const": 1 },
+        "message_id": { "$ref": "identifiers.schema.json#/$defs/uuid" },
+        "session_id": { "$ref": "identifiers.schema.json#/$defs/uuid" },
+        "type": { "type": "string" }
+      }
+    }
+  }
+}

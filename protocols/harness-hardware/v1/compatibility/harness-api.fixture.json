@@ -1,0 +1,26 @@
+{
+  "upstream_repository": "https://github.com/deepseek-ai/deepseek-harness",
+  "reviewed_git_commit": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
+  "reviewed_source_version": "dsh@0.1.3-alpha.1",
+  "observed_registry_packages": {
+    "@deepseek-ai/dsh": "0.1.2-rc.1",
+    "dsh-tools": "0.0.1-rc.1",
+    "cordis": "4.0.2"
+  },
+  "adapter_contract": "aia-harness-hardware/v1",
+  "compatibility_policy": "exact-reviewed-shape-only",
+  "compatible_range": { "minimum": null, "maximum": null },
+  "verified_compatible_versions": [],
+  "reviewed_api_shape": [
+    "inject",
+    "apply",
+    "ctx.tools.register",
+    "defineTool",
+    "async execute",
+    "AbortSignal"
+  ],
+  "runtime_requirements": {
+    "node": "^22.19.0 || >=24.0.0",
+    "developer_preview": true
+  }
+}

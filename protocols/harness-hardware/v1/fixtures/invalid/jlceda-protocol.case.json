@@ -1,0 +1,5 @@
+{
+  "description": "JLCEDA protocol namespace is isolated",
+  "schema_ref": "https://aia.local/protocols/harness-hardware/v1/message.schema.json",
+  "instance": {"protocol": "aia-jlceda", "version": 1, "message_id": "00000000-0000-4000-8000-000000000013", "session_id": "00000000-0000-4000-8000-000000000007", "type": "ping", "sent_at": "2026-09-06T12:00:00Z"}
+}

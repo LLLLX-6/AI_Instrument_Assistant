@@ -1,0 +1,11 @@
+{
+  "description": "Valid authentication acceptance establishing a fresh session",
+  "schema_ref": "https://aia.local/protocols/harness-hardware/v1/message.schema.json",
+  "instance": {
+    "protocol": "aia-harness-hardware", "version": 1,
+    "message_id": "00000000-0000-4000-8000-000000000006", "type": "accepted",
+    "reply_to": "00000000-0000-4000-8000-000000000005",
+    "session_id": "00000000-0000-4000-8000-000000000007",
+    "connection_generation": 1, "expires_at": "2026-09-06T13:00:00Z"
+  }
+}

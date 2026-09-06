@@ -1,0 +1,10 @@
+{
+  "description": "Valid pre-auth hello",
+  "schema_ref": "https://aia.local/protocols/harness-hardware/v1/message.schema.json",
+  "instance": {
+    "protocol": "aia-harness-hardware", "version": 1,
+    "message_id": "00000000-0000-4000-8000-000000000001", "type": "hello",
+    "client_instance_id": "00000000-0000-4000-8000-000000000002",
+    "client_nonce": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  }
+}

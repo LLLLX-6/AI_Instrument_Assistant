@@ -1,0 +1,14 @@
+{
+  "description": "Response must explicitly correlate to one request",
+  "schema_ref": "https://aia.local/protocols/harness-hardware/v1/message.schema.json",
+  "instance": {
+    "protocol": "aia-harness-hardware", "version": 1,
+    "message_id": "00000000-0000-4000-8000-000000000011",
+    "session_id": "00000000-0000-4000-8000-000000000007", "type": "response",
+    "operation": "hardware.get_status",
+    "hardware_result": {
+      "contract_version": "1.0", "ok": true, "operation": "hardware.get_status",
+      "result": {"instrument": {"manufacturer": "RIGOL", "model": "DS1102Z-E", "serial_number": "masked", "firmware_version": "00.06"}, "observed_at": "2026-09-06T12:00:00Z"}
+    }
+  }
+}
