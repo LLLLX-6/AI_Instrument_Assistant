@@ -16,6 +16,7 @@ class OscilloscopeInterfaceTests(unittest.TestCase):
             "get_probe_ratio", "set_probe_ratio",
             "get_timebase_scale", "set_timebase_scale",
             "measure_frequency", "measure_vpp",
+            "capture_waveform",
         }
         public = {
             name for name, value in inspect.getmembers(OscilloscopeInterface)
@@ -28,7 +29,7 @@ class OscilloscopeInterfaceTests(unittest.TestCase):
     def test_port_contains_no_raw_scpi_or_waveform_escape_hatch(self) -> None:
         names = set(dir(OscilloscopeInterface))
         self.assertNotIn("send_scpi", names)
-        self.assertNotIn("capture_waveform", names)
+        self.assertIn("capture_waveform", names)
         self.assertNotIn("query", names)
 
 

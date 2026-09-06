@@ -243,3 +243,20 @@ fake/recorded 自动 contract，但没有执行真实 HIL。详细设计、Red/G
 结论严格限定为：**Phase 6B basic communication/configuration/measurement query
 已通过真实 HIL**。完整 Driver、waveform、scaling、software analysis 和工业级可靠性
 仍未验证。
+
+## 14. Phase 6C automatic implementation status
+
+Phase 6C 已进入自动化验证阶段，详细范围、TDD evidence 与待执行真实 HIL 见
+[Phase 6C waveform validation](ds1102ze-phase6c-validation.md)。当前只实现单通道
+NORM/BYTE 屏幕波形 1200 点路径，不实现 RAW/分块或分析算法。自动测试通过不能替代
+真实 DS1102Z-E 对 binary framing、preamble、缩放和状态恢复的验证；在用户完成
+manual waveform HIL 前不创建 Phase 6C commit。
+
+## 15. Phase 6C actual waveform HIL result
+
+用户于 2026-09-06 完成真实 DS1102Z-E NORM/BYTE CH1 waveform HIL：1200 点、
+200 ns 点间隔、-120 us 时间原点、所有样本有限；时间范围约 239.8 us，与 20 us/div
+屏幕范围一致。缩放结果为 -0.340 V 至 +0.008 V，span 0.348 V；与 Phase 6B 的
+instrument query 0.356 Vpp 量级一致，但不是同一原子记录，也不是 Phase 6D 软件分析
+验收。底层 raw header/terminator、raw preamble 字符串及前后状态没有由有限 HIL 输出
+直接展示，保留为 bounded observations。详细结论见 Phase 6C validation record。

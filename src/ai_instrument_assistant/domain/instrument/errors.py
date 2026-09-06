@@ -9,7 +9,11 @@ from ai_instrument_assistant.hardware.errors import (
     InstrumentResponseError,
     InstrumentStateVerificationError,
     InstrumentTimeoutError,
+    WaveformAcquisitionError,
     WaveformDecodeError,
+    WaveformLengthMismatchError,
+    WaveformMetadataError,
+    WaveformProtocolError,
 )
 
 __all__ = [
@@ -21,5 +25,9 @@ __all__ = [
     "InstrumentResponseError",
     "InstrumentStateVerificationError",
     "InstrumentTimeoutError",
+    "WaveformAcquisitionError",
     "WaveformDecodeError",
+    "WaveformLengthMismatchError",
+    "WaveformMetadataError",
+    "WaveformProtocolError",
 ]

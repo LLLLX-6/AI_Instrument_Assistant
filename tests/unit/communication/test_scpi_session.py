@@ -54,6 +54,16 @@ class ScpiSessionTests(unittest.TestCase):
         with self.assertRaises(TransportError):
             session.read_raw()
 
+    def test_binary_query_keeps_write_and_read_as_one_exchange(self) -> None:
+        connection = RecordedVisaConnection(raw_response=b"#13abc\n")
+        session = ScpiSession(connection)
+
+        self.assertEqual(b"#13abc\n", session.query_raw(":WAVeform:DATA?"))
+        self.assertEqual([
+            ("write", ":WAVeform:DATA?"),
+            ("read_raw", ""),
+        ], connection.calls)
+
     def test_one_scpi_exchange_blocks_interleaving_io(self) -> None:
         query_started = Event()
         release_query = Event()

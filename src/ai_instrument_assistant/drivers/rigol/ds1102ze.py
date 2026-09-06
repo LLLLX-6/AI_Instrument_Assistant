@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from datetime import UTC, datetime
 from functools import wraps
 from threading import RLock
 from typing import Any, Callable, TypeVar
@@ -15,8 +16,14 @@ from ai_instrument_assistant.communication.errors import (
     TransportTimeoutError,
 )
 from ai_instrument_assistant.communication.scpi_session import ScpiSession
+from ai_instrument_assistant.communication.ieee4882 import parse_definite_length_block
 from ai_instrument_assistant.communication.visa import VisaTransport
 from ai_instrument_assistant.domain.instrument.models import InstrumentIdentity
+from ai_instrument_assistant.domain.instrument.waveform import Waveform
+from ai_instrument_assistant.drivers.rigol.waveform import (
+    parse_waveform_preamble,
+    scale_norm_byte_waveform,
+)
 from ai_instrument_assistant.hardware.errors import (
     HardwareError,
     InstrumentCommandError,
@@ -39,6 +46,8 @@ _PROBE_RATIOS = (
     1.0, 2.0, 5.0, 10.0, 20.0, 50.0,
     100.0, 200.0, 500.0, 1000.0,
 )
+_WAVEFORM_START = 1
+_WAVEFORM_STOP = 1200
 _Result = TypeVar("_Result")
 
 
@@ -289,6 +298,112 @@ class DS1102ZEDriver(OscilloscopeInterface):
             raise InstrumentResponseError("Vpp measurement is unavailable")
         return value
 
+    @_serialized
+    def capture_waveform(self, channel: int) -> Waveform:
+        """Capture one screen waveform using only verified NORM/BYTE semantics."""
+
+        _require_channel(channel)
+        self._require_session()
+        if self._identity is None:
+            raise InstrumentDisconnectedError("Instrument identity is unavailable")
+
+        settings = (
+            _WaveformSetting(
+                query=":WAVeform:SOURce?",
+                target_response=f"CHAN{channel}",
+                target_command=f":WAVeform:SOURce CHANnel{channel}",
+                restore_command=_restore_waveform_source,
+                allowed=frozenset(("CHAN1", "CHAN2", "MATH")),
+            ),
+            _WaveformSetting(
+                query=":WAVeform:MODE?",
+                target_response="NORM",
+                target_command=":WAVeform:MODE NORM",
+                restore_command=lambda value: f":WAVeform:MODE {value}",
+                allowed=frozenset(("NORM", "MAX", "RAW")),
+            ),
+            _WaveformSetting(
+                query=":WAVeform:FORMat?",
+                target_response="BYTE",
+                target_command=":WAVeform:FORMat BYTE",
+                restore_command=lambda value: f":WAVeform:FORMat {value}",
+                allowed=frozenset(("BYTE", "WORD", "ASC", "ASCII")),
+            ),
+            _WaveformSetting(
+                query=":WAVeform:STARt?",
+                target_response=str(_WAVEFORM_START),
+                target_command=f":WAVeform:STARt {_WAVEFORM_START}",
+                restore_command=lambda value: f":WAVeform:STARt {value}",
+                integer=True,
+            ),
+            _WaveformSetting(
+                query=":WAVeform:STOP?",
+                target_response=str(_WAVEFORM_STOP),
+                target_command=f":WAVeform:STOP {_WAVEFORM_STOP}",
+                restore_command=lambda value: f":WAVeform:STOP {value}",
+                integer=True,
+            ),
+        )
+        changed: list[tuple[_WaveformSetting, str]] = []
+        failure: Exception | None = None
+        result: Waveform | None = None
+        try:
+            for setting in settings:
+                original = self._read_waveform_setting(setting)
+                if original != setting.target_response:
+                    # Once a state-changing write is attempted, restoration must be
+                    # attempted even when its immediate read-back does not verify.
+                    changed.append((setting, original))
+                    self._write(setting.target_command, "waveform setup")
+                    observed = self._read_waveform_setting(setting)
+                    if observed != setting.target_response:
+                        raise InstrumentStateVerificationError(
+                            "Waveform setup post-condition failed"
+                        )
+
+            preamble = parse_waveform_preamble(
+                self._query(":WAVeform:PREamble?", "waveform preamble")
+            )
+            framed = self._query_raw(":WAVeform:DATA?", "waveform data")
+            payload = parse_definite_length_block(
+                framed,
+                max_payload_bytes=_WAVEFORM_STOP - _WAVEFORM_START + 1,
+            )
+            result = scale_norm_byte_waveform(
+                preamble,
+                payload,
+                channel=channel,
+                requested_start=_WAVEFORM_START,
+                requested_stop=_WAVEFORM_STOP,
+                identity=self._identity,
+                captured_at=datetime.now(UTC),
+            )
+        except Exception as error:
+            failure = error
+
+        restore_failure: Exception | None = None
+        for setting, original in reversed(changed):
+            try:
+                self._write(setting.restore_command(original), "waveform state restore")
+                observed = self._read_waveform_setting(setting)
+                if observed != original:
+                    raise InstrumentStateVerificationError(
+                        "Waveform state restoration post-condition failed"
+                    )
+            except Exception as error:
+                if restore_failure is None:
+                    restore_failure = error
+
+        if failure is not None:
+            if restore_failure is not None:
+                failure.add_note("Waveform state restoration also failed")
+            raise failure
+        if restore_failure is not None:
+            raise restore_failure
+        if result is None:  # pragma: no cover - defensive invariant
+            raise InstrumentCommandError("Waveform acquisition produced no result")
+        return result
+
     def _read_identity(self) -> InstrumentIdentity:
         raw = self._query("*IDN?", "instrument identity")
         fields = tuple(field.strip() for field in raw.split(","))
@@ -335,6 +450,54 @@ class DS1102ZEDriver(OscilloscopeInterface):
             return session.query(command)
         except TransportError as error:
             raise _operation_error(error, f"{operation} failed") from error
+
+    def _query_raw(self, command: str, operation: str) -> bytes:
+        session = self._require_session()
+        try:
+            return session.query_raw(command)
+        except TransportError as error:
+            raise _operation_error(error, f"{operation} failed") from error
+
+    def _read_waveform_setting(self, setting: _WaveformSetting) -> str:
+        response = self._query(setting.query, "waveform state").strip().upper()
+        if setting.integer:
+            try:
+                number = int(response)
+            except ValueError as error:
+                raise InstrumentResponseError(
+                    "Waveform range response is invalid"
+                ) from error
+            if number < 1:
+                raise InstrumentResponseError("Waveform range response is invalid")
+            return str(number)
+        if response not in setting.allowed:
+            raise InstrumentResponseError("Waveform state response is unsupported")
+        return response
+
+
+class _WaveformSetting:
+    def __init__(
+        self,
+        *,
+        query: str,
+        target_response: str,
+        target_command: str,
+        restore_command: Callable[[str], str],
+        allowed: frozenset[str] = frozenset(),
+        integer: bool = False,
+    ) -> None:
+        self.query = query
+        self.target_response = target_response
+        self.target_command = target_command
+        self.restore_command = restore_command
+        self.allowed = allowed
+        self.integer = integer
+
+
+def _restore_waveform_source(value: str) -> str:
+    if value.startswith("CHAN") and value[4:].isdigit():
+        return f":WAVeform:SOURce CHANnel{value[4:]}"
+    return f":WAVeform:SOURce {value}"
 
 
 def _connection_error(error: TransportError, message: str) -> HardwareError:

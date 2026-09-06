@@ -12,7 +12,11 @@ from .errors import (
     TransportDisconnectedError,
     TransportError,
     TransportTimeoutError,
+    WaveformAcquisitionError,
     WaveformDecodeError,
+    WaveformLengthMismatchError,
+    WaveformMetadataError,
+    WaveformProtocolError,
 )
 
 __all__ = [
@@ -27,5 +31,9 @@ __all__ = [
     "TransportDisconnectedError",
     "TransportError",
     "TransportTimeoutError",
+    "WaveformAcquisitionError",
     "WaveformDecodeError",
+    "WaveformLengthMismatchError",
+    "WaveformMetadataError",
+    "WaveformProtocolError",
 ]

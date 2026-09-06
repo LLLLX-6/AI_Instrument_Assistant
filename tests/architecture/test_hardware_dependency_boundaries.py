@@ -56,12 +56,26 @@ class HardwareArchitectureTests(unittest.TestCase):
                 continue
             self.assertNotIn("pyvisa", imports(path), path)
 
-    def test_hardware_tool_and_arbitrary_scpi_are_absent_in_phase6b(self) -> None:
+    def test_hardware_tool_analysis_and_arbitrary_scpi_are_absent_in_phase6c(self) -> None:
         self.assertFalse((ROOT / "src/ai_instrument_assistant/tools/hardware.py").exists())
         port = (ROOT / "src/ai_instrument_assistant/application/ports/oscilloscope.py").read_text(encoding="utf-8")
         self.assertNotIn("send_scpi", port)
-        self.assertNotIn("capture_waveform", port)
+        self.assertIn("capture_waveform", port)
         self.assertNotIn("measure_pwm", port)
+        self.assertNotIn("analyze", port)
+
+    def test_generic_binary_parser_has_no_driver_dependency(self) -> None:
+        found = imports(ROOT / "src/ai_instrument_assistant/communication/ieee4882.py")
+        self.assertFalse(any(name.startswith(
+            "ai_instrument_assistant.drivers"
+        ) for name in found), found)
+
+    def test_waveform_domain_has_no_driver_or_communication_dependency(self) -> None:
+        found = imports(ROOT / "src/ai_instrument_assistant/domain/instrument/waveform.py")
+        self.assertFalse(any(name.startswith((
+            "ai_instrument_assistant.drivers",
+            "ai_instrument_assistant.communication",
+        )) for name in found), found)
 
     def test_manual_hil_script_uses_semantic_driver_not_raw_scpi(self) -> None:
         script = ROOT / "scripts/check_ds1102ze_basic.py"
@@ -71,6 +85,20 @@ class HardwareArchitectureTests(unittest.TestCase):
             "*IDN?", ":CHANnel", ":TIMebase", ":MEASure", ":WAVeform"
         ):
             self.assertNotIn(raw_command_marker, source)
+        found = imports(script)
+        self.assertFalse(any(name.startswith(
+            "ai_instrument_assistant.communication"
+        ) for name in found), found)
+
+    def test_waveform_hil_script_uses_semantic_driver_not_raw_scpi(self) -> None:
+        script = ROOT / "scripts/check_ds1102ze_waveform.py"
+        self.assertTrue(script.exists())
+        source = script.read_text(encoding="utf-8")
+        for raw_command_marker in ("*IDN?", ":WAVeform", "send_scpi"):
+            self.assertNotIn(raw_command_marker, source)
+        self.assertIn("capture_waveform", source)
+        self.assertNotIn("frequency", source.lower())
+        self.assertNotIn("duty", source.lower())
         found = imports(script)
         self.assertFalse(any(name.startswith(
             "ai_instrument_assistant.communication"

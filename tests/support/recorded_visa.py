@@ -7,7 +7,7 @@ class RecordedVisaConnection:
     def __init__(
         self,
         *,
-        responses: dict[str, str] | None = None,
+        responses: dict[str, str | list[str]] | None = None,
         query_error: Exception | None = None,
         close_error: Exception | None = None,
         raw_response: bytes = b"",
@@ -26,7 +26,12 @@ class RecordedVisaConnection:
         self.calls.append(("query", command))
         if self.query_error is not None:
             raise self.query_error
-        return self.responses[command]
+        response = self.responses[command]
+        if isinstance(response, list):
+            if not response:
+                raise AssertionError(f"No recorded response remains for {command}")
+            return response.pop(0)
+        return response
 
     def read_raw(self) -> bytes:
         self.calls.append(("read_raw", ""))

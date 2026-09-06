@@ -9,9 +9,14 @@ from .errors import (
     InstrumentResponseError,
     InstrumentStateVerificationError,
     InstrumentTimeoutError,
+    WaveformAcquisitionError,
     WaveformDecodeError,
+    WaveformLengthMismatchError,
+    WaveformMetadataError,
+    WaveformProtocolError,
 )
 from .models import InstrumentIdentity
+from .waveform import Waveform, WaveformAcquisitionMode
 
 __all__ = [
     "HardwareError",
@@ -23,5 +28,11 @@ __all__ = [
     "InstrumentResponseError",
     "InstrumentStateVerificationError",
     "InstrumentTimeoutError",
+    "Waveform",
+    "WaveformAcquisitionError",
+    "WaveformAcquisitionMode",
     "WaveformDecodeError",
+    "WaveformLengthMismatchError",
+    "WaveformMetadataError",
+    "WaveformProtocolError",
 ]

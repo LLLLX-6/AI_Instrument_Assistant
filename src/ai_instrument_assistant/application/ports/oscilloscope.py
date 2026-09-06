@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from enum import StrEnum
 
 from ai_instrument_assistant.domain.instrument.models import InstrumentIdentity
+from ai_instrument_assistant.domain.instrument.waveform import Waveform
 
 
 class ChannelCoupling(StrEnum):
@@ -59,3 +60,6 @@ class OscilloscopeInterface(ABC):
 
     @abstractmethod
     def measure_vpp(self, channel: int) -> float: ...
+
+    @abstractmethod
+    def capture_waveform(self, channel: int) -> Waveform: ...

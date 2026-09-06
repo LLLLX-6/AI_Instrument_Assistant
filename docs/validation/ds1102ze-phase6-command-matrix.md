@@ -81,3 +81,11 @@ Preamble 顺序严格为：
 
 矩阵之外的 API 不是已批准实现清单。六个单独的 X/Y query 可以用于开发/HIL 的 preamble
 交叉验证；正常路径可只读取一次 preamble，避免每一点/每个块重复全部查询。
+
+## Phase 6C implementation note
+
+2026-09-06 的 Phase 6C 自动化切片选用 NORM/BYTE、单通道、START=1、STOP=1200。
+它读取并回读验证 source/mode/format/start/stop，读取一次 preamble 与 DATA block，
+并在完成或失败后逆序恢复被修改的 waveform 设置。此范围不使用 `:STOP`/`:RUN`，
+不实现 RAW、MAX、WORD、ASCII、分块或独立 X/Y query。该实现目前只有 recorded/fake
+测试证据；真实固件兼容性仍待 manual waveform HIL。

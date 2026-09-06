@@ -14,6 +14,11 @@ from ai_instrument_assistant.hardware.errors import (
     TransportDisconnectedError,
     TransportError,
     TransportTimeoutError,
+    WaveformAcquisitionError,
+    WaveformDecodeError,
+    WaveformLengthMismatchError,
+    WaveformMetadataError,
+    WaveformProtocolError,
 )
 
 
@@ -28,6 +33,11 @@ class HardwareErrorTests(unittest.TestCase):
             InstrumentCommandError,
             InstrumentResponseError,
             InstrumentStateVerificationError,
+            WaveformAcquisitionError,
+            WaveformProtocolError,
+            WaveformDecodeError,
+            WaveformMetadataError,
+            WaveformLengthMismatchError,
         )
         for category in categories:
             with self.subTest(category=category.__name__):

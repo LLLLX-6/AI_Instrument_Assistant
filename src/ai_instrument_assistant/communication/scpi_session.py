@@ -52,6 +52,20 @@ class ScpiSession:
                 raise TransportError("SCPI binary read returned a non-bytes response")
             return response
 
+    def query_raw(self, command: str) -> bytes:
+        """Keep the command and binary response as one serialized exchange."""
+
+        with self._lock:
+            connection = self._require_connection()
+            try:
+                connection.write(command)
+                response = connection.read_raw()
+            except Exception as error:
+                raise _communication_error(error, "SCPI binary query failed") from error
+            if not isinstance(response, bytes):
+                raise TransportError("SCPI binary query returned a non-bytes response")
+            return response
+
     def close(self) -> None:
         with self._lock:
             connection = self._connection

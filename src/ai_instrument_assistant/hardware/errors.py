@@ -45,5 +45,21 @@ class InstrumentStateVerificationError(InstrumentCommandError):
     """Read-back does not establish the requested instrument post-condition."""
 
 
-class WaveformDecodeError(InstrumentResponseError):
-    """Reserved for Phase 6C waveform framing or scaling failures."""
+class WaveformAcquisitionError(InstrumentCommandError):
+    """A semantic waveform acquisition could not be completed safely."""
+
+
+class WaveformProtocolError(WaveformAcquisitionError):
+    """A binary waveform response violates the supported framing protocol."""
+
+
+class WaveformDecodeError(WaveformProtocolError):
+    """A framed waveform payload could not be decoded."""
+
+
+class WaveformMetadataError(WaveformAcquisitionError):
+    """Waveform metadata is malformed or unsupported by the current slice."""
+
+
+class WaveformLengthMismatchError(WaveformProtocolError):
+    """Declared, requested, and received waveform lengths are inconsistent."""
