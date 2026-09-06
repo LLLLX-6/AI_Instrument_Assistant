@@ -326,3 +326,33 @@ Artifact 均在当前进程内回读并通过 metadata verification。
 Phase 6F 判定为 **PASS with real MeasurementService end-to-end evidence**。证据只覆盖当前
 设备/firmware、CH1、安全低压约 10 kHz/30% PWM 和当前 NORM/BYTE 1200-point workflow；
 不声明原子采集、统一精度规格、Artifact 持久化或其他 waveform/范围已验证。
+
+## 20. Phase 6G Hardware Tool runtime candidate
+
+Phase 6G 已实现 provider-neutral `HardwareToolRuntime`，只通过 `MeasurementService` 执行
+五个既定语义 operation。入站请求在任何 Service side effect 前使用 Phase 6E Hardware
+JSON Schema 验证；执行采用静态 allowlist，不存在 `getattr`、dynamic import、任意 SCPI、
+Agent/LLM/MCP 或 JLCEDA 协调。
+
+real 与 fake 由外层 composition 显式选择，禁止 real 失败后自动降级为 fake。fake 仍走相同
+MeasurementService、analysis、ArtifactStore、序列化与验证链，并将模拟仪器事实标为
+`source=simulated`。PWM 部分结果仍可作为 degraded success；无法产生有意义结果时才映射为
+有限 Tool error。完整 workflow 由 runtime 进程内互斥，重复观测不缓存并生成新的 request/
+artifact identity。
+
+自动验证为 PASS：267 Python、14 TypeScript shared-contract、70 TypeScript runtime/architecture
+tests；fake 五操作 demo 通过。真实 HardwareToolRuntime HIL 尚未运行，因此不得将之前的 Driver/
+MeasurementService HIL 自动升级为 runtime HIL 证据。完整边界、错误映射、并发和人工命令见
+[Phase 6G validation](ds1102ze-phase6g-validation.md)。Phase 6G 当前未提交，等待评审。
+
+随后真实 HardwareToolRuntime HIL 完成并判定为 **PASS with real tool-runtime evidence**：
+五个 operation 全部 `ok=true`；status 确认为 DS1102Z-E / firmware `00.06.03.SP2`；独立
+instrument frequency/Vpp 为 `10000 Hz` / `0.42 V`；waveform 为 1200 points、200 ns interval
+并仅暴露 ArtifactReference。PWM software frequency/duty/Vpp 为约 `10004.2741 Hz`、
+`29.9650%`、`0.416 V`，quality=`good`、warnings 为空。software coherence=`same_artifact`，
+cross-source coherence=`sequential_same_session`，独立 capture 产生不同 Artifact ID。
+
+该结论仍只覆盖当前设备/firmware、CH1、安全低压约 10 kHz/30% PWM、NORM/BYTE 1200-point
+workflow；不扩展到 atomic capture、工业级准确度、持久/跨进程 Artifact、CH2 或其他 waveform
+模式。Phase 6G closeout 后停止硬件功能扩展，下一阶段只评审 Agent Runtime Adapter / DeepSeek
+Harness 集成兼容性。

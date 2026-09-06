@@ -126,7 +126,7 @@ class MeasurementDomainTests(unittest.TestCase):
 
     def test_result_rejects_observation_in_wrong_source_slot(self) -> None:
         wrong = MeasurementObservation(
-            10_000.0, ObservationSource.SIMULATED, "fixture", NOW,
+            10_000.0, ObservationSource.SOFTWARE_ANALYSIS, "fixture", NOW,
             ObservationQuality.GOOD,
         )
         with self.assertRaises(ValueError):
@@ -139,6 +139,22 @@ class MeasurementDomainTests(unittest.TestCase):
                 coherence=MeasurementCoherence.unknown(),
                 provenance=provenance(),
             )
+
+    def test_instrument_slot_accepts_explicitly_simulated_adapter_fact(self) -> None:
+        simulated = MeasurementObservation(
+            10_000.0, ObservationSource.SIMULATED, "simulated.measure_frequency", NOW,
+            ObservationQuality.GOOD,
+        )
+        result = MeasurementResult(
+            request=MeasurementRequest(REQUEST_ID, MeasurementKind.FREQUENCY, 1),
+            waveform=None,
+            instrument_frequency=simulated,
+            quality=MeasurementQuality.GOOD,
+            warnings=(),
+            coherence=MeasurementCoherence.unknown(),
+            provenance=provenance(),
+        )
+        self.assertIs(ObservationSource.SIMULATED, result.instrument_frequency.source)
 
     def test_coherence_does_not_claim_same_capture_for_sequential_queries(self) -> None:
         coherence = MeasurementCoherence(

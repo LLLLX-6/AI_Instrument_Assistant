@@ -196,8 +196,13 @@ class MeasurementResult:
 
         for name in ("instrument_frequency", "instrument_vpp"):
             observation = getattr(self, name)
-            if observation is not None and observation.source is not ObservationSource.INSTRUMENT:
-                raise DomainInvariantError(f"{name} must have instrument source")
+            if observation is not None and observation.source not in (
+                ObservationSource.INSTRUMENT,
+                ObservationSource.SIMULATED,
+            ):
+                raise DomainInvariantError(
+                    f"{name} must have instrument or simulated source"
+                )
         for name in (
             "software_frequency", "software_period", "software_duty_cycle",
             "software_vpp", "software_mean", "software_rms",

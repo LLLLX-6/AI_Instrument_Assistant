@@ -6,7 +6,10 @@
     { "$ref": "#/$defs/statusRequest" },
     { "$ref": "#/$defs/measurementRequest" },
     { "$ref": "#/$defs/statusResponse" },
-    { "$ref": "#/$defs/measurementResponse" }
+    { "$ref": "#/$defs/measurementResponse" },
+    { "$ref": "#/$defs/runtimeStatusSuccess" },
+    { "$ref": "#/$defs/runtimeMeasurementSuccess" },
+    { "$ref": "#/$defs/runtimeError" }
   ],
   "$defs": {
     "statusRequest": {
@@ -107,6 +110,128 @@
           ]
         },
         "result": { "$ref": "#/$defs/measurementResult" }
+      }
+    },
+    "runtimeStatusSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "ok", "operation", "result"],
+      "properties": {
+        "contract_version": { "const": "1.0" },
+        "ok": { "const": true },
+        "operation": { "const": "hardware.get_status" },
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["instrument", "observed_at"],
+          "properties": {
+            "instrument": { "$ref": "#/$defs/instrument" },
+            "observed_at": { "$ref": "#/$defs/timestamp" }
+          }
+        }
+      }
+    },
+    "runtimeMeasurementSuccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "ok", "operation", "result"],
+      "allOf": [
+        {
+          "oneOf": [
+            {
+              "properties": {
+                "operation": { "const": "hardware.measure_frequency" },
+                "result": { "properties": { "kind": { "const": "frequency" } } }
+              }
+            },
+            {
+              "properties": {
+                "operation": { "const": "hardware.measure_vpp" },
+                "result": { "properties": { "kind": { "const": "vpp" } } }
+              }
+            },
+            {
+              "properties": {
+                "operation": { "const": "hardware.capture_waveform" },
+                "result": { "properties": { "kind": { "const": "waveform" } } }
+              }
+            },
+            {
+              "properties": {
+                "operation": { "const": "hardware.measure_pwm" },
+                "result": { "properties": { "kind": { "const": "pwm" } } }
+              }
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "contract_version": { "const": "1.0" },
+        "ok": { "const": true },
+        "operation": {
+          "enum": [
+            "hardware.measure_frequency",
+            "hardware.measure_vpp",
+            "hardware.capture_waveform",
+            "hardware.measure_pwm"
+          ]
+        },
+        "result": { "$ref": "#/$defs/measurementResult" }
+      }
+    },
+    "runtimeError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "ok", "operation", "error"],
+      "properties": {
+        "contract_version": { "const": "1.0" },
+        "ok": { "const": false },
+        "operation": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "error": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "message", "details"],
+          "properties": {
+            "code": {
+              "enum": [
+                "invalid_request",
+                "unsupported_operation",
+                "hardware_unavailable",
+                "instrument_connection_failed",
+                "instrument_identity_mismatch",
+                "measurement_failed",
+                "waveform_acquisition_failed",
+                "analysis_failed",
+                "artifact_unavailable",
+                "internal_error"
+              ]
+            },
+            "message": { "type": "string", "minLength": 1, "maxLength": 256 },
+            "details": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "issues": {
+                  "type": "array",
+                  "maxItems": 8,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["path", "rule"],
+                    "properties": {
+                      "path": { "type": "string", "maxLength": 512 },
+                      "rule": { "type": "string", "minLength": 1, "maxLength": 64 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "measurementResult": {

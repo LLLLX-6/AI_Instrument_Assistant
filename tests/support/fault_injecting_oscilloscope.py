@@ -19,6 +19,12 @@ class FaultInjectingOscilloscope:
         self._fail_vpp = fail_vpp
         self._fail_waveform = fail_waveform
 
+    def connect(self):
+        return self._delegate.connect()
+
+    def disconnect(self):
+        return self._delegate.disconnect()
+
     def get_identity(self):
         return self._delegate.get_identity()
 

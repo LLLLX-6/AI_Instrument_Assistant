@@ -9,6 +9,7 @@ from ai_instrument_assistant.application.ports.oscilloscope import OscilloscopeI
 from ai_instrument_assistant.application.ports.waveform_analysis import WaveformAnalysisEngine
 from ai_instrument_assistant.domain.artifacts import WaveformArtifact
 from ai_instrument_assistant.domain.instrument import HardwareError, InstrumentIdentity
+from ai_instrument_assistant.domain.instrument.waveform import Waveform
 from ai_instrument_assistant.domain.measurement import (
     CoherenceKind,
     InstrumentStatus,
@@ -23,6 +24,8 @@ from ai_instrument_assistant.domain.measurement import (
     ObservationSource,
 )
 
+from .errors import AnalysisFailedError, ArtifactUnavailableError
+
 
 class MeasurementService:
     """Compose semantic scope operations without depending on a concrete driver."""
@@ -34,11 +37,20 @@ class MeasurementService:
         analyzer: WaveformAnalysisEngine,
         artifact_store: ArtifactStore,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        instrument_observation_source: ObservationSource = ObservationSource.INSTRUMENT,
     ) -> None:
+        if instrument_observation_source not in (
+            ObservationSource.INSTRUMENT,
+            ObservationSource.SIMULATED,
+        ):
+            raise ValueError(
+                "instrument_observation_source must be instrument or simulated"
+            )
         self._oscilloscope = oscilloscope
         self._analyzer = analyzer
         self._artifact_store = artifact_store
         self._clock = clock
+        self._instrument_observation_source = instrument_observation_source
 
     def get_status(self) -> InstrumentStatus:
         return InstrumentStatus(
@@ -81,7 +93,7 @@ class MeasurementService:
             )
         except HardwareError:
             observation = self._unavailable(
-                ObservationSource.INSTRUMENT,
+                self._instrument_observation_source,
                 f"oscilloscope.measure_{metric}",
                 (warning,),
             )
@@ -90,7 +102,7 @@ class MeasurementService:
         else:
             observation = self._observed(
                 value,
-                ObservationSource.INSTRUMENT,
+                self._instrument_observation_source,
                 f"oscilloscope.measure_{metric}",
             )
             quality = MeasurementQuality.GOOD
@@ -126,7 +138,7 @@ class MeasurementService:
                 coherence=MeasurementCoherence.unknown(),
                 provenance=self._provenance(identity, request.channel, started_at),
             )
-        artifact = self._artifact_store.put(waveform)
+        artifact = self._store_waveform(waveform)
         return MeasurementResult(
             request=request,
             waveform=artifact,
@@ -167,8 +179,11 @@ class MeasurementService:
                 **unavailable,
             )
 
-        artifact = self._artifact_store.put(waveform)
-        analysis = self._analyzer.analyze(waveform)
+        artifact = self._store_waveform(waveform)
+        try:
+            analysis = self._analyzer.analyze(waveform)
+        except Exception as error:
+            raise AnalysisFailedError("waveform analysis failed") from error
         software = self._software_observations(analysis, artifact)
         instrument_frequency = self._try_instrument_observation(
             lambda: self._oscilloscope.measure_frequency(request.channel),
@@ -264,9 +279,15 @@ class MeasurementService:
             value = operation()
         except HardwareError:
             return self._unavailable(
-                ObservationSource.INSTRUMENT, method, (warning,)
+                self._instrument_observation_source, method, (warning,)
             )
-        return self._observed(value, ObservationSource.INSTRUMENT, method)
+        return self._observed(value, self._instrument_observation_source, method)
+
+    def _store_waveform(self, waveform: Waveform) -> WaveformArtifact:
+        try:
+            return self._artifact_store.put(waveform)
+        except Exception as error:
+            raise ArtifactUnavailableError("waveform artifact storage failed") from error
 
     def _observed(
         self,
