@@ -77,6 +77,37 @@ class HardwareArchitectureTests(unittest.TestCase):
             "ai_instrument_assistant.communication",
         )) for name in found), found)
 
+    def test_analysis_is_provider_neutral_and_driver_does_not_depend_on_it(self) -> None:
+        analysis_paths = tuple((ROOT / "src/ai_instrument_assistant/analysis").glob("*.py"))
+        self.assertGreater(len(analysis_paths), 0)
+        forbidden = (
+            "pyvisa",
+            "ai_instrument_assistant.communication",
+            "ai_instrument_assistant.drivers",
+            "ai_instrument_assistant.integrations",
+            "ai_instrument_assistant.domain.eda",
+            "ai_instrument_assistant.agent",
+            "ai_instrument_assistant.tools",
+        )
+        for path in analysis_paths:
+            found = imports(path)
+            self.assertFalse(any(name.startswith(forbidden) for name in found), (path, found))
+        for path in (ROOT / "src/ai_instrument_assistant/drivers").rglob("*.py"):
+            self.assertFalse(any(name.startswith(
+                "ai_instrument_assistant.analysis"
+            ) for name in imports(path)), path)
+
+    def test_analysis_hil_script_uses_semantic_driver_and_analysis_engine(self) -> None:
+        script = ROOT / "scripts/check_ds1102ze_analysis.py"
+        self.assertTrue(script.exists())
+        source = script.read_text(encoding="utf-8")
+        self.assertIn("analyze_waveform", source)
+        self.assertIn("capture_waveform", source)
+        self.assertIn("measure_frequency", source)
+        self.assertIn("measure_vpp", source)
+        for raw_command_marker in ("*IDN?", ":WAVeform", ":MEASure", "send_scpi"):
+            self.assertNotIn(raw_command_marker, source)
+
     def test_manual_hil_script_uses_semantic_driver_not_raw_scpi(self) -> None:
         script = ROOT / "scripts/check_ds1102ze_basic.py"
         self.assertTrue(script.exists())

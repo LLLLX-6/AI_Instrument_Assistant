@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import unittest
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 from datetime import UTC, datetime
 
 from ai_instrument_assistant.domain.instrument.models import InstrumentIdentity
@@ -65,6 +65,28 @@ class WaveformModelTests(unittest.TestCase):
         base["captured_at"] = datetime(2026, 9, 6)
         with self.assertRaises(ValueError):
             Waveform(**base)
+
+    def test_empty_and_nonfinite_waveforms_are_rejected_at_domain_boundary(self) -> None:
+        waveform = Waveform(
+            channel=1, point_count=2, sample_interval_seconds=1e-6,
+            time_origin_seconds=0.0, time_reference=0.0,
+            voltage_increment=0.01, voltage_origin=0.0, voltage_reference=0.0,
+            time_values=(0.0, 1e-6), voltage_values=(0.0, 1.0),
+            acquisition_mode=WaveformAcquisitionMode.NORMAL,
+            instrument_identity=IDENTITY,
+            captured_at=datetime(2026, 9, 6, tzinfo=UTC),
+            average_count=1, requested_start=1, requested_stop=2,
+        )
+        with self.assertRaises(ValueError):
+            replace(
+                waveform,
+                point_count=0,
+                time_values=(),
+                voltage_values=(),
+                requested_stop=0,
+            )
+        with self.assertRaises(ValueError):
+            replace(waveform, voltage_values=(0.0, float("nan")))
 
 
 if __name__ == "__main__":

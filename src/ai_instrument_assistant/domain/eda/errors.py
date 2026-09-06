@@ -1,2 +1,5 @@
-class DomainInvariantError(ValueError):
-    """A requested EDA domain state violates a business invariant."""
+"""Compatibility exports for EDA domain errors."""
+
+from ai_instrument_assistant.domain.errors import DomainInvariantError
+
+__all__ = ["DomainInvariantError"]

@@ -9,6 +9,7 @@ from typing import Any
 from uuid import UUID
 
 from .errors import DomainInvariantError
+from ..values import DutyCycle
 
 
 MeasurementScalar = str | int | float | bool | None
@@ -171,42 +172,6 @@ class CircuitEndpoint:
                 "pin_number",
                 _non_empty(self.pin_number, "pin_number"),
             )
-
-
-@dataclass(frozen=True, slots=True, init=False)
-class DutyCycle:
-    _ratio: float
-
-    def __init__(self) -> None:
-        raise TypeError("Use DutyCycle.from_ratio() or DutyCycle.from_percent()")
-
-    @classmethod
-    def from_ratio(cls, ratio: float) -> DutyCycle:
-        normalized = _finite_number(ratio, "duty cycle ratio")
-        if not 0.0 <= normalized <= 1.0:
-            raise DomainInvariantError(
-                "duty cycle ratio must be between 0.0 and 1.0 inclusive"
-            )
-        instance = object.__new__(cls)
-        object.__setattr__(instance, "_ratio", normalized)
-        return instance
-
-    @classmethod
-    def from_percent(cls, percent: float) -> DutyCycle:
-        normalized = _finite_number(percent, "duty cycle percent")
-        if not 0.0 <= normalized <= 100.0:
-            raise DomainInvariantError(
-                "duty cycle percent must be between 0.0 and 100.0 inclusive"
-            )
-        return cls.from_ratio(normalized / 100.0)
-
-    @property
-    def ratio(self) -> float:
-        return self._ratio
-
-    @property
-    def percent(self) -> float:
-        return self._ratio * 100.0
 
 
 @dataclass(frozen=True, slots=True)

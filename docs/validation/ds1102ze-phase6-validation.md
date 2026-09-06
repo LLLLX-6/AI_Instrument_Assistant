@@ -260,3 +260,29 @@ manual waveform HIL 前不创建 Phase 6C commit。
 instrument query 0.356 Vpp 量级一致，但不是同一原子记录，也不是 Phase 6D 软件分析
 验收。底层 raw header/terminator、raw preamble 字符串及前后状态没有由有限 HIL 输出
 直接展示，保留为 bounded observations。详细结论见 Phase 6C validation record。
+
+## 16. Phase 6D automatic implementation status
+
+Phase 6D 已建立 provider-neutral deterministic Analysis 的自动化候选实现，范围严格为
+Vpp、mean、RMS、frequency、period 和 duty。算法、quality gates、golden tolerance 与
+待执行真实 HIL 见 [Phase 6D validation](ds1102ze-phase6d-validation.md)。当前没有 Agent、
+EDA 联动、MeasurementService、Hardware Tool 或高级信号算法；真实 analysis HIL 前不提交。
+
+## 17. Phase 6D actual analysis HIL stop
+
+真实 HIL 得到 instrument/software frequency 均为 10000 Hz，software period 100 us；
+instrument Vpp 0.352 V、software span 0.360 V。软件以动态中点定义的高电平 duty 为
+69.99984%，与口头预期 30% 互为补数。3 个 rising、2 个 falling、2 个完整周期表明
+没有明显倍频或漏边沿，但当前无法区分 active-low signal、scope/source inversion 或
+duty 定义差异。遵守 stop condition：不自动翻转、不硬编码 10 kHz/30%，不提交
+Phase 6D，等待独立极性/有效电平确认。详见 Phase 6D validation record。
+
+后续确认根因为探头与参考地接反。该事实解释了频率不变而高电平 duty 从预期约 30%
+变为约 70% 的现象。前一次 HIL 作为错误接线下的故障观测保留；纠正连接后必须重新
+执行相同 HIL，重新验证前不将 Phase 6D 判为通过或提交。
+
+纠正连接后的复测得到 instrument frequency 10020.04 Hz、software frequency
+10006.7755 Hz、software high-level duty 29.95514%，quality=`good` 且无 warning；
+软件使用 2 个完整周期，没有明显倍频、半频或漏边沿。Phase 6D real analysis HIL 因此
+判定为 **PASS with bounded observations**。仪器查询与 waveform capture 非原子记录，
+不据此建立任意准确度合格阈值；详细数值见 Phase 6D validation record。
