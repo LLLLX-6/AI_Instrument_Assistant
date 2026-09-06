@@ -303,3 +303,26 @@ SCPI、VISA resource 或完整 waveform arrays。当前 InMemory ArtifactStore �
 Phase 6E architecture review 判定为 **PASS**，证据限于 Domain、Service、FakeOscilloscope、
 Tool Schema 和 architecture tests。真实 DS1102Z-E 已分别验证底层 capture/analysis，但尚未
 验证由 MeasurementService 编排的真实端到端 workflow；该项留待 Phase 6F HIL。
+
+## 19. Phase 6F real MeasurementService HIL support
+
+新增小型 production composition root，将 PyVisaTransport、DS1102ZEDriver、deterministic
+analysis、InMemoryArtifactStore 和 MeasurementService 组合，并由 runtime 统一管理连接生命
+周期。HIL 脚本的业务操作只调用 MeasurementService，输出有限 Tool DTO 并验证 Schema 与
+Artifact round trip。
+
+Recorded VISA + real driver 自动组合测试和受控 fault wrapper 测试已通过；调用顺序为 capture
+waveform → deterministic analysis → instrument frequency → instrument Vpp，coherence 仍为
+software `same_artifact`、cross-source `sequential_same_session`。真实 DS1102Z-E Phase 6F HIL
+尚未执行，因此当前只判定 automatic support PASS，不声明 real service workflow validated。
+
+随后真实 DS1102Z-E Phase 6F HIL 通过：status、frequency、Vpp、waveform 和 PWM 五条
+MeasurementService 路径均产生 Schema-valid 有限结果。PWM instrument frequency/Vpp 为
+10000 Hz/0.424 V；software frequency/duty/Vpp 为约 10006.68 Hz/29.9451%/0.420 V，
+overall quality=`good`、warnings 为空。六项 software observations 共享同一个 waveform
+artifact，cross-source coherence 保持 `sequential_same_session`；独立 waveform 与 PWM
+Artifact 均在当前进程内回读并通过 metadata verification。
+
+Phase 6F 判定为 **PASS with real MeasurementService end-to-end evidence**。证据只覆盖当前
+设备/firmware、CH1、安全低压约 10 kHz/30% PWM 和当前 NORM/BYTE 1200-point workflow；
+不声明原子采集、统一精度规格、Artifact 持久化或其他 waveform/范围已验证。
