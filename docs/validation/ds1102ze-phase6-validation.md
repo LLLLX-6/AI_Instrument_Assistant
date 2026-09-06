@@ -207,3 +207,39 @@ clipping_suspected、unstable_period、insufficient_samples，必要时单指标
 
 本轮只新增此审计记录与命令矩阵；未修改 EDA 功能、依赖或实现代码，未创建提交。
 至此停止 Phase 6A，等待架构和手册审计评审。
+
+## 12. Phase 6B pre-HIL update
+
+更新日期：2026-09-06。Phase 6A 基线提交为 `0c96f93`。Phase 6B 已完成
+fake/recorded 自动 contract，但没有执行真实 HIL。详细设计、Red/Green evidence、
+错误分类和人工步骤见 `ds1102ze-phase6b-validation.md`。
+
+| HIL 字段 | Phase 6B 当前事实 |
+|---|---|
+| Actual `*IDN?` / model / firmware | 未查询；测试中的 IDN 仅为 fake fixture，不是实机证据 |
+| VISA resource / backend | 未发现；项目 `.venv` 尚未安装 PyVISA，系统 VISA backend 未验证 |
+| Read-back spot check | 自动 RecordedTransport tests 通过；真实仪器未执行 |
+| Frequency / Vpp | 只验证 numeric/scientific/malformed contract；没有真实测量值 |
+| Failure / warning | 无实机 failure；不可测 sentinel、error queue 空响应仍是 HIL observation item |
+| Serial policy | HIL 脚本默认只显示末四位；不得提交完整 serial 或 raw console log |
+
+## 13. Phase 6B actual HIL result
+
+用户于 2026-09-06 确认 Phase 6B manual HIL 通过：VISA discovery、连接、IDN/model
+验证、CH1/timebase 读取、安全 set/read-back、恢复/read-back 以及低压信号 frequency/Vpp
+查询均通过。
+
+| HIL 字段 | Actual observation |
+|---|---|
+| VISA resource | `USB0::0x1AB1::0x0517::***9517::INSTR` |
+| VISA software | PyVISA 1.16.2；IVI / NI-VISA backend |
+| Model / firmware | DS1102Z-E / `00.06.03.SP2` |
+| CH1 / timebase | enabled、DC、1X、0.05 V/div；MAIN 20 us/div |
+| Safe set / restore | set -> query PASS；restore -> query PASS |
+| Known low-voltage measurement | frequency 10020.04 Hz；Vpp 0.356 V |
+| Firmware compatibility | 手册声明 00.06.02；实机 00.06.03.SP2；基础命令未观察到冲突 |
+| Unavailable observation | 无有效周期时曾返回 frequency `9.9e37`；作为有限 sentinel-like 兼容观察处理 |
+
+结论严格限定为：**Phase 6B basic communication/configuration/measurement query
+已通过真实 HIL**。完整 Driver、waveform、scaling、software analysis 和工业级可靠性
+仍未验证。

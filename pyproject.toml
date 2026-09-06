@@ -12,6 +12,11 @@ dependencies = [
     "websockets==17.0.1",
 ]
 
+[project.optional-dependencies]
+hardware = [
+    "PyVISA==1.16.2",
+]
+
 [tool.setuptools]
 package-dir = {"" = "src"}
 
