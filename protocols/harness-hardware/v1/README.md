@@ -94,4 +94,10 @@ canonical tool value. Only these boundary failures become Harness failures:
 `backend_unreachable`, `backend_response_invalid`, and
 `indeterminate_execution`.
 
+The Python server additionally reports authenticated protocol handling failures
+with `protocol_invalid`, `authentication_failed`, `session_invalid`,
+`message_too_large`, `duplicate_message`, `operation_not_allowed`,
+`backend_response_invalid`, or `adapter_internal_error`. These codes never
+replace a HardwareToolRuntime business error.
+
 No socket, server, client, or hardware implementation exists in Phase 7B.1.

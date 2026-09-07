@@ -57,6 +57,13 @@ their canonical `error` object. They are not thrown by the future adapter.
 Only authentication, protocol mismatch, unreachable backend, invalid response,
 and indeterminate delivery are Harness adapter failures.
 
+Phase 7B.3 adds bounded server-side protocol error values to the same `error`
+message envelope: `protocol_invalid`, `authentication_failed`,
+`session_invalid`, `message_too_large`, `duplicate_message`,
+`operation_not_allowed`, `backend_response_invalid`, and
+`adapter_internal_error`. They remain distinct from HardwareToolRuntime error
+codes carried inside a normal `response`.
+
 This distinction also preserves degraded `ok=true` measurements, warnings,
 partial observations, coherence, provenance, and artifact evidence.
 

@@ -12,6 +12,15 @@ from .protocol_semantics import (
     ProtocolContractState,
     ProtocolSemanticError,
 )
+from .server import (
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    AdapterErrorCode,
+    BackendAuditEvent,
+    BackendServerConfig,
+    ConnectionState,
+    HarnessHardwareServer,
+)
 
 __all__ = [
     "ADAPTER_FAILURE_CODES",
@@ -24,4 +33,11 @@ __all__ = [
     "PendingRequest",
     "ProtocolContractState",
     "ProtocolSemanticError",
+    "DEFAULT_HOST",
+    "DEFAULT_PORT",
+    "AdapterErrorCode",
+    "BackendAuditEvent",
+    "BackendServerConfig",
+    "ConnectionState",
+    "HarnessHardwareServer",
 ]

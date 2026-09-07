@@ -107,7 +107,14 @@
                 "backend_protocol_mismatch",
                 "backend_unreachable",
                 "backend_response_invalid",
-                "indeterminate_execution"
+                "indeterminate_execution",
+                "protocol_invalid",
+                "authentication_failed",
+                "session_invalid",
+                "message_too_large",
+                "duplicate_message",
+                "operation_not_allowed",
+                "adapter_internal_error"
               ]
             },
             "message": { "type": "string", "minLength": 1, "maxLength": 256 }
