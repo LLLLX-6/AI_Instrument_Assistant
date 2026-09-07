@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
+from math import isfinite
 from typing import Any, Mapping
 
 
@@ -266,7 +267,42 @@ def _project_node(
             )
         else:
             projected[keyword] = deepcopy(value)
+
+    if "type" not in node and "oneOf" not in node:
+        if "const" in node:
+            projected["type"] = _infer_scalar_type(node["const"], path=f"{path}/const")
+        elif "enum" in node:
+            enum_values = node["enum"]
+            if not isinstance(enum_values, list) or not enum_values:
+                raise ProjectionError(f"enum must be a non-empty array at {path}")
+            inferred = {
+                _infer_scalar_type(value, path=f"{path}/enum/{index}")
+                for index, value in enumerate(enum_values)
+            }
+            if len(inferred) != 1:
+                raise ProjectionError(
+                    f"enum members do not have one safely inferable scalar type at {path}"
+                )
+            projected["type"] = inferred.pop()
     return projected
+
+
+def _infer_scalar_type(value: Any, *, path: str) -> str:
+    """Infer only the scalar types accepted by the frozen Harness validator."""
+
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, int):
+        return "integer"
+    if isinstance(value, float) and isfinite(value):
+        return "number"
+    if value is None:
+        raise ProjectionError(
+            f"null cannot be inferred without an explicit nullable type or oneOf at {path}"
+        )
+    raise ProjectionError(f"non-scalar or non-finite value cannot be inferred at {path}")
 
 
 def _specialize_measurement_success(

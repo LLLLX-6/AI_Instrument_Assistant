@@ -4,11 +4,16 @@
   "private": true,
   "type": "module",
   "workspaces": [
-    "extensions/jlceda"
+    "extensions/jlceda",
+    "extensions/deepseek-harness"
   ],
   "scripts": {
-    "test": "npm run test --workspace @aia/jlceda-extension",
-    "build": "npm run build --workspace @aia/jlceda-extension"
+    "test": "npm run test:jlceda && npm run test:harness",
+    "test:jlceda": "npm run test --workspace @aia/jlceda-extension",
+    "test:harness": "npm run test --workspace @aia/deepseek-harness-hardware",
+    "build": "npm run build:jlceda && npm run build:harness",
+    "build:jlceda": "npm run build --workspace @aia/jlceda-extension",
+    "build:harness": "npm run build --workspace @aia/deepseek-harness-hardware"
   },
   "engines": {
     "node": ">=24"

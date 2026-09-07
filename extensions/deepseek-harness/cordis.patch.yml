@@ -1,0 +1,6 @@
+- insert:
+    - id: aia-hardware
+      name: '@aia/deepseek-harness-hardware'
+      config:
+        endpoint: 'ws://127.0.0.1:49625'
+        secretFile: '.aia-secrets/harness-hardware-psk.txt'

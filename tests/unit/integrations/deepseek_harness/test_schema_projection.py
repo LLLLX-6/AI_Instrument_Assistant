@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import unittest
+from copy import deepcopy
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
@@ -50,6 +51,58 @@ def pwm_output(*, kind: str = "pwm", ok: bool = True) -> dict:
 
 
 class SchemaProjectionTests(unittest.TestCase):
+    def test_const_scalar_types_are_inferred_for_frozen_harness(self) -> None:
+        cases = (
+            ("ready", "string"),
+            (7, "integer"),
+            (2.5, "number"),
+            (True, "boolean"),
+        )
+        for value, expected in cases:
+            with self.subTest(value=value):
+                projected = project_schema({"const": value}).schema
+                self.assertEqual(expected, projected["type"])
+
+    def test_boolean_const_is_not_inferred_as_integer(self) -> None:
+        self.assertEqual("boolean", project_schema({"const": False}).schema["type"])
+
+    def test_homogeneous_enum_scalar_types_are_inferred(self) -> None:
+        cases = (
+            (["good", "degraded"], "string"),
+            ([1, 2, 3], "integer"),
+            ([1.0, 2.5], "number"),
+            ([True, False], "boolean"),
+        )
+        for values, expected in cases:
+            with self.subTest(values=values):
+                projected = project_schema({"enum": values}).schema
+                self.assertEqual(expected, projected["type"])
+
+    def test_ambiguous_or_non_scalar_enums_fail_closed(self) -> None:
+        for values in (
+            ["good", 1],
+            [1, True],
+            [None, "x"],
+            [{"kind": "x"}],
+            [[1], [2]],
+            [],
+        ):
+            with self.subTest(values=values):
+                with self.assertRaises(ProjectionError):
+                    project_schema({"enum": values})
+
+    def test_null_and_non_finite_const_fail_closed(self) -> None:
+        for value in (None, float("nan"), float("inf"), float("-inf")):
+            with self.subTest(value=value):
+                with self.assertRaises(ProjectionError):
+                    project_schema({"const": value})
+
+    def test_explicit_type_and_existing_one_of_are_not_rewritten(self) -> None:
+        explicit = {"type": "string", "const": "ready"}
+        one_of = {"oneOf": [{"type": "null"}, {"type": "string"}]}
+        self.assertEqual(explicit, project_schema(explicit).schema)
+        self.assertEqual(one_of, project_schema(one_of).schema)
+
     def test_strict_projection_resolves_nested_local_refs(self) -> None:
         source = {
             "$defs": {"inner": {"type": "string"}, "outer": {"type": "array", "items": {"$ref": "#/$defs/inner"}}},
@@ -170,6 +223,12 @@ class SchemaProjectionTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertTrue(all(tool.deferred_constraints for tool in first))
         self.assertTrue(all(item.keyword for tool in first for item in tool.deferred_constraints))
+
+    def test_projection_does_not_mutate_canonical_schema(self) -> None:
+        source = canonical()
+        before = deepcopy(source)
+        project_hardware_tools(source)
+        self.assertEqual(before, source)
 
 
 if __name__ == "__main__":
