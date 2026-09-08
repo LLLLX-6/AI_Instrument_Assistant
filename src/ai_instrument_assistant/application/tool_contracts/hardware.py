@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, overload
 
 from ai_instrument_assistant.domain.artifacts import ArtifactReference, WaveformArtifact
 from ai_instrument_assistant.domain.instrument.models import InstrumentIdentity
@@ -19,6 +19,27 @@ _OPERATIONS = {
     MeasurementKind.WAVEFORM: "hardware.capture_waveform",
     MeasurementKind.PWM: "hardware.measure_pwm",
 }
+
+
+@overload
+def mask_serial_number(serial_number: None) -> None: ...
+
+
+@overload
+def mask_serial_number(serial_number: str) -> str: ...
+
+
+def mask_serial_number(serial_number: str | None) -> str | None:
+    """Return the canonical public Hardware Tool representation of a serial number."""
+    if serial_number is None:
+        return None
+    if serial_number == "***" or (
+        len(serial_number) == 7 and serial_number.startswith("***")
+    ):
+        return serial_number
+    if len(serial_number) <= 4:
+        return "***"
+    return f"***{serial_number[-4:]}"
 
 
 def serialize_instrument_status(status: InstrumentStatus) -> dict[str, Any]:
@@ -79,7 +100,7 @@ def _identity(identity: InstrumentIdentity) -> dict[str, str]:
     return {
         "manufacturer": identity.manufacturer,
         "model": identity.model,
-        "serial_number": identity.serial_number,
+        "serial_number": mask_serial_number(identity.serial_number),
         "firmware_version": identity.firmware_version,
     }
 

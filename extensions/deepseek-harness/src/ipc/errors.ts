@@ -1,6 +1,7 @@
 export type DeliveryState = "NOT_SENT" | "SENT_UNCONFIRMED" | "RESPONSE_RECEIVED";
 
 export type AdapterFailureCode =
+  | "invalid_tool_arguments"
   | "ipc_authentication_failed"
   | "backend_protocol_mismatch"
   | "backend_unreachable"
@@ -10,6 +11,7 @@ export type AdapterFailureCode =
   | "client_cancelled_wait";
 
 const SAFE_MESSAGES: Readonly<Record<AdapterFailureCode, string>> = {
+  invalid_tool_arguments: "Hardware tool arguments are invalid.",
   ipc_authentication_failed: "Hardware backend authentication failed.",
   backend_protocol_mismatch: "Hardware backend protocol is incompatible.",
   backend_unreachable: "Hardware backend is unavailable.",

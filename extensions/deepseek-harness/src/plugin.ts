@@ -83,7 +83,7 @@ export function applyWithDependencies(
       async execute(args, exec) {
         const violations = validateJsonSchemaValue(parameters, args, "");
         if (violations.length) {
-          throw safeAdapterFailure("backend_response_invalid", "NOT_SENT");
+          throw safeAdapterFailure("invalid_tool_arguments", "NOT_SENT");
         }
         return client.invoke(operation, args, exec.signal);
       },

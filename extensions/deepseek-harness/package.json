@@ -22,7 +22,8 @@
     "test:e2e": "npm run prepare:harness && npm run check:contracts && node --test tests/e2e/*.test.ts",
     "test": "npm run test:unit && npm run test:e2e",
     "build": "npm run typecheck && node scripts/build.mjs",
-    "smoke:fake": "npm run prepare:harness && node scripts/smoke-fake-runtime.mjs"
+    "smoke:fake": "npm run prepare:harness && node scripts/smoke-fake-runtime.mjs",
+    "smoke:real": "npm run prepare:harness && node scripts/check-real-hardware.mjs"
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"

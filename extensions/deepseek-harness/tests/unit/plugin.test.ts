@@ -7,7 +7,7 @@ import SystemPrompt from "@deepseek-ai/dsh-system-prompt";
 import ToolRuntime from "@deepseek-ai/dsh-tools";
 
 import { applyWithDependencies, inject, name } from "../../src/index.ts";
-import { AdapterFailure } from "../../src/ipc/errors.ts";
+import { AdapterFailure, safeAdapterFailure } from "../../src/ipc/errors.ts";
 import { HARDWARE_TOOL_CONTRACTS } from "../../src/generated/hardware-tools.generated.ts";
 import { DEGRADED_PWM_RESULT, HARDWARE_ERROR_RESULT, STATUS_RESULT } from "../support/canonical-results.ts";
 
@@ -105,18 +105,35 @@ test("adapter failures become bounded Harness failures and tools remain register
   await ctx.fiber.dispose();
 });
 
-test("projected argument validation rejects invalid input before IPC", async () => {
-  const client = new FakeClient();
-  const ctx = await setup(client);
-  const result = await ctx.tools.execute({
-    signal: new AbortController().signal,
-    callId: ToolCallId("phase7b4-invalid-channel"),
-    name: "hardware_measure_frequency",
-    arguments: { channel: 9 },
-  });
-  assert.equal(result.isError, true);
-  assert.equal(client.calls.length, 0);
-  await ctx.fiber.dispose();
+test("projected argument validation reports invalid_tool_arguments before IPC", async () => {
+  const invalidArguments = [
+    { channel: 0 },
+    { channel: 3 },
+    { channel: "1" },
+    { channel: 1, unexpected: true },
+  ];
+  for (const [index, args] of invalidArguments.entries()) {
+    const client = new FakeClient();
+    const ctx = await setup(client);
+    const result = await ctx.tools.execute({
+      signal: new AbortController().signal,
+      callId: ToolCallId(`phase7b5-invalid-${index}`),
+      name: "hardware_measure_frequency",
+      arguments: args,
+    });
+    assert.equal(result.isError, true);
+    assert.equal(result.error?.message, "Hardware tool arguments are invalid.");
+    assert.doesNotMatch(result.error?.message ?? "", /ajv|schema|instancePath|keyword|SCPI|VISA|secret/i);
+    assert.equal(client.calls.length, 0);
+    await ctx.fiber.dispose();
+  }
+});
+
+test("invalid_tool_arguments is a bounded NOT_SENT adapter failure", () => {
+  const failure = safeAdapterFailure("invalid_tool_arguments", "NOT_SENT");
+  assert.equal(failure.code, "invalid_tool_arguments");
+  assert.equal(failure.deliveryState, "NOT_SENT");
+  assert.equal(failure.message, "Hardware tool arguments are invalid.");
 });
 
 test("adapter failures expose no secret, local path, SCPI, or VISA detail", async () => {
