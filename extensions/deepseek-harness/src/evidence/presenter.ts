@@ -88,10 +88,11 @@ export function presentAdapterFailure(
   const failure = object(value, "adapter failure");
   const code = boundedText(failure.code, "failure code", 128);
   const deliveryState = optionalText(failure.deliveryState, "deliveryState");
+  const operation = optionalText(failure.operation, "operation");
   const unknown = code === "indeterminate_execution";
   return freezeContext({
     ...presentationOptions(options),
-    operation: null,
+    operation,
     executionStatus: unknown ? "UNKNOWN" : "FAILED",
     requiredUserAction: unknown ? "EXPLICIT_REMEASURE_DECISION" : "NONE",
     instrument: null,

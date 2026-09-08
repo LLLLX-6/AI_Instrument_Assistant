@@ -15,6 +15,9 @@ import { HarnessHardwareIpcClient } from "./ipc/client.ts";
 import { safeAdapterFailure } from "./ipc/errors.ts";
 import { loadHarnessHardwareSecret } from "./ipc/secret.ts";
 import { renderHardwareResult } from "./render.ts";
+import { createTeachingEvidenceMessage, HARDWARE_AGENT_POLICY } from "./agent/index.ts";
+import { presentAdapterFailure, presentHardwareResult } from "./evidence/index.ts";
+import { AdapterFailure } from "./ipc/errors.ts";
 import {
   createHardwareToolPolicyContext,
   evaluateHardwareToolPolicy,
@@ -94,6 +97,11 @@ export function applyWithDependencies(
 ): void {
   const config = normalizeConfig(suppliedConfig);
   const client = dependencies.createClient(config);
+  ctx.systemPrompt.section({
+    name: "aia:hardware-agent-policy",
+    order: 700,
+    text: HARDWARE_AGENT_POLICY,
+  });
   ctx.effect(() => {
     client.start();
     return () => client.dispose();
@@ -127,7 +135,34 @@ export function applyWithDependencies(
         if (policy.decision !== "ALLOW") {
           throw safeAdapterFailure("policy_denied", "NOT_SENT");
         }
-        return client.invoke(operation, args, exec.signal);
+        const evidenceOptions = {
+          requestedGoal: policyContext.requestedGoal,
+          measurementDecisionReason: policy.explanation,
+          confirmationState: policyContext.backendMode === "SIMULATED"
+            ? "SIMULATED" as const
+            : operation === "hardware.get_status"
+              ? "NOT_REQUIRED" as const
+              : "CONFIRMED" as const,
+        };
+        try {
+          const value = await client.invoke(operation, args, exec.signal);
+          const outputViolations = validateJsonSchemaValue(outputSchema, value, "");
+          if (outputViolations.length) {
+            throw safeAdapterFailure("backend_response_invalid", "RESPONSE_RECEIVED");
+          }
+          exec.deferContext(createTeachingEvidenceMessage(presentHardwareResult(value, evidenceOptions)));
+          return value;
+        } catch (error: unknown) {
+          if (error instanceof AdapterFailure) {
+            exec.deferContext(createTeachingEvidenceMessage(presentAdapterFailure({
+              code: error.code,
+              message: error.message,
+              deliveryState: error.deliveryState,
+              operation,
+            }, evidenceOptions)));
+          }
+          throw error;
+        }
       },
     };
     ctx.tools.register(definition);

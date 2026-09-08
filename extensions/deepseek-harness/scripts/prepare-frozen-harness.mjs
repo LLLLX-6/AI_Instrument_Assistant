@@ -26,8 +26,12 @@ if (head !== EXPECTED_COMMIT) {
 
 const packages = [
   ["cordis", join(harnessRoot, "vendor", "cordis"), EXPECTED_CORDIS_VERSION],
+  ["dsh-agent", join(harnessRoot, "packages", "core", "agent"), EXPECTED_TOOLS_VERSION],
+  ["dsh-agent-loop", join(harnessRoot, "packages", "core", "agent-loop"), EXPECTED_TOOLS_VERSION],
   ["dsh-tools", join(harnessRoot, "packages", "core", "tools"), EXPECTED_TOOLS_VERSION],
   ["dsh-llm", join(harnessRoot, "packages", "llm", "llm"), EXPECTED_TOOLS_VERSION],
+  ["dsh-session", join(harnessRoot, "packages", "core", "session"), EXPECTED_TOOLS_VERSION],
+  ["dsh-session-projection", join(harnessRoot, "packages", "session", "session-projection"), EXPECTED_TOOLS_VERSION],
   ["dsh-system-prompt", join(harnessRoot, "packages", "core", "system-prompt"), EXPECTED_TOOLS_VERSION],
 ];
 

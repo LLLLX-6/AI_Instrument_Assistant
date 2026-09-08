@@ -103,8 +103,10 @@ test("indeterminate adapter failure is UNKNOWN and requires explicit retry decis
     code: "indeterminate_execution",
     message: "Hardware execution status is unknown.",
     deliveryState: "SENT_UNCONFIRMED",
+    operation: "hardware.measure_pwm",
   }, OPTIONS);
   assert.equal(context.executionStatus, "UNKNOWN");
+  assert.equal(context.operation, "hardware.measure_pwm");
   assert.equal(context.requiredUserAction, "EXPLICIT_REMEASURE_DECISION");
   assert.deepEqual(context.facts, []);
   assert.deepEqual(context.analyses, []);

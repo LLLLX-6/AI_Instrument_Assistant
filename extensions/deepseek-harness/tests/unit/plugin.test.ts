@@ -61,7 +61,7 @@ async function setup(
 
 test("plugin identity and injection follow the reviewed Harness shape", () => {
   assert.equal(name, "aia-hardware-tools");
-  assert.deepEqual(inject, ["tools"]);
+  assert.deepEqual(inject, ["tools", "systemPrompt"]);
 });
 
 test("apply registers exactly five projected static tools", async () => {
@@ -92,6 +92,8 @@ test("canonical ok=false remains a successful structured Tool value", async () =
   });
   assert.equal(result.isError, false);
   assert.deepEqual(result.value, HARDWARE_ERROR_RESULT);
+  assert.equal(result.additionalContexts?.[0]?.source.kind, "plugin");
+  assert.match(contextText(result.additionalContexts), /"executionStatus":"FAILED"/);
   assert.equal(client.calls[0]?.operation, "hardware.measure_vpp");
   await ctx.fiber.dispose();
 });
@@ -111,6 +113,8 @@ test("degraded result and opaque artifact metadata are preserved without samples
   assert.doesNotMatch(JSON.stringify(result.value), /"samples"/);
   assert.match(result.content[0]?.type === "text" ? result.content[0].text : "", /degraded/i);
   assert.match(result.content[0]?.type === "text" ? result.content[0].text : "", /550e8400/);
+  assert.match(contextText(result.additionalContexts), /AIA_TEACHING_EVIDENCE_CONTEXT/);
+  assert.match(contextText(result.additionalContexts), /"quality":"degraded"/);
   await ctx.fiber.dispose();
 });
 
@@ -126,6 +130,7 @@ test("adapter failures become bounded Harness failures and tools remain register
   });
   assert.equal(result.isError, true);
   assert.match(result.error?.message ?? "", /backend is unavailable/i);
+  assert.match(contextText(result.additionalContexts), /"executionStatus":"FAILED"/);
   assert.ok(ctx.tools.get("hardware_get_status"));
   await ctx.fiber.dispose();
 });
@@ -314,3 +319,11 @@ test("adapter failures expose no secret, local path, SCPI, or VISA detail", asyn
   assert.doesNotMatch(result.error?.message ?? "", /secret|\.aia-secrets|[A-Za-z]:\\|SCPI|VISA/i);
   await ctx.fiber.dispose();
 });
+
+function contextText(contexts: readonly { readonly content: readonly unknown[] }[] | undefined): string {
+  const block = contexts?.[0]?.content[0];
+  return typeof block === "object" && block !== null && "type" in block && block.type === "text"
+    && "text" in block && typeof block.text === "string"
+    ? block.text
+    : "";
+}

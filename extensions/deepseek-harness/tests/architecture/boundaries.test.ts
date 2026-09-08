@@ -13,7 +13,9 @@ function sourceText(): string {
 }
 
 test("plugin boundary contains no hardware implementation or JLCEDA dependency", () => {
-  assert.doesNotMatch(sourceText(), /pyvisa|SCPI|DS1102|Rigol|MeasurementService|jlceda/i);
+  const imports = sourceText().split("\n").filter((line) => /^import .* from /.test(line)).join("\n");
+  assert.doesNotMatch(imports, /pyvisa|drivers?\/|MeasurementService|jlceda/i);
+  assert.doesNotMatch(sourceText(), /["']:\w+(?:ure)?:/i, "production code must not contain raw SCPI commands");
 });
 
 test("production source has no dynamic execution, subprocess, or arbitrary operation surface", () => {
@@ -57,4 +59,35 @@ test("prompt prose is not the physical execution authority", () => {
   assert.match(plugin, /evaluateHardwareToolPolicy/);
   assert.match(plugin, /decision\s*!==\s*"ALLOW"/);
   assert.ok(plugin.indexOf("evaluateHardwareToolPolicy") < plugin.indexOf("client.invoke"));
+});
+
+test("Agent integration can present evidence but cannot invoke IPC or hardware runtime", () => {
+  const agent = readdirSync(resolve(root, "src/agent"), { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
+    .map((entry) => readFileSync(resolve(entry.parentPath, entry.name), "utf8"))
+    .join("\n");
+  const imports = agent.split("\n").filter((line) => /^import .* from /.test(line)).join("\n");
+  assert.doesNotMatch(imports, /ipc\/|HarnessHardwareIpcClient|HardwareToolRuntime|pyvisa|DS1102/i);
+  assert.doesNotMatch(agent, /client\.invoke\s*\(/);
+  assert.match(agent, /TeachingEvidenceContext/);
+});
+
+test("canonical result is validated after IPC and before evidence projection", () => {
+  const plugin = readFileSync(resolve(root, "src/plugin.ts"), "utf8");
+  const policyAt = plugin.indexOf("evaluateHardwareToolPolicy");
+  const invokeAt = plugin.indexOf("client.invoke");
+  const outputValidationAt = plugin.indexOf("validateJsonSchemaValue(outputSchema");
+  const evidenceAt = plugin.lastIndexOf("presentHardwareResult(");
+  assert.ok(policyAt >= 0 && invokeAt > policyAt);
+  assert.ok(outputValidationAt > invokeAt);
+  assert.ok(evidenceAt > outputValidationAt);
+});
+
+test("model-visible surface has no generic executor or deployment-state argument", async () => {
+  const generated = await import("../../src/generated/hardware-tools.generated.ts");
+  const contracts = generated.HARDWARE_TOOL_CONTRACTS;
+  assert.equal(contracts.length, 5);
+  assert.ok(contracts.every((contract) => !/execute|scpi|visa|backend/i.test(contract.harnessName)));
+  const parameters = JSON.stringify(contracts.map((contract) => contract.parametersSchema));
+  assert.doesNotMatch(parameters, /backend.?mode|confirmation|visa|scpi/i);
 });

@@ -18,11 +18,25 @@ test("frozen Harness checkout and package version are exact", () => {
   assert.equal(head, EXPECTED_COMMIT);
   const manifest = JSON.parse(readFileSync(join(root, "packages", "core", "tools", "package.json"), "utf8"));
   assert.equal(manifest.version, EXPECTED_TOOLS_VERSION);
+  const agentRuntimePackages = [
+    ["packages", "core", "agent"],
+    ["packages", "core", "agent-loop"],
+    ["packages", "core", "session"],
+    ["packages", "session", "session-projection"],
+    ["packages", "llm", "llm"],
+    ["packages", "core", "system-prompt"],
+  ] as const;
+  for (const parts of agentRuntimePackages) {
+    const packageManifest = JSON.parse(readFileSync(join(root, ...parts, "package.json"), "utf8"));
+    assert.equal(packageManifest.version, EXPECTED_TOOLS_VERSION, parts.join("/"));
+  }
 });
 
 test("plugin pins only the reviewed source versions", () => {
   const manifest = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"));
   assert.equal(manifest.peerDependencies["@deepseek-ai/dsh-tools"], EXPECTED_TOOLS_VERSION);
+  assert.equal(manifest.peerDependencies["@deepseek-ai/dsh-llm"], EXPECTED_TOOLS_VERSION);
+  assert.equal(manifest.peerDependencies["@deepseek-ai/dsh-system-prompt"], EXPECTED_TOOLS_VERSION);
   assert.equal(manifest.peerDependencies["@deepseek-ai/cordis"], "4.0.2");
   assert.doesNotMatch(JSON.stringify(manifest), /0\.1\.3-alpha\.2|0\.1\.2-rc\.1/);
 });

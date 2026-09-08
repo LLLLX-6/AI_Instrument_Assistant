@@ -7,6 +7,15 @@ import SystemPrompt from "@deepseek-ai/dsh-system-prompt";
 import ToolRuntime from "@deepseek-ai/dsh-tools";
 
 import { applyWithDependencies } from "../../src/index.ts";
+import {
+  createAgentHarness,
+  finalAgentText,
+  requestText,
+  runAgent,
+  textResponse,
+  toolCallResponse,
+  visibleToolCalls,
+} from "../support/scripted-agent.ts";
 import { startFakeBackend } from "../support/fake-backend-process.ts";
 
 const OPERATIONS = [
@@ -67,6 +76,47 @@ test("real frozen ToolRuntime executes all five tools through the Python fake ba
     assert.ok(ctx.tools.get("hardware_get_status"), "tool registration survives backend loss");
   } finally {
     await ctx.fiber.dispose();
+    await backend.dispose();
+  }
+});
+
+test("real frozen Harness Agent consumes PWM evidence through authenticated simulated backend", { timeout: 30_000 }, async () => {
+  const backend = await startFakeBackend();
+  const harness = await createAgentHarness({
+    config: {
+      endpoint: backend.endpoint,
+      secretFile: backend.secretFile,
+      backendMode: "SIMULATED",
+      connectTimeoutMs: 2_000,
+      authTimeoutMs: 2_000,
+      requestTimeoutMs: 5_000,
+    },
+    script: [
+      toolCallResponse("agent-fake-pwm", "hardware_measure_pwm", { channel: 1, context_id: "PWM_OUT" }),
+      (request) => {
+        const evidence = requestText(request);
+        assert.match(evidence, /AIA_TEACHING_EVIDENCE_CONTEXT/);
+        assert.match(evidence, /"confirmationState":"SIMULATED"/);
+        assert.match(evidence, /"source":"simulated"/);
+        assert.match(evidence, /"percent":(?:29\.|30)/);
+        assert.doesNotMatch(evidence, /"samples"|voltage_values|time_values/);
+        return textResponse("SIMULATED OBSERVATION: PWM is approximately 10 kHz, 3.3 Vpp, and 30% duty cycle; this is not a real oscilloscope measurement.");
+      },
+    ],
+  });
+  try {
+    await runAgent(harness.agent, "Measure the PWM on channel 1 and explain the duty cycle.");
+    assert.deepEqual(visibleToolCalls(harness.agent), [{
+      name: "hardware_measure_pwm",
+      arguments: JSON.stringify({ channel: 1, context_id: "PWM_OUT" }),
+    }]);
+    const answer = finalAgentText(harness.agent);
+    assert.match(answer, /SIMULATED OBSERVATION/);
+    assert.match(answer, /10 kHz|10000/i);
+    assert.match(answer, /30%/);
+    assert.match(answer, /not a real oscilloscope measurement/i);
+  } finally {
+    await harness.ctx.fiber.dispose();
     await backend.dispose();
   }
 });
