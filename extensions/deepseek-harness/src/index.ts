@@ -11,3 +11,12 @@ export function apply(ctx: Context, config: Config = {}): void {
 
 export { applyWithDependencies } from "./plugin.ts";
 export type { Config, HardwareClientPort, PluginDependencies } from "./plugin.ts";
+export {
+  createHardwareToolPolicyContext,
+  createProbeSetupConfirmation,
+  evaluateHardwareToolPolicy,
+  riskForOperation,
+} from "./policy/index.ts";
+export { presentAdapterFailure, presentHardwareResult } from "./evidence/index.ts";
+export type { HardwareToolPolicyContext, PolicyDecision } from "./policy/index.ts";
+export type { TeachingEvidenceContext } from "./evidence/index.ts";

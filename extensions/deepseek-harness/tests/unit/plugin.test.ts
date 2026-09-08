@@ -9,6 +9,11 @@ import ToolRuntime from "@deepseek-ai/dsh-tools";
 import { applyWithDependencies, inject, name } from "../../src/index.ts";
 import { AdapterFailure, safeAdapterFailure } from "../../src/ipc/errors.ts";
 import { HARDWARE_TOOL_CONTRACTS } from "../../src/generated/hardware-tools.generated.ts";
+import {
+  createHardwareToolPolicyContext,
+  createProbeSetupConfirmation,
+  type HardwareToolPolicyContext,
+} from "../../src/policy/index.ts";
 import { DEGRADED_PWM_RESULT, HARDWARE_ERROR_RESULT, STATUS_RESULT } from "../support/canonical-results.ts";
 
 class FakeClient {
@@ -26,11 +31,31 @@ class FakeClient {
   }
 }
 
-async function setup(client: FakeClient) {
+function simulatedPolicy(operation: string, args: unknown): HardwareToolPolicyContext {
+  const values = typeof args === "object" && args !== null ? args as Record<string, unknown> : {};
+  return createHardwareToolPolicyContext({
+    operation,
+    channel: typeof values.channel === "number" ? values.channel : null,
+    backendMode: "SIMULATED",
+    requestCorrelationId: "trusted-test-request",
+    requestedGoal: "Test an explicitly invoked tool",
+    requestedTargetRef: typeof values.context_id === "string" ? values.context_id : null,
+    groundingRequired: false,
+    wiringChanged: false,
+    confirmation: null,
+    previousExecution: null,
+    designContext: null,
+  });
+}
+
+async function setup(
+  client: FakeClient,
+  resolvePolicyContext: (operation: string, args: unknown) => HardwareToolPolicyContext = simulatedPolicy,
+) {
   const ctx = new Context();
   await ctx.plugin(SystemPrompt);
   await ctx.plugin(ToolRuntime);
-  applyWithDependencies(ctx, {}, { createClient: () => client });
+  applyWithDependencies(ctx, {}, { createClient: () => client, resolvePolicyContext });
   return ctx;
 }
 
@@ -134,6 +159,141 @@ test("invalid_tool_arguments is a bounded NOT_SENT adapter failure", () => {
   assert.equal(failure.code, "invalid_tool_arguments");
   assert.equal(failure.deliveryState, "NOT_SENT");
   assert.equal(failure.message, "Hardware tool arguments are invalid.");
+});
+
+test("real measurement requiring confirmation causes zero IPC invocation", async () => {
+  const client = new FakeClient();
+  const ctx = await setup(client, (operation, args) => createHardwareToolPolicyContext({
+    operation,
+    channel: (args as { channel: number }).channel,
+    backendMode: "REAL",
+    requestCorrelationId: "real-request",
+    requestedGoal: "Measure PWM",
+    requestedTargetRef: "net:PWM_OUT",
+    groundingRequired: true,
+    wiringChanged: false,
+    confirmation: null,
+    previousExecution: null,
+    designContext: null,
+  }));
+  const result = await ctx.tools.execute({
+    signal: new AbortController().signal,
+    callId: ToolCallId("phase7c2-confirmation-required"),
+    name: "hardware_measure_pwm",
+    arguments: { channel: 1, context_id: "PWM_OUT" },
+  });
+  assert.equal(result.isError, true);
+  assert.equal(result.error?.message, "Physical setup confirmation is required before this hardware measurement.");
+  assert.equal(client.calls.length, 0);
+  await ctx.fiber.dispose();
+});
+
+test("confirmed allowed invocation reaches IPC exactly once", async () => {
+  const client = new FakeClient();
+  const confirmed = createProbeSetupConfirmation({
+    confirmationId: "confirmation-1",
+    source: "TRUSTED_USER_EVENT",
+    confirmedBy: "user",
+    channel: 1,
+    targetRef: "net:PWM_OUT",
+    safeLowVoltageConfirmed: true,
+    commonGroundConfirmed: true,
+    confirmedAt: "2026-09-08T09:00:00Z",
+    scope: { requestCorrelationId: "real-request", workflowId: "workflow-1" },
+  });
+  const ctx = await setup(client, (operation, args) => createHardwareToolPolicyContext({
+    operation,
+    channel: (args as { channel: number }).channel,
+    backendMode: "REAL",
+    requestCorrelationId: "real-request",
+    requestedGoal: "Measure PWM",
+    requestedTargetRef: "net:PWM_OUT",
+    groundingRequired: true,
+    wiringChanged: false,
+    confirmation: confirmed,
+    previousExecution: null,
+    designContext: null,
+  }));
+  await ctx.tools.execute({
+    signal: new AbortController().signal,
+    callId: ToolCallId("phase7c2-confirmed"),
+    name: "hardware_measure_pwm",
+    arguments: { channel: 1, context_id: "PWM_OUT" },
+  });
+  assert.equal(client.calls.length, 1);
+  await ctx.fiber.dispose();
+});
+
+test("policy denial causes zero IPC invocation", async () => {
+  const client = new FakeClient();
+  const ctx = await setup(client, (operation, args) => ({
+    ...simulatedPolicy(operation, args),
+    backendMode: "REAL",
+    confirmation: {
+      confirmationId: "untrusted",
+      source: "MODEL_TEXT",
+      confirmedBy: "model",
+      channel: 1,
+      targetRef: null,
+      safeLowVoltageConfirmed: true,
+      commonGroundConfirmed: true,
+      confirmedAt: "2026-09-08T09:00:00Z",
+      scope: { requestCorrelationId: "trusted-test-request", workflowId: "workflow" },
+    },
+  } as unknown as HardwareToolPolicyContext));
+  const result = await ctx.tools.execute({
+    signal: new AbortController().signal,
+    callId: ToolCallId("phase7c2-policy-denied"),
+    name: "hardware_measure_frequency",
+    arguments: { channel: 1 },
+  });
+  assert.equal(result.isError, true);
+  assert.equal(result.error?.message, "Hardware tool request was denied by policy.");
+  assert.equal(client.calls.length, 0);
+  await ctx.fiber.dispose();
+});
+
+test("indeterminate prior execution is never replayed through the gate", async () => {
+  const client = new FakeClient();
+  const confirmed = createProbeSetupConfirmation({
+    confirmationId: "confirmation-retry",
+    source: "TRUSTED_USER_EVENT",
+    confirmedBy: "user",
+    channel: 1,
+    targetRef: "PWM_OUT",
+    safeLowVoltageConfirmed: true,
+    commonGroundConfirmed: true,
+    confirmedAt: "2026-09-08T09:00:00Z",
+    scope: { requestCorrelationId: "PWM_OUT", workflowId: "workflow-retry" },
+  });
+  const ctx = await setup(client, (operation, args) => createHardwareToolPolicyContext({
+    operation,
+    channel: (args as { channel: number }).channel,
+    backendMode: "REAL",
+    requestCorrelationId: "PWM_OUT",
+    requestedGoal: "Measure PWM again",
+    requestedTargetRef: "PWM_OUT",
+    groundingRequired: true,
+    wiringChanged: false,
+    confirmation: confirmed,
+    previousExecution: {
+      status: "INDETERMINATE_EXECUTION",
+      operation,
+      channel: 1,
+      targetRef: "PWM_OUT",
+      explicitRemeasureApproved: false,
+    },
+    designContext: null,
+  }));
+  const result = await ctx.tools.execute({
+    signal: new AbortController().signal,
+    callId: ToolCallId("phase7c2-no-replay"),
+    name: "hardware_measure_pwm",
+    arguments: { channel: 1, context_id: "PWM_OUT" },
+  });
+  assert.equal(result.isError, true);
+  assert.equal(client.calls.length, 0);
+  await ctx.fiber.dispose();
 });
 
 test("adapter failures expose no secret, local path, SCPI, or VISA detail", async () => {

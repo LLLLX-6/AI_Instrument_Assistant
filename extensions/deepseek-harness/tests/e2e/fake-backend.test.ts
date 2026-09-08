@@ -26,6 +26,7 @@ test("real frozen ToolRuntime executes all five tools through the Python fake ba
     applyWithDependencies(ctx, {
       endpoint: backend.endpoint,
       secretFile: backend.secretFile,
+      backendMode: "SIMULATED",
       connectTimeoutMs: 2_000,
       authTimeoutMs: 2_000,
       requestTimeoutMs: 5_000,

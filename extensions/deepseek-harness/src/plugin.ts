@@ -15,6 +15,12 @@ import { HarnessHardwareIpcClient } from "./ipc/client.ts";
 import { safeAdapterFailure } from "./ipc/errors.ts";
 import { loadHarnessHardwareSecret } from "./ipc/secret.ts";
 import { renderHardwareResult } from "./render.ts";
+import {
+  createHardwareToolPolicyContext,
+  evaluateHardwareToolPolicy,
+  type BackendMode,
+  type HardwareToolPolicyContext,
+} from "./policy/index.ts";
 
 export interface Config {
   readonly endpoint?: string;
@@ -22,6 +28,7 @@ export interface Config {
   readonly connectTimeoutMs?: number;
   readonly authTimeoutMs?: number;
   readonly requestTimeoutMs?: number;
+  readonly backendMode?: BackendMode;
 }
 
 export interface HardwareClientPort {
@@ -32,6 +39,11 @@ export interface HardwareClientPort {
 
 export interface PluginDependencies {
   readonly createClient: (config: Required<Config>) => HardwareClientPort;
+  readonly resolvePolicyContext: (
+    operation: string,
+    args: unknown,
+    config: Required<Config>,
+  ) => HardwareToolPolicyContext;
 }
 
 const DEFAULT_CONFIG: Required<Config> = {
@@ -40,6 +52,7 @@ const DEFAULT_CONFIG: Required<Config> = {
   connectTimeoutMs: 2_000,
   authTimeoutMs: 2_000,
   requestTimeoutMs: 30_000,
+  backendMode: "REAL",
 };
 
 const REAL_DEPENDENCIES: PluginDependencies = {
@@ -52,6 +65,24 @@ const REAL_DEPENDENCIES: PluginDependencies = {
       connectTimeoutMs: config.connectTimeoutMs,
       authTimeoutMs: config.authTimeoutMs,
       requestTimeoutMs: config.requestTimeoutMs,
+    });
+  },
+  resolvePolicyContext(operation, args, config) {
+    const values = object(args);
+    return createHardwareToolPolicyContext({
+      operation,
+      channel: typeof values?.channel === "number" ? values.channel : null,
+      backendMode: config.backendMode,
+      requestCorrelationId: typeof values?.context_id === "string"
+        ? values.context_id
+        : "harness-tool-request",
+      requestedGoal: `Execute explicitly selected semantic operation ${operation}.`,
+      requestedTargetRef: typeof values?.context_id === "string" ? values.context_id : null,
+      groundingRequired: operation !== "hardware.get_status",
+      wiringChanged: false,
+      confirmation: null,
+      previousExecution: null,
+      designContext: null,
     });
   },
 };
@@ -85,6 +116,17 @@ export function applyWithDependencies(
         if (violations.length) {
           throw safeAdapterFailure("invalid_tool_arguments", "NOT_SENT");
         }
+        const policyContext = dependencies.resolvePolicyContext(operation, args, config);
+        if (policyContext.operation !== operation || policyContext.channel !== requestedChannel(args)) {
+          throw safeAdapterFailure("policy_denied", "NOT_SENT");
+        }
+        const policy = evaluateHardwareToolPolicy(policyContext);
+        if (policy.decision === "REQUIRE_CONFIRMATION") {
+          throw safeAdapterFailure("policy_confirmation_required", "NOT_SENT");
+        }
+        if (policy.decision !== "ALLOW") {
+          throw safeAdapterFailure("policy_denied", "NOT_SENT");
+        }
         return client.invoke(operation, args, exec.signal);
       },
     };
@@ -97,7 +139,21 @@ function normalizeConfig(config: Config): Required<Config> {
   for (const key of ["connectTimeoutMs", "authTimeoutMs", "requestTimeoutMs"] as const) {
     if (!Number.isSafeInteger(merged[key]) || merged[key] <= 0) throw new Error(`${key} must be a positive integer`);
   }
+  if (merged.backendMode !== "REAL" && merged.backendMode !== "SIMULATED") {
+    throw new Error("backendMode must be REAL or SIMULATED");
+  }
   return Object.freeze(merged);
+}
+
+function object(value: unknown): Readonly<Record<string, unknown>> | undefined {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? value as Readonly<Record<string, unknown>>
+    : undefined;
+}
+
+function requestedChannel(args: unknown): 1 | 2 | null {
+  const value = object(args)?.channel;
+  return value === 1 || value === 2 ? value : null;
 }
 
 function descriptionFor(operation: HardwareOperation): string {
