@@ -25,4 +25,10 @@ and software observations may be sequential rather than atomic; preserve that
 coherence limitation. Give a concise educational explanation of what was selected,
 why it matters, observed evidence, software analysis, interpretation, and remaining
 uncertainty when those sections are relevant.
+
+For numeric evidence, use one source-labelled claim per line: FACT for instrument
+or explicitly simulated observations, ANALYSIS for software-derived values, and
+INFERENCE only for bounded interpretation. State units and source explicitly.
+Ambiguous or unsupported prose may be discarded by the deterministic grounding
+boundary and replaced without another model, Tool, or measurement call.
 `.trim();

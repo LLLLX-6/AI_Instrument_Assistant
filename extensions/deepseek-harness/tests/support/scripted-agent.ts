@@ -29,6 +29,7 @@ import {
   type HardwareToolPolicyContext,
 } from "../../src/policy/index.ts";
 import type { EgressDiagnostic } from "../../src/egress/index.ts";
+import type { GroundingDiagnostic } from "../../src/grounding/index.ts";
 import {
   SEMANTIC_HARDWARE_OPERATIONS,
   createTrustedOperationScope,
@@ -104,6 +105,7 @@ export interface AgentHarnessOptions {
   readonly config?: Config;
   readonly resolvePolicyContext?: PluginDependencies["resolvePolicyContext"];
   readonly onEgressDiagnostic?: (diagnostic: EgressDiagnostic) => void;
+  readonly onGroundingDiagnostic?: (diagnostic: GroundingDiagnostic) => void;
   readonly operationScopeContext?: TrustedOperationScopeContext;
 }
 
@@ -134,6 +136,7 @@ export async function createAgentHarness(options: AgentHarnessOptions): Promise<
       resolveOperationScopeContext: () => operationScopeContext,
       resolvePolicyContext: options.resolvePolicyContext ?? simulatedPolicy,
       onEgressDiagnostic: options.onEgressDiagnostic,
+      onGroundingDiagnostic: options.onGroundingDiagnostic,
     },
   );
   const agent = await ctx.agentLoop.create(

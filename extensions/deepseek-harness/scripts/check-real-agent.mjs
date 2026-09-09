@@ -4,7 +4,7 @@ import {
 } from "../src/validation/runner-boundary.ts";
 
 const boundaryResult = await runWithBoundedFailureBoundary({
-  phase: "7C.4C",
+  phase: "7C.4D",
   scenario: "real-agent-module-load",
   state: new BoundedScenarioState(),
   execute: () => import("./check-real-agent-runtime.mjs").then(() => undefined),

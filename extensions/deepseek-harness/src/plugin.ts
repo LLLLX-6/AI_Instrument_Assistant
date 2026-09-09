@@ -22,6 +22,7 @@ import {
 } from "./agent/index.ts";
 import { presentAdapterFailure, presentHardwareResult } from "./evidence/index.ts";
 import { AgentEgressStateStore, type EgressDiagnostic } from "./egress/index.ts";
+import type { GroundingDiagnostic } from "./grounding/index.ts";
 import { AdapterFailure } from "./ipc/errors.ts";
 import {
   createHardwareToolPolicyContext,
@@ -61,6 +62,7 @@ export interface PluginDependencies {
     config: Required<Config>,
   ) => HardwareToolPolicyContext;
   readonly onEgressDiagnostic?: (diagnostic: EgressDiagnostic) => void;
+  readonly onGroundingDiagnostic?: (diagnostic: GroundingDiagnostic) => void;
 }
 
 const DEFAULT_CONFIG: Required<Config> = {
@@ -141,10 +143,18 @@ export function applyWithDependencies(
     client.start();
     return () => client.dispose();
   }, "aia-hardware-ipc-client");
-  ctx.effect(() => installHarnessAgentEgressBoundary(ctx, egressState, (diagnostic) => {
-    dependencies.onEgressDiagnostic?.(diagnostic);
-    ctx.logger.warn(`Agent egress blocked category=${diagnostic.category} source=${diagnostic.source} correlation=${diagnostic.correlationId}`);
-  }), "aia-agent-egress-boundary");
+  ctx.effect(() => installHarnessAgentEgressBoundary(
+    ctx,
+    egressState,
+    (diagnostic) => {
+      dependencies.onEgressDiagnostic?.(diagnostic);
+      ctx.logger.warn(`Agent egress blocked category=${diagnostic.category} source=${diagnostic.source} correlation=${diagnostic.correlationId}`);
+    },
+    (diagnostic) => {
+      dependencies.onGroundingDiagnostic?.(diagnostic);
+      ctx.logger.warn(`Agent grounding blocked category=${diagnostic.category} claim=${diagnostic.claimKind} correlation=${diagnostic.correlationId}`);
+    },
+  ), "aia-agent-output-boundary");
 
   for (const contract of HARDWARE_TOOL_CONTRACTS) {
     const parameters = contract.parametersSchema as unknown as JsonSchemaNode;

@@ -53,3 +53,17 @@ export type {
   EgressViolation,
   EgressViolationCategory,
 } from "./egress/index.ts";
+export {
+  inspectGroundingCandidate,
+  renderGroundedFallback,
+  toGroundingDiagnostic,
+} from "./grounding/index.ts";
+export type {
+  GroundedFallbackInput,
+  GroundingClaimKind,
+  GroundingDiagnostic,
+  GroundingInspectionInput,
+  GroundingInspectionResult,
+  GroundingViolation,
+  GroundingViolationCategory,
+} from "./grounding/index.ts";

@@ -105,12 +105,32 @@ test("provider-neutral egress guard has no Harness, LLM, driver, transport, or E
   assert.doesNotMatch(egress, /client\.invoke|HardwareToolRuntime|MeasurementService/);
 });
 
+test("provider-neutral grounding core depends only on bounded evidence and policy abstractions", () => {
+  const grounding = readdirSync(resolve(root, "src/grounding"), { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
+    .map((entry) => readFileSync(resolve(entry.parentPath, entry.name), "utf8"))
+    .join("\n");
+  const imports = grounding.split("\n").filter((line) => /^import .* from /.test(line)).join("\n");
+  assert.doesNotMatch(imports, /@deepseek-ai|ipc\/|egress\/|generated\/|agent\//i);
+  assert.doesNotMatch(grounding, /client\.invoke|HardwareToolRuntime|MeasurementService|Rigol|DS1102|pyvisa|SCPI|VISA|jlceda/i);
+  assert.match(imports, /evidence\/index\.ts/);
+});
+
 test("Harness egress integration intercepts llm stream before Agent durable presentation", () => {
   const integration = readFileSync(resolve(root, "src/agent/egress-boundary.ts"), "utf8");
   assert.match(integration, /llm\/stream/);
   assert.match(integration, /inspectEgressCandidate/);
   assert.match(integration, /renderSafeAgentFallback/);
   assert.doesNotMatch(integration, /client\.invoke|HardwareToolRuntime|MeasurementService|pyvisa|Rigol|DS1102/);
+});
+
+test("Harness output integration orders Egress before Grounding and uses deterministic fallback only", () => {
+  const integration = readFileSync(resolve(root, "src/agent/egress-boundary.ts"), "utf8");
+  const egressAt = integration.indexOf("inspectChunks(chunks");
+  const groundingAt = integration.indexOf("inspectGroundingCandidate({");
+  assert.ok(egressAt >= 0 && groundingAt > egressAt);
+  assert.match(integration, /renderGroundedFallback/);
+  assert.doesNotMatch(integration, /adapter\.stream|llm\.generate|tools\.execute|client\.invoke|remeasur/i);
 });
 
 test("canonical result is validated after IPC and before evidence projection", () => {
