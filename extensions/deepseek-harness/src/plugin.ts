@@ -21,7 +21,7 @@ import {
   installHarnessAgentEgressBoundary,
 } from "./agent/index.ts";
 import { presentAdapterFailure, presentHardwareResult } from "./evidence/index.ts";
-import { AgentEgressStateStore } from "./egress/index.ts";
+import { AgentEgressStateStore, type EgressDiagnostic } from "./egress/index.ts";
 import { AdapterFailure } from "./ipc/errors.ts";
 import {
   createHardwareToolPolicyContext,
@@ -29,6 +29,11 @@ import {
   type BackendMode,
   type HardwareToolPolicyContext,
 } from "./policy/index.ts";
+import {
+  OperationScopeGate,
+  createTrustedOperationScope,
+  type TrustedOperationScopeContext,
+} from "./operation-scope/index.ts";
 
 export interface Config {
   readonly endpoint?: string;
@@ -47,11 +52,15 @@ export interface HardwareClientPort {
 
 export interface PluginDependencies {
   readonly createClient: (config: Required<Config>) => HardwareClientPort;
+  readonly resolveOperationScopeContext: (
+    config: Required<Config>,
+  ) => TrustedOperationScopeContext;
   readonly resolvePolicyContext: (
     operation: string,
     args: unknown,
     config: Required<Config>,
   ) => HardwareToolPolicyContext;
+  readonly onEgressDiagnostic?: (diagnostic: EgressDiagnostic) => void;
 }
 
 const DEFAULT_CONFIG: Required<Config> = {
@@ -63,6 +72,17 @@ const DEFAULT_CONFIG: Required<Config> = {
   backendMode: "REAL",
 };
 
+const FAIL_CLOSED_OPERATION_SCOPE = createTrustedOperationScope({
+  scopeId: "no-trusted-operation-authorization",
+  requestCorrelationId: "unconfigured-host-workflow",
+  workflowId: "unconfigured-host-workflow",
+  allowedOperations: [],
+  targetChannel: null,
+  targetIntent: null,
+  origin: "TRUSTED_HOST_WORKFLOW",
+  authorizationRef: null,
+});
+
 const REAL_DEPENDENCIES: PluginDependencies = {
   createClient(config) {
     const secretPath = resolve(config.secretFile);
@@ -73,6 +93,13 @@ const REAL_DEPENDENCIES: PluginDependencies = {
       connectTimeoutMs: config.connectTimeoutMs,
       authTimeoutMs: config.authTimeoutMs,
       requestTimeoutMs: config.requestTimeoutMs,
+    });
+  },
+  resolveOperationScopeContext() {
+    return Object.freeze({
+      scope: FAIL_CLOSED_OPERATION_SCOPE,
+      requestCorrelationId: FAIL_CLOSED_OPERATION_SCOPE.requestCorrelationId,
+      workflowId: FAIL_CLOSED_OPERATION_SCOPE.workflowId,
     });
   },
   resolvePolicyContext(operation, args, config) {
@@ -98,11 +125,13 @@ const REAL_DEPENDENCIES: PluginDependencies = {
 export function applyWithDependencies(
   ctx: Context,
   suppliedConfig: Config = {},
-  dependencies: PluginDependencies = REAL_DEPENDENCIES,
+  suppliedDependencies: Partial<PluginDependencies> = {},
 ): void {
+  const dependencies: PluginDependencies = { ...REAL_DEPENDENCIES, ...suppliedDependencies };
   const config = normalizeConfig(suppliedConfig);
   const client = dependencies.createClient(config);
   const egressState = new AgentEgressStateStore();
+  const operationScopeGate = new OperationScopeGate();
   ctx.systemPrompt.section({
     name: "aia:hardware-agent-policy",
     order: 700,
@@ -113,6 +142,7 @@ export function applyWithDependencies(
     return () => client.dispose();
   }, "aia-hardware-ipc-client");
   ctx.effect(() => installHarnessAgentEgressBoundary(ctx, egressState, (diagnostic) => {
+    dependencies.onEgressDiagnostic?.(diagnostic);
     ctx.logger.warn(`Agent egress blocked category=${diagnostic.category} source=${diagnostic.source} correlation=${diagnostic.correlationId}`);
   }), "aia-agent-egress-boundary");
 
@@ -133,6 +163,17 @@ export function applyWithDependencies(
         if (violations.length) {
           throw safeAdapterFailure("invalid_tool_arguments", "NOT_SENT");
         }
+        const trustedScopeContext = dependencies.resolveOperationScopeContext(config);
+        const scopeRequest = {
+          requestCorrelationId: trustedScopeContext.requestCorrelationId,
+          workflowId: trustedScopeContext.workflowId,
+          operation,
+          channel: requestedChannel(args),
+        };
+        const scopeDecision = operationScopeGate.evaluate(trustedScopeContext.scope, scopeRequest);
+        if (scopeDecision.decision !== "ALLOW") {
+          throw safeAdapterFailure("operation_scope_denied", "NOT_SENT");
+        }
         const policyContext = dependencies.resolvePolicyContext(operation, args, config);
         if (policyContext.operation !== operation || policyContext.channel !== requestedChannel(args)) {
           throw safeAdapterFailure("policy_denied", "NOT_SENT");
@@ -145,6 +186,13 @@ export function applyWithDependencies(
         }
         if (policy.decision !== "ALLOW") {
           throw safeAdapterFailure("policy_denied", "NOT_SENT");
+        }
+        const dispatchAuthorization = operationScopeGate.authorizeDispatch(
+          trustedScopeContext.scope,
+          scopeRequest,
+        );
+        if (dispatchAuthorization.decision !== "ALLOW") {
+          throw safeAdapterFailure("operation_scope_denied", "NOT_SENT");
         }
         const evidenceOptions = {
           requestedGoal: policyContext.requestedGoal,

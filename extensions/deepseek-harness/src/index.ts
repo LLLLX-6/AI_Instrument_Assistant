@@ -12,6 +12,20 @@ export function apply(ctx: Context, config: Config = {}): void {
 export { applyWithDependencies } from "./plugin.ts";
 export type { Config, HardwareClientPort, PluginDependencies } from "./plugin.ts";
 export {
+  OperationScopeGate,
+  SEMANTIC_HARDWARE_OPERATIONS,
+  createTrustedOperationScope,
+  isSemanticHardwareOperation,
+} from "./operation-scope/index.ts";
+export type {
+  OperationScopeDecision,
+  OperationScopeReasonCode,
+  SemanticHardwareOperation,
+  TrustedOperationScope,
+  TrustedOperationScopeContext,
+  TrustedOperationScopeOrigin,
+} from "./operation-scope/index.ts";
+export {
   createHardwareToolPolicyContext,
   createProbeSetupConfirmation,
   evaluateHardwareToolPolicy,

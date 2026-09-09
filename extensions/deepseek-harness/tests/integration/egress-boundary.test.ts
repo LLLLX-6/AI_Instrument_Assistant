@@ -14,8 +14,10 @@ import {
 
 test("unsafe final response is replaced before the durable Agent surface without retry or remeasurement", async () => {
   const client = new RecordingHardwareClient(SIMULATED_FREQUENCY_RESULT);
+  const diagnostics: Array<{ category: string; source: string }> = [];
   const harness = await createAgentHarness({
     client,
+    onEgressDiagnostic: ({ category, source }) => { diagnostics.push({ category, source }); },
     script: [
       toolCallResponse("safe-call", "hardware_measure_frequency", { channel: 1 }),
       textResponse("Measurement is in C:\\Users\\operator\\capture.txt"),
@@ -31,6 +33,7 @@ test("unsafe final response is replaced before the durable Agent surface without
     assert.match(text, /Measurement completed\./);
     assert.match(text, /FACT:/);
     assert.doesNotMatch(JSON.stringify(harness.agent.session.snapshotEvents()), /operator|capture\.txt/);
+    assert.deepEqual(diagnostics, [{ category: "LOCAL_PATH", source: "FINAL_RESPONSE" }]);
   } finally {
     await harness.ctx.fiber.dispose();
   }

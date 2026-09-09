@@ -28,6 +28,12 @@ import {
   createHardwareToolPolicyContext,
   type HardwareToolPolicyContext,
 } from "../../src/policy/index.ts";
+import type { EgressDiagnostic } from "../../src/egress/index.ts";
+import {
+  SEMANTIC_HARDWARE_OPERATIONS,
+  createTrustedOperationScope,
+  type TrustedOperationScopeContext,
+} from "../../src/operation-scope/index.ts";
 
 export type ScriptStep =
   | readonly StreamChunk[]
@@ -97,9 +103,12 @@ export interface AgentHarnessOptions {
   readonly client?: RecordingHardwareClient;
   readonly config?: Config;
   readonly resolvePolicyContext?: PluginDependencies["resolvePolicyContext"];
+  readonly onEgressDiagnostic?: (diagnostic: EgressDiagnostic) => void;
+  readonly operationScopeContext?: TrustedOperationScopeContext;
 }
 
 let sessionSequence = 0;
+let scopeSequence = 0;
 
 export async function createAgentHarness(options: AgentHarnessOptions): Promise<{
   readonly ctx: Context;
@@ -108,6 +117,7 @@ export async function createAgentHarness(options: AgentHarnessOptions): Promise<
 }> {
   const ctx = new Context();
   const adapter = new ScriptedAgentAdapter(options.script);
+  const operationScopeContext = options.operationScopeContext ?? trustedTestScopeContext();
   await ctx.plugin(LlmRuntime);
   await ctx.plugin(SessionStore);
   await ctx.plugin(SessionProjectionRegistry);
@@ -119,18 +129,37 @@ export async function createAgentHarness(options: AgentHarnessOptions): Promise<
   applyWithDependencies(
     ctx,
     { backendMode: "SIMULATED", ...options.config },
-    options.client === undefined
-      ? undefined
-      : {
-        createClient: () => options.client!,
-        resolvePolicyContext: options.resolvePolicyContext ?? simulatedPolicy,
-      },
+    {
+      ...(options.client === undefined ? {} : { createClient: () => options.client! }),
+      resolveOperationScopeContext: () => operationScopeContext,
+      resolvePolicyContext: options.resolvePolicyContext ?? simulatedPolicy,
+      onEgressDiagnostic: options.onEgressDiagnostic,
+    },
   );
   const agent = await ctx.agentLoop.create(
     SessionId(`aia-agent-evaluation-${++sessionSequence}`),
     { provider: "aia-scripted", model: "scripted" },
   );
   return { ctx, agent, adapter };
+}
+
+export function trustedTestScopeContext(): TrustedOperationScopeContext {
+  const ordinal = ++scopeSequence;
+  const workflowId = `scripted-agent-workflow-${ordinal}`;
+  const scope = createTrustedOperationScope({
+    scopeId: `scripted-agent-scope-${ordinal}`,
+    requestCorrelationId: workflowId,
+    workflowId,
+    allowedOperations: SEMANTIC_HARDWARE_OPERATIONS.map((operation) => ({
+      operation,
+      maxInvocations: 8,
+    })),
+    targetChannel: null,
+    targetIntent: "scripted Agent regression",
+    origin: "TRUSTED_VALIDATION_SCENARIO",
+    authorizationRef: null,
+  });
+  return Object.freeze({ scope, requestCorrelationId: workflowId, workflowId });
 }
 
 export async function runAgent(agent: Agent, prompt: string): Promise<void> {

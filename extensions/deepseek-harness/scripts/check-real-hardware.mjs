@@ -9,6 +9,7 @@ import ToolRuntime from "@deepseek-ai/dsh-tools";
 import { applyWithDependencies } from "../src/index.ts";
 import { HarnessHardwareIpcClient } from "../src/ipc/client.ts";
 import { loadHarnessHardwareSecret } from "../src/ipc/secret.ts";
+import { createTrustedOperationScope } from "../src/operation-scope/index.ts";
 
 const endpoint = process.env.AIA_HARNESS_HARDWARE_ENDPOINT ?? "ws://127.0.0.1:49625";
 const secretFile = resolve(process.env.AIA_HARNESS_HARDWARE_SECRET_FILE ?? ".aia-secrets/harness-hardware-psk.txt");
@@ -49,11 +50,31 @@ const client = new HarnessHardwareIpcClient({
 });
 const ctx = new Context();
 const input = createInterface({ input: process.stdin, output: process.stdout });
+const workflowId = "manual-real-hardware-validation";
+const scope = createTrustedOperationScope({
+  scopeId: "manual-real-hardware-validation-scope",
+  requestCorrelationId: workflowId,
+  workflowId,
+  allowedOperations: [
+    { operation: "hardware.get_status", maxInvocations: 3 },
+    { operation: "hardware.measure_frequency", maxInvocations: 1 },
+    { operation: "hardware.measure_vpp", maxInvocations: 1 },
+    { operation: "hardware.capture_waveform", maxInvocations: 1 },
+    { operation: "hardware.measure_pwm", maxInvocations: 1 },
+  ],
+  targetChannel: null,
+  targetIntent: "explicit manual hardware validation",
+  origin: "TRUSTED_VALIDATION_SCENARIO",
+  authorizationRef: "manual-runner-confirmation",
+});
 
 try {
   await ctx.plugin(SystemPrompt);
   await ctx.plugin(ToolRuntime);
-  applyWithDependencies(ctx, { endpoint, secretFile, requestTimeoutMs: 30_000 }, { createClient: () => client });
+  applyWithDependencies(ctx, { endpoint, secretFile, requestTimeoutMs: 30_000 }, {
+    createClient: () => client,
+    resolveOperationScopeContext: () => ({ scope, requestCorrelationId: workflowId, workflowId }),
+  });
   await client.waitUntilAuthenticated(10_000);
   const initialSession = client.sessionId;
   const initialGeneration = client.connectionGeneration;

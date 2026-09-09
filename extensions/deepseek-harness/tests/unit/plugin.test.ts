@@ -15,6 +15,10 @@ import {
   type HardwareToolPolicyContext,
 } from "../../src/policy/index.ts";
 import { DEGRADED_PWM_RESULT, HARDWARE_ERROR_RESULT, STATUS_RESULT } from "../support/canonical-results.ts";
+import {
+  SEMANTIC_HARDWARE_OPERATIONS,
+  createTrustedOperationScope,
+} from "../../src/operation-scope/index.ts";
 
 class FakeClient {
   started = 0;
@@ -55,9 +59,30 @@ async function setup(
   const ctx = new Context();
   await ctx.plugin(SystemPrompt);
   await ctx.plugin(ToolRuntime);
-  applyWithDependencies(ctx, {}, { createClient: () => client, resolvePolicyContext });
+  const workflowId = "plugin-unit-workflow";
+  const trustedScope = createTrustedOperationScope({
+    scopeId: `plugin-unit-scope-${setupSequence++}`,
+    requestCorrelationId: "plugin-unit-request",
+    workflowId,
+    allowedOperations: SEMANTIC_HARDWARE_OPERATIONS.map((operation) => ({ operation, maxInvocations: 16 })),
+    targetChannel: null,
+    targetIntent: "plugin unit regression",
+    origin: "TRUSTED_VALIDATION_SCENARIO",
+    authorizationRef: null,
+  });
+  applyWithDependencies(ctx, {}, {
+    createClient: () => client,
+    resolveOperationScopeContext: () => ({
+      scope: trustedScope,
+      requestCorrelationId: trustedScope.requestCorrelationId,
+      workflowId,
+    }),
+    resolvePolicyContext,
+  });
   return ctx;
 }
+
+let setupSequence = 0;
 
 test("plugin identity and injection follow the reviewed Harness shape", () => {
   assert.equal(name, "aia-hardware-tools");
@@ -164,6 +189,32 @@ test("invalid_tool_arguments is a bounded NOT_SENT adapter failure", () => {
   assert.equal(failure.code, "invalid_tool_arguments");
   assert.equal(failure.deliveryState, "NOT_SENT");
   assert.equal(failure.message, "Hardware tool arguments are invalid.");
+});
+
+test("missing trusted operation scope provider fails closed before physical policy and IPC", async () => {
+  const client = new FakeClient();
+  const ctx = new Context();
+  await ctx.plugin(SystemPrompt);
+  await ctx.plugin(ToolRuntime);
+  let physicalPolicyCalls = 0;
+  applyWithDependencies(ctx, {}, {
+    createClient: () => client,
+    resolvePolicyContext(operation, args) {
+      physicalPolicyCalls += 1;
+      return simulatedPolicy(operation, args);
+    },
+  });
+  const result = await ctx.tools.execute({
+    signal: new AbortController().signal,
+    callId: ToolCallId("phase7c4c-fail-closed"),
+    name: "hardware_get_status",
+    arguments: {},
+  });
+  assert.equal(result.isError, true);
+  assert.equal(result.error?.message, "Hardware operation is outside the trusted request scope.");
+  assert.equal(physicalPolicyCalls, 0);
+  assert.equal(client.calls.length, 0);
+  await ctx.fiber.dispose();
 });
 
 test("real measurement requiring confirmation causes zero IPC invocation", async () => {

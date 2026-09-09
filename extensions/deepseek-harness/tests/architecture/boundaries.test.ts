@@ -43,6 +43,16 @@ test("provider-neutral policy has no Harness, driver, transport, EDA adapter, or
   assert.doesNotMatch(policy, /@deepseek-ai|Rigol|DS1102|pyvisa|SCPI|jlceda|ipc\/|generated\//i);
 });
 
+test("provider-neutral operation scope core has no Harness, LLM, IPC, driver, instrument, or EDA dependency", () => {
+  const operationScope = readdirSync(resolve(root, "src/operation-scope"), { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
+    .map((entry) => readFileSync(resolve(entry.parentPath, entry.name), "utf8"))
+    .join("\n");
+  const imports = operationScope.split("\n").filter((line) => /^import .* from /.test(line)).join("\n");
+  assert.doesNotMatch(imports, /@deepseek-ai|ipc\/|generated\/|policy\/|evidence\//i);
+  assert.doesNotMatch(operationScope, /HardwareToolRuntime|MeasurementService|Rigol|DS1102|pyvisa|SCPI|VISA|jlceda/i);
+});
+
 test("evidence presenter has no LLM, Harness runtime, driver, or VISA dependency", () => {
   const evidence = readdirSync(resolve(root, "src/evidence"), { recursive: true, withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
@@ -59,6 +69,19 @@ test("prompt prose is not the physical execution authority", () => {
   assert.match(plugin, /evaluateHardwareToolPolicy/);
   assert.match(plugin, /decision\s*!==\s*"ALLOW"/);
   assert.ok(plugin.indexOf("evaluateHardwareToolPolicy") < plugin.indexOf("client.invoke"));
+});
+
+test("Tool execution freezes schema then scope then physical policy then IPC ordering", () => {
+  const plugin = readFileSync(resolve(root, "src/plugin.ts"), "utf8");
+  const schemaAt = plugin.lastIndexOf("validateJsonSchemaValue(parameters");
+  const scopeAt = plugin.lastIndexOf("operationScopeGate.evaluate");
+  const physicalAt = plugin.lastIndexOf("evaluateHardwareToolPolicy");
+  const dispatchAuthorizationAt = plugin.lastIndexOf("operationScopeGate.authorizeDispatch");
+  const invokeAt = plugin.lastIndexOf("client.invoke");
+  assert.ok(schemaAt >= 0 && scopeAt > schemaAt);
+  assert.ok(physicalAt > scopeAt);
+  assert.ok(dispatchAuthorizationAt > physicalAt);
+  assert.ok(invokeAt > dispatchAuthorizationAt);
 });
 
 test("Agent integration can present evidence but cannot invoke IPC or hardware runtime", () => {
@@ -99,6 +122,16 @@ test("canonical result is validated after IPC and before evidence projection", (
   assert.ok(policyAt >= 0 && invokeAt > policyAt);
   assert.ok(outputValidationAt > invokeAt);
   assert.ok(evidenceAt > outputValidationAt);
+});
+
+test("real validation runner converts all stop conditions through the bounded failure boundary", () => {
+  const runner = readFileSync(resolve(root, "scripts/check-real-agent.mjs"), "utf8");
+  const runtime = readFileSync(resolve(root, "scripts/check-real-agent-runtime.mjs"), "utf8");
+  assert.match(runner, /runWithBoundedFailureBoundary/);
+  assert.match(runner, /import\("\.\/check-real-agent-runtime\.mjs"\)/);
+  assert.match(runtime, /catch \(error\)/);
+  assert.match(runtime, /boundedCompatibilityStop/);
+  assert.doesNotMatch(`${runner}\n${runtime}`, /error\.stack|console\.(?:error|log)\(error\)/);
 });
 
 test("model-visible surface has no generic executor or deployment-state argument", async () => {

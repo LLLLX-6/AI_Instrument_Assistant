@@ -2,6 +2,7 @@ export type DeliveryState = "NOT_SENT" | "SENT_UNCONFIRMED" | "RESPONSE_RECEIVED
 
 export type AdapterFailureCode =
   | "invalid_tool_arguments"
+  | "operation_scope_denied"
   | "policy_confirmation_required"
   | "policy_denied"
   | "ipc_authentication_failed"
@@ -14,6 +15,7 @@ export type AdapterFailureCode =
 
 const SAFE_MESSAGES: Readonly<Record<AdapterFailureCode, string>> = {
   invalid_tool_arguments: "Hardware tool arguments are invalid.",
+  operation_scope_denied: "Hardware operation is outside the trusted request scope.",
   policy_confirmation_required: "Physical setup confirmation is required before this hardware measurement.",
   policy_denied: "Hardware tool request was denied by policy.",
   ipc_authentication_failed: "Hardware backend authentication failed.",

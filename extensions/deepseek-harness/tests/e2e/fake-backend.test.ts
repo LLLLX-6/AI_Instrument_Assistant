@@ -7,6 +7,8 @@ import SystemPrompt from "@deepseek-ai/dsh-system-prompt";
 import ToolRuntime from "@deepseek-ai/dsh-tools";
 
 import { applyWithDependencies } from "../../src/index.ts";
+import { HarnessHardwareIpcClient } from "../../src/ipc/client.ts";
+import { loadHarnessHardwareSecret } from "../../src/ipc/secret.ts";
 import {
   createAgentHarness,
   finalAgentText,
@@ -15,6 +17,8 @@ import {
   textResponse,
   toolCallResponse,
   visibleToolCalls,
+  simulatedPolicy,
+  trustedTestScopeContext,
 } from "../support/scripted-agent.ts";
 import { startFakeBackend } from "../support/fake-backend-process.ts";
 
@@ -32,6 +36,15 @@ test("real frozen ToolRuntime executes all five tools through the Python fake ba
   try {
     await ctx.plugin(SystemPrompt);
     await ctx.plugin(ToolRuntime);
+    const client = new HarnessHardwareIpcClient({
+      endpoint: backend.endpoint,
+      secretFile: backend.secretFile,
+      loadSecret: () => loadHarnessHardwareSecret(backend.secretFile),
+      connectTimeoutMs: 2_000,
+      authTimeoutMs: 2_000,
+      requestTimeoutMs: 5_000,
+    });
+    const operationScopeContext = trustedTestScopeContext();
     applyWithDependencies(ctx, {
       endpoint: backend.endpoint,
       secretFile: backend.secretFile,
@@ -39,6 +52,10 @@ test("real frozen ToolRuntime executes all five tools through the Python fake ba
       connectTimeoutMs: 2_000,
       authTimeoutMs: 2_000,
       requestTimeoutMs: 5_000,
+    }, {
+      createClient: () => client,
+      resolveOperationScopeContext: () => operationScopeContext,
+      resolvePolicyContext: simulatedPolicy,
     });
 
     for (const [name, operation, arguments_] of OPERATIONS) {

@@ -4,6 +4,7 @@ import SystemPrompt from "@deepseek-ai/dsh-system-prompt";
 import ToolRuntime from "@deepseek-ai/dsh-tools";
 
 import { applyWithDependencies } from "../src/index.ts";
+import { createTrustedOperationScope } from "../src/operation-scope/index.ts";
 
 const endpoint = process.env.AIA_HARNESS_HARDWARE_ENDPOINT ?? "ws://127.0.0.1:49625";
 const secretFile = process.env.AIA_HARNESS_HARDWARE_SECRET_FILE ?? ".aia-secrets/harness-hardware-psk.txt";
@@ -16,10 +17,28 @@ const operations = [
 ];
 
 const ctx = new Context();
+const workflowId = "manual-fake-runtime-smoke";
+const scope = createTrustedOperationScope({
+  scopeId: "manual-fake-runtime-smoke-scope",
+  requestCorrelationId: workflowId,
+  workflowId,
+  allowedOperations: operations.map(([name]) => ({
+    operation: name === "hardware_get_status"
+      ? "hardware.get_status"
+      : name.replace("hardware_", "hardware."),
+    maxInvocations: 1,
+  })),
+  targetChannel: null,
+  targetIntent: "explicit fake runtime smoke",
+  origin: "TRUSTED_VALIDATION_SCENARIO",
+  authorizationRef: null,
+});
 try {
   await ctx.plugin(SystemPrompt);
   await ctx.plugin(ToolRuntime);
-  applyWithDependencies(ctx, { endpoint, secretFile });
+  applyWithDependencies(ctx, { endpoint, secretFile, backendMode: "SIMULATED" }, {
+    resolveOperationScopeContext: () => ({ scope, requestCorrelationId: workflowId, workflowId }),
+  });
   const summaries = [];
   for (const [name, args] of operations) {
     const response = await ctx.tools.execute({
