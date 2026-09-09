@@ -72,6 +72,24 @@ test("Agent integration can present evidence but cannot invoke IPC or hardware r
   assert.match(agent, /TeachingEvidenceContext/);
 });
 
+test("provider-neutral egress guard has no Harness, LLM, driver, transport, or EDA dependency", () => {
+  const egress = readdirSync(resolve(root, "src/egress"), { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
+    .map((entry) => readFileSync(resolve(entry.parentPath, entry.name), "utf8"))
+    .join("\n");
+  const imports = egress.split("\n").filter((line) => /^import .* from /.test(line)).join("\n");
+  assert.doesNotMatch(imports, /@deepseek-ai|ipc\/|Rigol|DS1102|pyvisa|SCPI|VISA|jlceda|generated\//i);
+  assert.doesNotMatch(egress, /client\.invoke|HardwareToolRuntime|MeasurementService/);
+});
+
+test("Harness egress integration intercepts llm stream before Agent durable presentation", () => {
+  const integration = readFileSync(resolve(root, "src/agent/egress-boundary.ts"), "utf8");
+  assert.match(integration, /llm\/stream/);
+  assert.match(integration, /inspectEgressCandidate/);
+  assert.match(integration, /renderSafeAgentFallback/);
+  assert.doesNotMatch(integration, /client\.invoke|HardwareToolRuntime|MeasurementService|pyvisa|Rigol|DS1102/);
+});
+
 test("canonical result is validated after IPC and before evidence projection", () => {
   const plugin = readFileSync(resolve(root, "src/plugin.ts"), "utf8");
   const policyAt = plugin.indexOf("evaluateHardwareToolPolicy");

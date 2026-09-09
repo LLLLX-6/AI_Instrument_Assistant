@@ -23,5 +23,19 @@ export type { TeachingEvidenceContext } from "./evidence/index.ts";
 export {
   createTeachingEvidenceMessage,
   HARDWARE_AGENT_POLICY,
+  installHarnessAgentEgressBoundary,
   serializeTeachingEvidenceContext,
 } from "./agent/index.ts";
+export {
+  AgentEgressStateStore,
+  inspectEgressCandidate,
+  renderSafeAgentFallback,
+  toEgressDiagnostic,
+} from "./egress/index.ts";
+export type {
+  EgressDiagnostic,
+  EgressInspectionResult,
+  EgressSource,
+  EgressViolation,
+  EgressViolationCategory,
+} from "./egress/index.ts";

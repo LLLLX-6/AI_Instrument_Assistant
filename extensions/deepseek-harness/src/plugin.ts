@@ -15,8 +15,13 @@ import { HarnessHardwareIpcClient } from "./ipc/client.ts";
 import { safeAdapterFailure } from "./ipc/errors.ts";
 import { loadHarnessHardwareSecret } from "./ipc/secret.ts";
 import { renderHardwareResult } from "./render.ts";
-import { createTeachingEvidenceMessage, HARDWARE_AGENT_POLICY } from "./agent/index.ts";
+import {
+  createTeachingEvidenceMessage,
+  HARDWARE_AGENT_POLICY,
+  installHarnessAgentEgressBoundary,
+} from "./agent/index.ts";
 import { presentAdapterFailure, presentHardwareResult } from "./evidence/index.ts";
+import { AgentEgressStateStore } from "./egress/index.ts";
 import { AdapterFailure } from "./ipc/errors.ts";
 import {
   createHardwareToolPolicyContext,
@@ -97,6 +102,7 @@ export function applyWithDependencies(
 ): void {
   const config = normalizeConfig(suppliedConfig);
   const client = dependencies.createClient(config);
+  const egressState = new AgentEgressStateStore();
   ctx.systemPrompt.section({
     name: "aia:hardware-agent-policy",
     order: 700,
@@ -106,6 +112,9 @@ export function applyWithDependencies(
     client.start();
     return () => client.dispose();
   }, "aia-hardware-ipc-client");
+  ctx.effect(() => installHarnessAgentEgressBoundary(ctx, egressState, (diagnostic) => {
+    ctx.logger.warn(`Agent egress blocked category=${diagnostic.category} source=${diagnostic.source} correlation=${diagnostic.correlationId}`);
+  }), "aia-agent-egress-boundary");
 
   for (const contract of HARDWARE_TOOL_CONTRACTS) {
     const parameters = contract.parametersSchema as unknown as JsonSchemaNode;
@@ -129,6 +138,8 @@ export function applyWithDependencies(
           throw safeAdapterFailure("policy_denied", "NOT_SENT");
         }
         const policy = evaluateHardwareToolPolicy(policyContext);
+        const correlationId = exec.agent === undefined ? null : String(exec.agent.session.id);
+        if (correlationId !== null) egressState.recordPolicy(correlationId, policy);
         if (policy.decision === "REQUIRE_CONFIRMATION") {
           throw safeAdapterFailure("policy_confirmation_required", "NOT_SENT");
         }
@@ -150,16 +161,20 @@ export function applyWithDependencies(
           if (outputViolations.length) {
             throw safeAdapterFailure("backend_response_invalid", "RESPONSE_RECEIVED");
           }
-          exec.deferContext(createTeachingEvidenceMessage(presentHardwareResult(value, evidenceOptions)));
+          const evidence = presentHardwareResult(value, evidenceOptions);
+          if (correlationId !== null) egressState.recordEvidence(correlationId, evidence);
+          exec.deferContext(createTeachingEvidenceMessage(evidence));
           return value;
         } catch (error: unknown) {
           if (error instanceof AdapterFailure) {
-            exec.deferContext(createTeachingEvidenceMessage(presentAdapterFailure({
+            const evidence = presentAdapterFailure({
               code: error.code,
               message: error.message,
               deliveryState: error.deliveryState,
               operation,
-            }, evidenceOptions)));
+            }, evidenceOptions);
+            if (correlationId !== null) egressState.recordEvidence(correlationId, evidence);
+            exec.deferContext(createTeachingEvidenceMessage(evidence));
           }
           throw error;
         }
