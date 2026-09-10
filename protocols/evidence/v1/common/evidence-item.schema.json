@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/evidence/v1/common/evidence-item.schema.json",
+  "title": "AIA Evidence v1 Evidence Item",
+  "type": "object",
+  "required": ["kind", "label", "value", "unit", "source", "quality", "warnings", "provenance"],
+  "properties": {
+    "kind": {"enum": ["FACT", "ANALYSIS", "INFERENCE"]},
+    "label": {"type": "string", "minLength": 1, "maxLength": 160},
+    "value": {
+      "oneOf": [
+        {"type": "number"},
+        {"type": "string", "maxLength": 4096},
+        {"type": "null"},
+        {"$ref": "#/$defs/dutyCycle"}
+      ]
+    },
+    "unit": {"type": ["string", "null"], "minLength": 1, "maxLength": 32},
+    "source": {"enum": ["instrument", "software_analysis", "simulated"]},
+    "quality": {"enum": ["good", "degraded", "unavailable"]},
+    "warnings": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1, "maxLength": 1024},
+      "uniqueItems": true,
+      "maxItems": 64
+    },
+    "provenance": {"$ref": "#/$defs/provenance"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"quality": {"const": "unavailable"}}, "required": ["quality"]},
+      "then": {"properties": {"value": {"type": "null"}}}
+    }
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "dutyCycle": {
+      "type": "object",
+      "required": ["ratio", "percent"],
+      "properties": {
+        "ratio": {"type": "number", "minimum": 0, "maximum": 1},
+        "percent": {"type": "number", "minimum": 0, "maximum": 100}
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["method", "observedAt", "analysisAlgorithm", "evidenceArtifactIds"],
+      "properties": {
+        "method": {"type": "string", "minLength": 1, "maxLength": 256},
+        "observedAt": {"type": "string", "format": "date-time"},
+        "analysisAlgorithm": {"type": ["string", "null"], "minLength": 1, "maxLength": 256},
+        "evidenceArtifactIds": {
+          "type": "array",
+          "items": {"type": "string", "format": "uuid"},
+          "uniqueItems": true,
+          "maxItems": 64
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "description": "Unknown top-level wire fields are rejected.",
+  "schema_ref": "https://aia.local/protocols/evidence/v1/teaching-evidence-context.schema.json",
+  "instance": {
+    "requestedGoal":"Measure PWM","measurementDecisionReason":"test","operation":null,"executionStatus":"UNKNOWN","confirmationState":"NOT_REQUIRED","requiredUserAction":"NONE","instrument":null,"facts":[],"analyses":[],"inferences":[],"quality":null,"warnings":[],"coherence":null,"artifact":null,"limitations":[],"failure":null,"allowedInferenceBoundary":"bounded","runtimeSecret":"forbidden"
+  }
+}

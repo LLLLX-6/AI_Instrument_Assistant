@@ -1,0 +1,23 @@
+{
+  "description": "A software analysis cannot enter the FACT collection as an instrument fact.",
+  "schema_ref": "https://aia.local/protocols/evidence/v1/teaching-evidence-context.schema.json",
+  "instance": {
+    "requestedGoal": "Measure frequency",
+    "measurementDecisionReason": "test",
+    "operation": "hardware.measure_frequency",
+    "executionStatus": "COMPLETED",
+    "confirmationState": "CONFIRMED",
+    "requiredUserAction": "NONE",
+    "instrument": null,
+    "facts": [{"kind":"FACT","label":"software frequency","value":10000,"unit":"Hz","source":"software_analysis","quality":"good","warnings":[],"provenance":{"method":"analysis","observedAt":"2026-09-10T02:00:00Z","analysisAlgorithm":"edge-v1","evidenceArtifactIds":[]}}],
+    "analyses": [],
+    "inferences": [],
+    "quality": "good",
+    "warnings": [],
+    "coherence": null,
+    "artifact": null,
+    "limitations": [],
+    "failure": null,
+    "allowedInferenceBoundary": "bounded"
+  }
+}

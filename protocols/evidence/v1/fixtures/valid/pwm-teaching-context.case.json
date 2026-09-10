@@ -1,0 +1,93 @@
+{
+  "description": "Current approved PWM TeachingEvidenceContext semantics in canonical evidence v1 wire form.",
+  "schema_ref": "https://aia.local/protocols/evidence/v1/teaching-evidence-context.schema.json",
+  "instance": {
+    "requestedGoal": "Measure PWM_OUT frequency and duty cycle",
+    "measurementDecisionReason": "The selected design target is a PWM signal.",
+    "operation": "hardware.measure_pwm",
+    "executionStatus": "COMPLETED",
+    "confirmationState": "CONFIRMED",
+    "requiredUserAction": "NONE",
+    "instrument": {
+      "manufacturer": "RIGOL TECHNOLOGIES",
+      "model": "DS1102Z-E",
+      "serialNumber": "REDACTED",
+      "firmwareVersion": "00.04.05"
+    },
+    "facts": [
+      {
+        "kind": "FACT",
+        "label": "instrument frequency",
+        "value": 10020.0,
+        "unit": "Hz",
+        "source": "instrument",
+        "quality": "good",
+        "warnings": [],
+        "provenance": {
+          "method": "oscilloscope native measurement",
+          "observedAt": "2026-09-10T02:00:02Z",
+          "analysisAlgorithm": null,
+          "evidenceArtifactIds": []
+        }
+      }
+    ],
+    "analyses": [
+      {
+        "kind": "ANALYSIS",
+        "label": "software frequency",
+        "value": 10010.0,
+        "unit": "Hz",
+        "source": "software_analysis",
+        "quality": "good",
+        "warnings": [],
+        "provenance": {
+          "method": "bounded waveform analysis",
+          "observedAt": "2026-09-10T02:00:03Z",
+          "analysisAlgorithm": "edge-v1",
+          "evidenceArtifactIds": ["11111111-1111-4111-8111-111111111111"]
+        }
+      },
+      {
+        "kind": "ANALYSIS",
+        "label": "software duty cycle",
+        "value": {"ratio": 0.2995, "percent": 29.95},
+        "unit": "ratio",
+        "source": "software_analysis",
+        "quality": "good",
+        "warnings": ["Instrument and software observations were sequential, not atomic."],
+        "provenance": {
+          "method": "bounded waveform analysis",
+          "observedAt": "2026-09-10T02:00:03Z",
+          "analysisAlgorithm": "edge-v1",
+          "evidenceArtifactIds": ["11111111-1111-4111-8111-111111111111"]
+        }
+      }
+    ],
+    "inferences": [],
+    "quality": "good",
+    "warnings": ["Instrument and software observations were sequential, not atomic."],
+    "coherence": {
+      "software_observations": "same_artifact",
+      "instrument_vs_software": "sequential_same_session"
+    },
+    "artifact": {
+      "reference": {
+        "artifact_id": "11111111-1111-4111-8111-111111111111",
+        "uri": "memory://waveforms/pwm-out-1",
+        "media_type": "application/vnd.aia.waveform+binary",
+        "size_bytes": 2400
+      },
+      "channel": 1,
+      "pointCount": 1200,
+      "sampleIntervalSeconds": 1e-7,
+      "timeRangeSeconds": [-0.00006, 0.00006],
+      "voltageRangeV": [0.0, 3.3],
+      "acquisitionMode": "normal",
+      "capturedAt": "2026-09-10T02:00:02Z",
+      "opaque": true
+    },
+    "limitations": ["Raw waveform samples are available only through the opaque artifact reference."],
+    "failure": null,
+    "allowedInferenceBoundary": "Report only evidence-grounded observations; do not infer a circuit fault."
+  }
+}

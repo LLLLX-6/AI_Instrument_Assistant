@@ -57,9 +57,17 @@ class ValidatedInstance:
 class SchemaValidator:
     """Validates arbitrary JSON values exclusively through registered JSON Schemas."""
 
-    def __init__(self, registry: SchemaRegistry) -> None:
+    def __init__(
+        self,
+        registry: SchemaRegistry,
+        *,
+        enforce_formats: bool = False,
+    ) -> None:
         self._registry = registry
         self._validators: dict[str, Draft202012Validator] = {}
+        self._format_checker = (
+            Draft202012Validator.FORMAT_CHECKER if enforce_formats else None
+        )
 
     def validate(self, schema_ref: str, instance: Any) -> ValidationResult:
         validator = self._validator_for(schema_ref)
@@ -103,6 +111,7 @@ class SchemaValidator:
                 "$ref": schema_ref,
             },
             registry=self._registry.referencing_registry,
+            format_checker=self._format_checker,
         )
         self._validators[schema_ref] = validator
         return validator

@@ -1,4 +1,9 @@
 export { presentAdapterFailure, presentHardwareResult } from "./presenter.ts";
+export {
+  EVIDENCE_CONTEXT_SCHEMA_ID,
+  EvidenceContractBinding,
+  EvidenceContractError,
+} from "./contract.ts";
 export type {
   ConfirmationState,
   EvidenceFailure,

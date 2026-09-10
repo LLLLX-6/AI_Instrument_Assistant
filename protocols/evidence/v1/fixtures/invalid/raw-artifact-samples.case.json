@@ -1,0 +1,13 @@
+{
+  "description": "Raw waveform samples cannot cross the evidence contract.",
+  "schema_ref": "https://aia.local/protocols/evidence/v1/teaching-evidence-context.schema.json",
+  "instance": {
+    "requestedGoal":"Measure PWM","measurementDecisionReason":"test","operation":"hardware.measure_pwm","executionStatus":"COMPLETED","confirmationState":"CONFIRMED","requiredUserAction":"NONE","instrument":null,"facts":[],"analyses":[],"inferences":[],"quality":"good","warnings":[],"coherence":null,
+    "artifact": {
+      "reference":{"artifact_id":"11111111-1111-4111-8111-111111111111","uri":"memory://waveforms/1","media_type":"application/octet-stream","size_bytes":16},
+      "channel":1,"pointCount":2,"sampleIntervalSeconds":0.001,"timeRangeSeconds":[0,0.001],"voltageRangeV":[0,3.3],"acquisitionMode":"normal","capturedAt":"2026-09-10T02:00:00Z","opaque":true,
+      "samples":[0,3.3]
+    },
+    "limitations":[],"failure":null,"allowedInferenceBoundary":"bounded"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "description": "Unavailable evidence cannot carry a fabricated numeric value.",
+  "schema_ref": "https://aia.local/protocols/evidence/v1/common/evidence-item.schema.json",
+  "instance": {
+    "kind": "FACT",
+    "label": "instrument frequency",
+    "value": 10000,
+    "unit": "Hz",
+    "source": "instrument",
+    "quality": "unavailable",
+    "warnings": [],
+    "provenance": {"method":"native","observedAt":"2026-09-10T02:00:00Z","analysisAlgorithm":null,"evidenceArtifactIds":[]}
+  }
+}

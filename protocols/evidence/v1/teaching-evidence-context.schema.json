@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/evidence/v1/teaching-evidence-context.schema.json",
+  "title": "AIA Evidence v1 Teaching Evidence Context",
+  "type": "object",
+  "required": [
+    "requestedGoal", "measurementDecisionReason", "operation", "executionStatus",
+    "confirmationState", "requiredUserAction", "instrument", "facts", "analyses",
+    "inferences", "quality", "warnings", "coherence", "artifact", "limitations",
+    "failure", "allowedInferenceBoundary"
+  ],
+  "properties": {
+    "requestedGoal": {"type": "string", "minLength": 1, "maxLength": 2048},
+    "measurementDecisionReason": {"type": "string", "minLength": 1, "maxLength": 2048},
+    "operation": {"type": ["string", "null"], "minLength": 1, "maxLength": 128},
+    "executionStatus": {"enum": ["COMPLETED", "FAILED", "UNKNOWN"]},
+    "confirmationState": {"enum": ["NOT_REQUIRED", "REQUIRED", "CONFIRMED", "SIMULATED"]},
+    "requiredUserAction": {"enum": ["NONE", "EXPLICIT_REMEASURE_DECISION"]},
+    "instrument": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/instrument"}]},
+    "facts": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "https://aia.local/protocols/evidence/v1/common/evidence-item.schema.json"},
+          {"properties": {"kind": {"const": "FACT"}, "source": {"enum": ["instrument", "simulated"]}}}
+        ]
+      },
+      "maxItems": 128
+    },
+    "analyses": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "https://aia.local/protocols/evidence/v1/common/evidence-item.schema.json"},
+          {"properties": {"kind": {"const": "ANALYSIS"}, "source": {"enum": ["software_analysis", "simulated"]}}}
+        ]
+      },
+      "maxItems": 128
+    },
+    "inferences": {
+      "type": "array",
+      "items": {
+        "allOf": [
+          {"$ref": "https://aia.local/protocols/evidence/v1/common/evidence-item.schema.json"},
+          {"properties": {"kind": {"const": "INFERENCE"}}}
+        ]
+      },
+      "maxItems": 128
+    },
+    "quality": {"enum": ["good", "degraded", "failed", null]},
+    "warnings": {"$ref": "#/$defs/boundedTextList"},
+    "coherence": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/coherence"}]},
+    "artifact": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/opaqueArtifact"}]},
+    "limitations": {"$ref": "#/$defs/boundedTextList"},
+    "failure": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/failure"}]},
+    "allowedInferenceBoundary": {"type": "string", "minLength": 1, "maxLength": 4096}
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "boundedTextList": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1, "maxLength": 2048},
+      "uniqueItems": true,
+      "maxItems": 128
+    },
+    "instrument": {
+      "type": "object",
+      "required": ["manufacturer", "model", "serialNumber", "firmwareVersion"],
+      "properties": {
+        "manufacturer": {"type": "string", "minLength": 1, "maxLength": 128},
+        "model": {"type": "string", "minLength": 1, "maxLength": 128},
+        "serialNumber": {"type": "string", "minLength": 1, "maxLength": 128},
+        "firmwareVersion": {"type": "string", "minLength": 1, "maxLength": 128}
+      },
+      "additionalProperties": false
+    },
+    "coherence": {
+      "type": "object",
+      "required": ["software_observations", "instrument_vs_software"],
+      "properties": {
+        "software_observations": {"type": "string", "minLength": 1, "maxLength": 128},
+        "instrument_vs_software": {"type": "string", "minLength": 1, "maxLength": 128}
+      },
+      "additionalProperties": false
+    },
+    "opaqueArtifact": {
+      "type": "object",
+      "required": [
+        "reference", "channel", "pointCount", "sampleIntervalSeconds",
+        "timeRangeSeconds", "voltageRangeV", "acquisitionMode", "capturedAt", "opaque"
+      ],
+      "properties": {
+        "reference": {"$ref": "https://aia.local/protocols/hardware/v1/hardware-tool.schema.json#/$defs/artifact"},
+        "channel": {"enum": [1, 2]},
+        "pointCount": {"type": "integer", "minimum": 1},
+        "sampleIntervalSeconds": {"type": "number", "exclusiveMinimum": 0},
+        "timeRangeSeconds": {
+          "type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}],
+          "minItems": 2, "maxItems": 2
+        },
+        "voltageRangeV": {
+          "type": "array", "prefixItems": [{"type": "number"}, {"type": "number"}],
+          "minItems": 2, "maxItems": 2
+        },
+        "acquisitionMode": {"type": "string", "minLength": 1, "maxLength": 128},
+        "capturedAt": {"type": "string", "format": "date-time"},
+        "opaque": {"const": true}
+      },
+      "additionalProperties": false
+    },
+    "failure": {
+      "type": "object",
+      "required": ["code", "message", "deliveryState"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1, "maxLength": 128},
+        "message": {"type": "string", "minLength": 1, "maxLength": 2048},
+        "deliveryState": {"type": ["string", "null"], "minLength": 1, "maxLength": 128}
+      },
+      "additionalProperties": false
+    }
+  }
+}

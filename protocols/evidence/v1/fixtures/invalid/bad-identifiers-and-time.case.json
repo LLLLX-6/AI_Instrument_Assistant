@@ -1,0 +1,20 @@
+{
+  "description": "Evidence v1 bindings enforce UUID and date-time formats consistently across languages.",
+  "schema_ref": "https://aia.local/protocols/evidence/v1/engineering-evidence-context.schema.json",
+  "instance": {
+    "contextId": "not-a-uuid",
+    "workflowId": "phase8-fixture",
+    "userGoal": "bounded",
+    "assembledAt": "not-a-time",
+    "designEvidence": [],
+    "targets": [],
+    "measurementContextId": null,
+    "measurementContext": null,
+    "crossReferences": [],
+    "comparisons": [],
+    "limitations": [],
+    "unresolvedQuestions": [],
+    "inferences": [],
+    "assembler": {"name": "aia.engineering-evidence-assembler", "version": "1"}
+  }
+}
