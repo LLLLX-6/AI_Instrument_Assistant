@@ -60,6 +60,7 @@ export interface PluginDependencies {
     operation: string,
     args: unknown,
     config: Required<Config>,
+    trustedWorkflowId: string,
   ) => HardwareToolPolicyContext;
   readonly onEgressDiagnostic?: (diagnostic: EgressDiagnostic) => void;
   readonly onGroundingDiagnostic?: (diagnostic: GroundingDiagnostic) => void;
@@ -104,12 +105,13 @@ const REAL_DEPENDENCIES: PluginDependencies = {
       workflowId: FAIL_CLOSED_OPERATION_SCOPE.workflowId,
     });
   },
-  resolvePolicyContext(operation, args, config) {
+  resolvePolicyContext(operation, args, config, trustedWorkflowId) {
     const values = object(args);
     return createHardwareToolPolicyContext({
       operation,
       channel: typeof values?.channel === "number" ? values.channel : null,
       backendMode: config.backendMode,
+      workflowId: trustedWorkflowId,
       requestCorrelationId: typeof values?.context_id === "string"
         ? values.context_id
         : "harness-tool-request",
@@ -184,8 +186,15 @@ export function applyWithDependencies(
         if (scopeDecision.decision !== "ALLOW") {
           throw safeAdapterFailure("operation_scope_denied", "NOT_SENT");
         }
-        const policyContext = dependencies.resolvePolicyContext(operation, args, config);
-        if (policyContext.operation !== operation || policyContext.channel !== requestedChannel(args)) {
+        const policyContext = dependencies.resolvePolicyContext(
+          operation,
+          args,
+          config,
+          trustedScopeContext.workflowId,
+        );
+        if (policyContext.operation !== operation
+          || policyContext.channel !== requestedChannel(args)
+          || policyContext.workflowId !== trustedScopeContext.workflowId) {
           throw safeAdapterFailure("policy_denied", "NOT_SENT");
         }
         const policy = evaluateHardwareToolPolicy(policyContext);

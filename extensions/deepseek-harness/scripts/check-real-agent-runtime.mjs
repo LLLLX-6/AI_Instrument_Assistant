@@ -173,6 +173,7 @@ try {
           operation,
           channel: values.channel ?? null,
           backendMode: "REAL",
+          workflowId: WORKFLOW_ID,
           requestCorrelationId: WORKFLOW_ID,
           requestedGoal: scenario.prompt,
           requestedTargetRef: scenario.targetRef,

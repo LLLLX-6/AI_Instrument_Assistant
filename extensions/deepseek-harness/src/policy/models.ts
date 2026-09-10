@@ -18,6 +18,7 @@ export type PolicyReasonCode =
   | "grounding_not_confirmed"
   | "physical_target_confirmation_mismatch"
   | "confirmation_scope_mismatch"
+  | "physical_confirmation_workflow_mismatch"
   | "wiring_change_requires_reconfirmation"
   | "indeterminate_previous_execution"
   | "untrusted_confirmation_source"
@@ -58,6 +59,7 @@ export interface HardwareToolPolicyContext {
   readonly operation: string;
   readonly channel: 1 | 2 | null;
   readonly backendMode: BackendMode;
+  readonly workflowId: string;
   readonly requestCorrelationId: string;
   readonly requestedGoal: string;
   readonly requestedTargetRef: string | null;
@@ -91,6 +93,7 @@ export interface HardwareToolPolicyContextInput {
   readonly operation: string;
   readonly channel: number | null;
   readonly backendMode: BackendMode;
+  readonly workflowId: string;
   readonly requestCorrelationId: string;
   readonly requestedGoal: string;
   readonly requestedTargetRef: string | null;
@@ -137,6 +140,7 @@ export function createHardwareToolPolicyContext(input: HardwareToolPolicyContext
     operation: boundedText(value.operation, "operation", 128),
     channel: requestedChannel,
     backendMode: value.backendMode,
+    workflowId: boundedText(value.workflowId, "workflowId"),
     requestCorrelationId: boundedText(value.requestCorrelationId, "requestCorrelationId"),
     requestedGoal: boundedText(value.requestedGoal, "requestedGoal"),
     requestedTargetRef: optionalText(value.requestedTargetRef, "requestedTargetRef"),

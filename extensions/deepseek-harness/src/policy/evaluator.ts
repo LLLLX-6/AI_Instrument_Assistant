@@ -65,6 +65,12 @@ export function evaluateHardwareToolPolicy(context: HardwareToolPolicyContext): 
     "REQUIRE_CONFIRMATION", "confirmation_scope_mismatch", "Confirmation does not cover this request.",
     context.groundingRequired ? CONFIRMATION_FIELDS : ["channel", "safe_low_voltage", "physical_target"],
   );
+  if (confirmation.scope.workflowId !== context.workflowId) return policyDecision(
+    "REQUIRE_CONFIRMATION",
+    "physical_confirmation_workflow_mismatch",
+    "Physical confirmation does not cover the current workflow.",
+    context.groundingRequired ? CONFIRMATION_FIELDS : ["channel", "safe_low_voltage", "physical_target"],
+  );
   if (context.wiringChanged) return policyDecision(
     "REQUIRE_CONFIRMATION", "wiring_change_requires_reconfirmation", "Wiring changed after confirmation and must be confirmed again.",
     context.groundingRequired ? CONFIRMATION_FIELDS : ["channel", "safe_low_voltage", "physical_target"],

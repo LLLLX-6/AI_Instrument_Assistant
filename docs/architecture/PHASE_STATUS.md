@@ -2,7 +2,7 @@
 
 Baseline date: 2026-09-10
 
-Current HEAD at consolidation start: `76502f9`
+Context Pack commit before current remediation: `eff9a41`
 
 Status meanings:
 
@@ -20,7 +20,7 @@ Status meanings:
 | Phase 6 | **COMPLETE** | `a3c8619`, `af20ba0`, `f6128a7`, `834837d`, `9168712`, `ce6440c` | DS1102Z-E driver, waveform acquisition, deterministic analysis, `MeasurementService`, and five-operation `HardwareToolRuntime`; bounded real HIL evidence on firmware `00.06.03.SP2`. No general instrument family or industrial-accuracy claim. |
 | Phase 7A | **COMPLETE** | `fcfab60` | Exact DeepSeek Harness compatibility baseline at commit `d347e703...` and package shape `0.1.3-alpha.1`. No future-version compatibility claim. |
 | Phase 7B | **COMPLETE** | `9b42c39`, `04e3a65`, `98a85aa`, `aa87b87` | Independent authenticated Hardware IPC, persistent Python backend, Harness plugin, and bounded real hardware validation. Sent-unconfirmed requests are not replayed. |
-| Phase 7C | **COMPLETE** | `3c787c3`, `168656a`, `79ec1f4`, `e81d852`, `59a05b9`, `619da9c`, `74658cd` | Governed Agent with `TrustedOperationScope`, Physical Policy, canonical evidence, Egress, Grounding, Runner boundary, and final real DeepSeek plus DS1102Z-E validation. Scope budgeting remains process-local; grounding covers a constrained English surface. The confirmation model carries workflow scope, but independent Physical Policy comparison of that field requires a Context Drift review. |
+| Phase 7C | **COMPLETE** | `3c787c3`, `168656a`, `79ec1f4`, `e81d852`, `59a05b9`, `619da9c`, `74658cd` | Governed Agent with `TrustedOperationScope`, Physical Policy, canonical evidence, Egress, Grounding, Runner boundary, and final real DeepSeek plus DS1102Z-E validation. Scope budgeting remains process-local; grounding covers a constrained English surface. Historical validation records remain unchanged. |
 | Phase 8A.1 | **COMPLETE** | `239d004` | Reviewed unified engineering evidence architecture and evidence-category boundaries. Design only at this commit. |
 | Phase 8A.2 | **COMPLETE** | `78ec167` | Evidence v1 shared contract, immutable engineering-evidence core, deterministic assembler/comparator, and evidence-only teaching projection. No diagnosis or execution authority. |
 | Phase 8B.1 | **COMPLETE** | `76502f9` | Deterministic design-to-measurement workflow with cross-reference-before-comparison, source separation, explicit tolerance semantics, zero inference, and zero next-measurement generation. Uses recorded/synthetic inputs, not a live combined EDA/hardware run. |
@@ -30,7 +30,19 @@ Status meanings:
 | Phase 9 | **PLANNED** | None | Governed multi-step teaching/diagnosis workflow. Planning and renewed authority semantics require future review. |
 | Phase 10 | **PLANNED** | None | Productization, UX, deployment, observability, and release hardening. |
 
-## Current Next Phase: 8B.2
+## Completed Context Drift Remediation
+
+Physical Confirmation Workflow Binding is implemented and regression validated
+and its architecture review is complete. Physical Policy independently compares
+trusted current workflow identity with
+`ProbeSetupConfirmation.scope.workflowId`; mismatch requires confirmation and
+produces zero IPC. This is a narrow safety consistency repair, not a new major
+phase and not a rewrite of Phase 7C history.
+
+See
+[Physical Confirmation Workflow Binding](physical-confirmation-workflow-binding.md).
+
+## Current Phase: 8B.2
 
 Goal:
 

@@ -2,7 +2,8 @@
 
 Baseline date: 2026-09-10
 
-Repository baseline: `76502f9ecd13ea971803b07b4af96127c22da62f`
+Committed context baseline before the current remediation:
+`eff9a4192096cfca1f5dc6b45204d9b47bfda6dd`
 
 This document is a concise current-state map. It does not replace canonical
 schemas, accepted ADRs, implementation, tests, or detailed validation records.
@@ -208,6 +209,7 @@ compilation, or behavior tests rather than brittle prose searches.
 - [JLCEDA implementation constraints](jlceda-v0.2-implementation-constraints.md)
 - [JLCEDA protocol state machine](aia-jlceda-v1-state-machine.md)
 - [JLCEDA highlight findings](../compatibility/jlceda-phase5b4-highlight-findings.md)
+- [Physical confirmation workflow binding](physical-confirmation-workflow-binding.md)
 
 ## 12. Known Documentation Drift
 
@@ -219,18 +221,15 @@ status headers. Use current code, canonical schemas, accepted closeouts, Git
 history, tests, and `PHASE_STATUS.md` for current phase status. Do not rewrite
 historical validation evidence merely to make the wording look current.
 
-## 13. Open Context Drift Requiring Review
+## 13. Physical Confirmation Workflow Binding Remediation
 
 `ProbeSetupConfirmation.scope` carries both `requestCorrelationId` and
-`workflowId`, but the current Physical Policy evaluator compares the
-confirmation's request correlation and does not independently compare its
-`workflowId`. The separate `TrustedOperationScope` gate does validate the
-request workflow against the trusted operation scope, but that is not the same
-as validating the physical confirmation's own workflow scope.
+`workflowId`. The Physical Policy context now carries trusted workflow identity
+and independently requires its workflow to equal the confirmation workflow for
+REAL physical measurements. A mismatch requires a new confirmation and reaches
+neither IPC nor hardware.
 
-This context pack therefore preserves workflow/request scoping as a normative
-invariant while explicitly recording that its independent Physical Policy
-enforcement is not fully demonstrated by the current implementation/tests.
-Any work touching confirmation scoping MUST stop for a Context Drift /
-Architecture Proposal; this documentation task does not change production
-behavior or reinterpret the prior bounded real validation runs.
+Operation Scope continues to validate its own workflow independently; neither
+gate substitutes for the other. The repair is implemented, regression
+validated, and architecture reviewed. It does not reinterpret prior bounded
+real validation runs.

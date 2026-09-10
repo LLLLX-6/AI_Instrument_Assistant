@@ -1,6 +1,7 @@
 # AI Instrument Assistant — Architecture Invariants
 
-These are frozen constraints at repository baseline `76502f9`. Terms such as
+These are frozen constraints established through the current reviewed project
+baseline. Terms such as
 MUST and MUST NOT are normative. A conflicting request requires an Architecture
 / Compatibility Proposal before implementation.
 
@@ -87,17 +88,15 @@ Exactly five model-facing semantic Hardware Tools currently exist:
   the EDA selection and teaching-text surfaces.
 - Physical confirmation MUST be scoped to channel, target,
   workflow/request correlation, and wiring state.
+- Physical Policy MUST independently validate the physical confirmation's
+  workflow identity against the trusted current workflow.
+- Operation Scope workflow validation MUST NOT substitute for physical
+  confirmation workflow validation, and the reverse MUST NOT substitute for
+  Operation Scope validation.
 - A wiring change MUST invalidate the previous physical confirmation.
 - Missing trusted confirmation MUST NOT be replaced by
   `TeachingEvidenceContext` text, model prose, label equality, or inferred
   circuit context.
-
-Current enforcement note: `ProbeSetupConfirmation.scope.workflowId` is present
-in the model, but the Physical Policy evaluator currently compares only the
-confirmation request correlation. The independent operation-scope gate checks
-its own workflow. This is an open Context Drift, not an exception to the
-invariant; code changes or broader claims in this area require an Architecture
-/ Compatibility Proposal and explicit tests.
 
 ## 5. Evidence Categories
 

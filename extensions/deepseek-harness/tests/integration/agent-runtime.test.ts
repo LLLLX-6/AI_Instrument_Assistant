@@ -7,6 +7,7 @@ import {
   createProbeSetupConfirmation,
   type HardwareToolPolicyContext,
 } from "../../src/policy/index.ts";
+import { createTrustedOperationScope } from "../../src/operation-scope/index.ts";
 import {
   HARDWARE_UNAVAILABLE_RESULT,
   PARTIAL_PWM_RESULT,
@@ -156,6 +157,16 @@ test("REAL measurement without confirmation is blocked before IPC", async () => 
 });
 
 test("trusted host confirmation allows one REAL-policy fake invocation", async () => {
+  const operationScope = createTrustedOperationScope({
+    scopeId: "trusted-agent-scope",
+    requestCorrelationId: "trusted-agent-request",
+    workflowId: "test-workflow",
+    allowedOperations: [{ operation: "hardware.measure_pwm", maxInvocations: 1 }],
+    targetChannel: 1,
+    targetIntent: "trusted host confirmation regression",
+    origin: "TRUSTED_VALIDATION_SCENARIO",
+    authorizationRef: null,
+  });
   const confirmation = createProbeSetupConfirmation({
     confirmationId: "trusted-host-confirmation",
     source: "TRUSTED_USER_EVENT",
@@ -171,6 +182,11 @@ test("trusted host confirmation allows one REAL-policy fake invocation", async (
   const harness = await createAgentHarness({
     client,
     config: { backendMode: "REAL" },
+    operationScopeContext: {
+      scope: operationScope,
+      requestCorrelationId: operationScope.requestCorrelationId,
+      workflowId: operationScope.workflowId,
+    },
     resolvePolicyContext: realPolicy(confirmation),
     script: [
       toolCallResponse("real-allowed", "hardware_measure_pwm", { channel: 1, context_id: "PWM_OUT" }),
@@ -303,13 +319,19 @@ test("opaque waveform context permits metadata but contains no sample access", a
 
 function realPolicy(
   confirmation: ReturnType<typeof createProbeSetupConfirmation> | null,
-): (operation: string, args: unknown) => HardwareToolPolicyContext {
-  return (operation, args) => {
+): (
+  operation: string,
+  args: unknown,
+  config: unknown,
+  trustedWorkflowId: string,
+) => HardwareToolPolicyContext {
+  return (operation, args, _config, trustedWorkflowId) => {
     const values = args as { channel?: number; context_id?: string };
     return createHardwareToolPolicyContext({
       operation,
       channel: values.channel ?? null,
       backendMode: "REAL",
+      workflowId: trustedWorkflowId,
       requestCorrelationId: "trusted-agent-request",
       requestedGoal: `Test ${operation} under REAL policy without hardware.`,
       requestedTargetRef: values.context_id ?? null,

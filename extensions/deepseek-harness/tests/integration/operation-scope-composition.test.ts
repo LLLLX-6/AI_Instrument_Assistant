@@ -44,11 +44,15 @@ class SideEffectClient implements HardwareClientPort {
   }
 }
 
-function trustedScope(operation: SemanticHardwareOperation, scopeId = `scope-${operation}`): TrustedOperationScope {
+function trustedScope(
+  operation: SemanticHardwareOperation,
+  scopeId = `scope-${operation}`,
+  workflowId = WORKFLOW,
+): TrustedOperationScope {
   return createTrustedOperationScope({
     scopeId,
     requestCorrelationId: "trusted-request",
-    workflowId: WORKFLOW,
+    workflowId,
     allowedOperations: [{ operation, maxInvocations: 1 }],
     targetChannel: operation === "hardware.get_status" ? null : 1,
     targetIntent: operation,
@@ -63,6 +67,7 @@ function simulatedPolicy(operation: string, args: unknown): HardwareToolPolicyCo
     operation,
     channel: values.channel ?? null,
     backendMode: "SIMULATED",
+    workflowId: WORKFLOW,
     requestCorrelationId: "trusted-request",
     requestedGoal: "scripted validation",
     requestedTargetRef: null,
@@ -230,6 +235,115 @@ test("REAL backend additionally requires trusted physical confirmation", async (
     const result = await execute(harness.ctx, "hardware_measure_frequency", { channel: 1 }, "real-confirmed");
     assert.equal(result.isError, false);
     assert.equal(harness.client.ipcDispatches, 1);
+  } finally { await harness.ctx.fiber.dispose(); }
+});
+
+test("scope workflow match cannot compensate for physical confirmation workflow mismatch", async () => {
+  const confirmation = createProbeSetupConfirmation({
+    confirmationId: "confirmation-from-workflow-a",
+    source: "TRUSTED_USER_EVENT",
+    confirmedBy: "test-host",
+    channel: 1,
+    targetRef: "PWM_OUT",
+    safeLowVoltageConfirmed: true,
+    commonGroundConfirmed: true,
+    confirmedAt: "2026-09-09T00:00:00Z",
+    scope: { requestCorrelationId: "trusted-request", workflowId: "workflow-a" },
+  });
+  const policy = (operation: string, args: unknown) => createHardwareToolPolicyContext({
+    ...simulatedPolicy(operation, args),
+    backendMode: "REAL",
+    requestedTargetRef: "PWM_OUT",
+    groundingRequired: true,
+    confirmation,
+  });
+  const harness = await setup({ scope: trustedScope("hardware.measure_frequency"), policy });
+  try {
+    const result = await execute(
+      harness.ctx,
+      "hardware_measure_frequency",
+      { channel: 1 },
+      "physical-workflow-mismatch",
+    );
+    assert.equal(result.isError, true);
+    assert.equal(harness.policyEvaluations(), 1);
+    assert.equal(harness.client.ipcDispatches, 0);
+    assert.equal(harness.client.hardwareExecutions, 0);
+  } finally { await harness.ctx.fiber.dispose(); }
+});
+
+test("physical confirmation workflow match cannot compensate for operation scope workflow mismatch", async () => {
+  const confirmation = createProbeSetupConfirmation({
+    confirmationId: "confirmation-from-current-workflow",
+    source: "TRUSTED_USER_EVENT",
+    confirmedBy: "test-host",
+    channel: 1,
+    targetRef: "PWM_OUT",
+    safeLowVoltageConfirmed: true,
+    commonGroundConfirmed: true,
+    confirmedAt: "2026-09-09T00:00:00Z",
+    scope: { requestCorrelationId: "trusted-request", workflowId: WORKFLOW },
+  });
+  const policy = (operation: string, args: unknown) => createHardwareToolPolicyContext({
+    ...simulatedPolicy(operation, args),
+    backendMode: "REAL",
+    requestedTargetRef: "PWM_OUT",
+    groundingRequired: true,
+    confirmation,
+  });
+  const scope = trustedScope(
+    "hardware.measure_frequency",
+    "operation-scope-other-workflow",
+    "operation-scope-workflow-a",
+  );
+  const harness = await setup({ scope, policy });
+  try {
+    const result = await execute(
+      harness.ctx,
+      "hardware_measure_frequency",
+      { channel: 1 },
+      "operation-workflow-mismatch",
+    );
+    assert.equal(result.isError, true);
+    assert.equal(harness.policyEvaluations(), 0);
+    assert.equal(harness.client.ipcDispatches, 0);
+    assert.equal(harness.client.hardwareExecutions, 0);
+  } finally { await harness.ctx.fiber.dispose(); }
+});
+
+test("Tool arguments cannot replace trusted workflow identity", async () => {
+  const harness = await setup({ scope: trustedScope("hardware.measure_frequency") });
+  try {
+    const result = await execute(
+      harness.ctx,
+      "hardware_measure_frequency",
+      { channel: 1, workflow_id: "model-selected-workflow" },
+      "tool-workflow-injection",
+    );
+    assert.equal(result.isError, true);
+    assert.equal(harness.policyEvaluations(), 0);
+    assert.equal(harness.client.ipcDispatches, 0);
+    assert.equal(harness.client.hardwareExecutions, 0);
+  } finally { await harness.ctx.fiber.dispose(); }
+});
+
+test("composition rejects a Policy Context not bound to the trusted host workflow", async () => {
+  const policy = (operation: string, args: unknown) => createHardwareToolPolicyContext({
+    ...simulatedPolicy(operation, args),
+    workflowId: "another-host-workflow",
+  });
+  const harness = await setup({ scope: trustedScope("hardware.measure_frequency"), policy });
+  try {
+    const result = await execute(
+      harness.ctx,
+      "hardware_measure_frequency",
+      { channel: 1 },
+      "unbound-policy-workflow",
+    );
+    assert.equal(result.isError, true);
+    assert.equal(harness.policyEvaluations(), 1);
+    assert.equal(harness.client.ipcDispatches, 0);
+    assert.equal(harness.client.hardwareExecutions, 0);
   } finally { await harness.ctx.fiber.dispose(); }
 });
 

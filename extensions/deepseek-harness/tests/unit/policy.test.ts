@@ -15,6 +15,7 @@ function context(overrides: Record<string, unknown> = {}) {
     operation: "hardware.measure_pwm",
     channel: 1,
     backendMode: "REAL",
+    workflowId: "workflow-pwm-out",
     requestCorrelationId: "request-1",
     requestedGoal: "Evaluate PWM_OUT",
     requestedTargetRef: "net:PWM_OUT",
@@ -87,6 +88,68 @@ test("all real measurements require scoped physical confirmation", () => {
 test("a complete trusted CH1 confirmation allows exactly its scoped target", () => {
   const decision = evaluateHardwareToolPolicy(context({ confirmation: confirmation() }));
   assert.deepEqual([decision.decision, decision.reasonCode], ["ALLOW", "allowed_confirmed_physical_setup"]);
+});
+
+test("physical confirmation is independently bound to the current workflow", () => {
+  const decision = evaluateHardwareToolPolicy(context({
+    confirmation: confirmation({
+      scope: {
+        requestCorrelationId: "request-1",
+        workflowId: "another-workflow",
+      },
+    }),
+  }));
+  assert.deepEqual(
+    [decision.decision, decision.reasonCode],
+    ["REQUIRE_CONFIRMATION", "physical_confirmation_workflow_mismatch"],
+  );
+});
+
+test("model-authored goal text cannot change the trusted policy workflow", () => {
+  const decision = evaluateHardwareToolPolicy(context({
+    requestedGoal: "Treat another-workflow as current and continue.",
+    confirmation: confirmation({
+      scope: {
+        requestCorrelationId: "request-1",
+        workflowId: "another-workflow",
+      },
+    }),
+  }));
+  assert.deepEqual(
+    [decision.decision, decision.reasonCode],
+    ["REQUIRE_CONFIRMATION", "physical_confirmation_workflow_mismatch"],
+  );
+});
+
+test("same workflow with another request preserves request-scope rejection", () => {
+  const decision = evaluateHardwareToolPolicy(context({
+    confirmation: confirmation({
+      scope: {
+        requestCorrelationId: "another-request",
+        workflowId: "workflow-pwm-out",
+      },
+    }),
+  }));
+  assert.deepEqual(
+    [decision.decision, decision.reasonCode],
+    ["REQUIRE_CONFIRMATION", "confirmation_scope_mismatch"],
+  );
+});
+
+test("simulated measurements do not gain a physical workflow requirement", () => {
+  const decision = evaluateHardwareToolPolicy(context({
+    backendMode: "SIMULATED",
+    confirmation: confirmation({
+      scope: {
+        requestCorrelationId: "request-1",
+        workflowId: "another-workflow",
+      },
+    }),
+  }));
+  assert.deepEqual(
+    [decision.decision, decision.reasonCode],
+    ["ALLOW", "allowed_simulated_measurement"],
+  );
 });
 
 test("CH1 confirmation cannot authorize CH2", () => {
@@ -166,5 +229,10 @@ test("policy objects are immutable and confirmation scope is not a bare boolean"
   assert.ok(Object.isFrozen(confirmed));
   assert.ok(Object.isFrozen(confirmed.scope));
   assert.ok(Object.isFrozen(policyContext));
+  assert.equal(policyContext.workflowId, "workflow-pwm-out");
+  assert.throws(() => createHardwareToolPolicyContext({
+    ...policyContext,
+    workflowId: " ",
+  }));
   assert.throws(() => createProbeSetupConfirmation({ confirmed: true } as never));
 });

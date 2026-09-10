@@ -82,12 +82,18 @@ export class RecordingHardwareClient implements HardwareClientPort {
   }
 }
 
-export function simulatedPolicy(operation: string, args: unknown): HardwareToolPolicyContext {
+export function simulatedPolicy(
+  operation: string,
+  args: unknown,
+  _config?: Config,
+  trustedWorkflowId = "agent-evaluation-workflow",
+): HardwareToolPolicyContext {
   const values = record(args);
   return createHardwareToolPolicyContext({
     operation,
     channel: values.channel === 1 || values.channel === 2 ? values.channel : null,
     backendMode: "SIMULATED",
+    workflowId: trustedWorkflowId,
     requestCorrelationId: "agent-evaluation",
     requestedGoal: `User requested ${operation}.`,
     requestedTargetRef: typeof values.context_id === "string" ? values.context_id : null,
