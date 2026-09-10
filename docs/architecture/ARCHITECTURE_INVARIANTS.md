@@ -80,7 +80,30 @@ Exactly five model-facing semantic Hardware Tools currently exist:
 - Domain and Driver internals MAY retain the real serial when required for
   device identity; that does not authorize disclosure.
 
-## 4. Physical Confirmation
+## 4. Trusted Design Selection Disambiguation
+
+- Provider-observed selection and trusted user disambiguation MUST remain
+  separate provenance.
+- Provider `primary_object` MUST remain null unless the provider itself supplies
+  documented primary evidence.
+- A trusted design decision MAY select only an exact candidate already present
+  in the current bounded provider observation.
+- Candidate identity MUST use provider, document, snapshot, object type, and
+  canonical identity. Display name, provider kind, array order, and free text
+  MUST NOT establish identity.
+- Candidate-set integrity, workflow, request, document, snapshot, and
+  observation time MUST be validated before resolution.
+- Changed or stale observations MUST invalidate prior decisions; no automatic
+  reuse is allowed.
+- A trusted design decision MUST originate from a deterministic trusted Host/UI
+  event. Agent/model text, Tool arguments, provider guesses, Hardware IPC, and
+  teaching evidence MUST NOT create it.
+- Design disambiguation MUST NOT create physical confirmation,
+  `TrustedOperationScope`, Tool/IPC authority, hardware execution, or EDA writes.
+- A chosen Wire MAY use only the existing deterministic Wire-to-Net derivation.
+  Multiple derived Nets MUST remain ambiguous.
+
+## 5. Physical Confirmation
 
 - EDA selection MUST NOT be treated as physical probe confirmation.
 - `ProbeTarget` MUST mean only a design-side candidate target.
@@ -98,7 +121,7 @@ Exactly five model-facing semantic Hardware Tools currently exist:
   `TeachingEvidenceContext` text, model prose, label equality, or inferred
   circuit context.
 
-## 5. Evidence Categories
+## 6. Evidence Categories
 
 The following categories MUST remain distinct:
 
@@ -120,7 +143,7 @@ The following categories MUST remain distinct:
 - `EngineeringEvidenceContext` MUST remain a composed view, not a new fact
   source.
 
-## 6. Deterministic Comparison
+## 7. Deterministic Comparison
 
 - Comparison MUST NOT be represented as diagnosis or causal explanation.
 - Metric matching, unit conversion, and tolerance evaluation MUST be
@@ -134,7 +157,7 @@ The following categories MUST remain distinct:
 - Target provenance and tolerance provenance MUST remain explicit.
 - Instrument and software observations MUST be compared separately.
 
-## 7. Design-to-Measurement Cross-Reference
+## 8. Design-to-Measurement Cross-Reference
 
 - Cross-reference MUST be evaluated before authoritative comparison.
 - A `VERIFIED_LINK` MUST require trusted evidence for the candidate
@@ -146,7 +169,7 @@ The following categories MUST remain distinct:
 - The evidence workflow MUST NOT create physical confirmation or
   `TrustedOperationScope`.
 
-## 8. Grounding
+## 9. Grounding
 
 - Egress SAFE MUST NOT imply Grounding SUPPORTED.
 - Grounding SUPPORTED MUST NOT replace Egress safety.
@@ -172,7 +195,7 @@ The following categories MUST remain distinct:
   English claim surface. Ambiguous or unrecognized free-form claims MUST fail
   closed.
 
-## 9. Egress
+## 10. Egress
 
 - Model-generated content MUST remain untrusted until inspected at the egress
   boundary.
@@ -185,7 +208,7 @@ The following categories MUST remain distinct:
 - Rejected raw model content, exception stacks, secrets, and local paths MUST
   NOT enter persisted validation output.
 
-## 10. Phase 8 Evidence Views
+## 11. Phase 8 Evidence Views
 
 - `EngineeringEvidenceContext` MUST remain immutable and MUST NOT become a fact
   source, authorization object, or execution context.
@@ -199,7 +222,7 @@ The following categories MUST remain distinct:
   cross-reference -> measurement evidence selection -> comparator -> assembler
   -> teaching projection.
 
-## 11. Historical Validation Integrity
+## 12. Historical Validation Integrity
 
 - Historical NOT PASS records MUST remain unchanged as historical evidence.
 - A later fix or PASS MUST create a new validation record rather than rewriting
@@ -209,7 +232,7 @@ The following categories MUST remain distinct:
 - A validation claim MUST remain bounded to the recorded device, workflow,
   environment, authority, and observations.
 
-## 12. Change and Test Discipline
+## 13. Change and Test Discipline
 
 - A new capability MUST begin with the current phase's Red -> Green tests.
 - Tests or safety semantics MUST NOT be weakened merely to accept a new feature.

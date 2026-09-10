@@ -1,0 +1,48 @@
+{
+  "record_kind": "bounded_selection_projection_diagnostic",
+  "source": "real_jlceda_manual_diagnostic",
+  "captured_on": "2026-09-10",
+  "selection_count": 2,
+  "provider_kinds": [
+    "Wire",
+    "Component"
+  ],
+  "selected_objects": [
+    {
+      "object_type": "wire",
+      "provider_kind": "Wire",
+      "native_id": "synthetic-wire-id",
+      "canonical_id": "jlceda-pro:wire:synthetic-document:synthetic-wire-id",
+      "display_name": "PWM_OUT"
+    },
+    {
+      "object_type": "component",
+      "provider_kind": "Component",
+      "native_id": "synthetic-component-id",
+      "canonical_id": "jlceda-pro:component:synthetic-document:synthetic-component-id",
+      "display_name": null
+    }
+  ],
+  "derived_nets": [
+    {
+      "object_type": "net",
+      "provider_kind": "Wire.net",
+      "native_id": null,
+      "canonical_id": "jlceda-pro:net:synthetic-document:PWM_OUT",
+      "display_name": "PWM_OUT"
+    }
+  ],
+  "expected_diagnostic": {
+    "projected_candidate_count": 1,
+    "projected_candidate_kinds": [
+      "net"
+    ],
+    "ambiguity_reason": "multiple_selected_objects",
+    "resolution_stage": "selection_cardinality",
+    "scope_expansion": "wire_to_net"
+  },
+  "limitations": [
+    "Identifiers are synthetic; only the bounded real selection shape is retained.",
+    "No parent or primary-selection relationship was available in the approved contract."
+  ]
+}

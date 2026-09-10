@@ -1,6 +1,6 @@
 # AI Instrument Assistant — Project Baseline
 
-Baseline date: 2026-09-10
+Baseline date: 2026-09-11
 
 Committed context baseline before the current remediation:
 `eff9a4192096cfca1f5dc6b45204d9b47bfda6dd`
@@ -62,6 +62,14 @@ integration exposes read-only document/selection operations and a guarded view
 highlight operation. It has no arbitrary JavaScript execution, raw method
 dispatch, direct VISA access, or EDA design mutation. Provider acceptance of a
 highlight remains distinct from verified visual application.
+
+When a provider returns multiple objects without documented primary semantics,
+the provider observation remains unchanged and ambiguous. Phase 8B.2 adds a
+separate application-level trusted Host/user decision bound to the exact
+workflow, request, document, snapshot, observation time, and candidate-set
+fingerprint. It may select only an already-observed bounded candidate. It does
+not populate provider `primary_object`, authorize execution, or create physical
+confirmation.
 
 ### Hardware side
 
@@ -169,7 +177,9 @@ grounding, or a combined real EDA-and-hardware loop.
 - Grounding validates a constrained English claim surface; ambiguous or
   unrecognized claims fail closed.
 - Hardware validation is bounded to the current DS1102Z-E workflows.
-- Phase 8 has not completed a real combined EDA-plus-hardware workflow.
+- Phase 8B.2 has combined real read-only JLCEDA design evidence with recorded
+  Hardware evidence. It has not completed a live combined EDA-plus-instrument
+  observation or authorized real hardware in Phase 8.
 - Causal diagnosis is not implemented.
 - Candidate next measurements remain empty/deferred.
 - JLCEDA highlight submission can be accepted without programmatic proof of
@@ -204,6 +214,8 @@ compilation, or behavior tests rather than brittle prose searches.
 - [Phase 8A.1 architecture](phase8a1-unified-engineering-evidence.md)
 - [Phase 8A.2 architecture](phase8a2-engineering-evidence-core.md)
 - [Phase 8B.1 workflow](phase8b1-evidence-workflow.md)
+- [Phase 8B.2 real JLCEDA and recorded Hardware workflow](phase8b2-real-jlceda-recorded-hardware-workflow.md)
+- [Phase 8B.2A trusted selection disambiguation](phase8b2a-trusted-design-selection-disambiguation.md)
 - [Harness compatibility](../integrations/deepseek-harness-phase7a-compatibility.md)
 - [Harness hardware adapter ADR](../adr/0004-deepseek-harness-hardware-adapter.md)
 - [JLCEDA implementation constraints](jlceda-v0.2-implementation-constraints.md)

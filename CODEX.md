@@ -28,15 +28,15 @@ make a feature pass.
 
 ## Current Baseline
 
-- Current completed implementation phase: Phase 8B.1.
-- Current next phase: Phase 8B.2.
+- Current completed implementation phase: Phase 8B.2.
+- Current next phase: Phase 8B.3.
 - Phase ledger: `docs/architecture/PHASE_STATUS.md`.
 - Architecture baseline: `docs/architecture/PROJECT_BASELINE.md`.
 - Frozen rules: `docs/architecture/ARCHITECTURE_INVARIANTS.md`.
 
-Phase 8B.2 is bounded to real JLCEDA design context, provider-neutral design
-evidence, recorded hardware evidence, and the deterministic evidence workflow.
-It does not authorize real hardware or a real DeepSeek call.
+Phase 8B.3 is the next major phase and is not yet implemented. It must separately
+review real JLCEDA plus real DS1102Z-E execution, physical authorization, and
+temporal/coherence semantics. Phase 8B.2 does not authorize that execution.
 
 ## Implementation Workflow
 

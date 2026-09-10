@@ -1,6 +1,6 @@
 # AI Instrument Assistant — Phase Status
 
-Baseline date: 2026-09-10
+Baseline date: 2026-09-11
 
 Context Pack commit before current remediation: `eff9a41`
 
@@ -24,8 +24,8 @@ Status meanings:
 | Phase 8A.1 | **COMPLETE** | `239d004` | Reviewed unified engineering evidence architecture and evidence-category boundaries. Design only at this commit. |
 | Phase 8A.2 | **COMPLETE** | `78ec167` | Evidence v1 shared contract, immutable engineering-evidence core, deterministic assembler/comparator, and evidence-only teaching projection. No diagnosis or execution authority. |
 | Phase 8B.1 | **COMPLETE** | `76502f9` | Deterministic design-to-measurement workflow with cross-reference-before-comparison, source separation, explicit tolerance semantics, zero inference, and zero next-measurement generation. Uses recorded/synthetic inputs, not a live combined EDA/hardware run. |
-| Phase 8B.2 | **CURRENT** | Not implemented | Real JLCEDA design context -> provider-neutral design evidence -> recorded hardware evidence -> deterministic `EngineeringEvidenceWorkflow`. This phase MUST NOT use real hardware or real DeepSeek. |
-| Phase 8B.3 | **PLANNED** | None | Real JLCEDA plus real DS1102Z-E through the deterministic evidence workflow. Exact authorization and validation design is deferred. |
+| Phase 8B.2 | **COMPLETE** | Pending closeout commit | Real read-only JLCEDA design evidence plus an exact trusted Host/user selection decision was combined with recorded Hardware evidence through the deterministic `EngineeringEvidenceWorkflow`. No real hardware, model, EDA write, diagnosis, or inference was used. |
+| Phase 8B.3 | **CURRENT** | None | Real JLCEDA plus real DS1102Z-E through the deterministic evidence workflow. Exact authorization, physical confirmation, and temporal/coherence design require review before implementation. |
 | Phase 8C | **PLANNED** | None | Teaching/Diagnosis Agent over `TeachingDiagnosisContext`. Causal-diagnosis semantics are not yet defined. |
 | Phase 9 | **PLANNED** | None | Governed multi-step teaching/diagnosis workflow. Planning and renewed authority semantics require future review. |
 | Phase 10 | **PLANNED** | None | Productization, UX, deployment, observability, and release hardening. |
@@ -42,20 +42,21 @@ phase and not a rewrite of Phase 7C history.
 See
 [Physical Confirmation Workflow Binding](physical-confirmation-workflow-binding.md).
 
-## Current Phase: 8B.2
+## Current Phase: 8B.3
 
 Goal:
 
 ```text
-real JLCEDA design context
-  -> provider-neutral design evidence
-  -> recorded hardware evidence
+real JLCEDA design evidence
+  + real DS1102Z-E evidence
   -> deterministic EngineeringEvidenceWorkflow
 ```
 
-Phase 8B.2 does not authorize real hardware, real DeepSeek, causal diagnosis,
-automatic next measurements, EDA mutation, or changes to Phase 7C safety
-semantics.
+Phase 8B.3 is not implemented. Its architecture review must define renewed
+physical authority, observation timing/coherence, failure behavior, and the
+bounded validation workflow. Completion of Phase 8B.2 does not itself authorize
+real hardware, real DeepSeek, causal diagnosis, automatic next measurements,
+EDA mutation, or changes to Phase 7C safety semantics.
 
 ## Status Authority and References
 
@@ -70,6 +71,8 @@ approved at that time.
 - [Phase 8A.1 architecture](phase8a1-unified-engineering-evidence.md)
 - [Phase 8A.2 architecture](phase8a2-engineering-evidence-core.md)
 - [Phase 8B.1 workflow](phase8b1-evidence-workflow.md)
+- [Phase 8B.2 workflow](phase8b2-real-jlceda-recorded-hardware-workflow.md)
+- [Phase 8B.2A trusted selection disambiguation](phase8b2a-trusted-design-selection-disambiguation.md)
 - [Evidence v1 contract](../../protocols/evidence/v1/README.md)
 - [Hardware Tool schema](../../protocols/hardware/v1/hardware-tool.schema.json)
 - [Harness compatibility](../integrations/deepseek-harness-phase7a-compatibility.md)
