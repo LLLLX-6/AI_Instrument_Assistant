@@ -1,0 +1,102 @@
+{
+  "pwm_no_tolerance": {
+    "targets": [
+      {"metric": "FREQUENCY", "value": 10.0, "unit": "kHz", "tolerance": null},
+      {"metric": "DUTY_CYCLE", "value": 30.0, "unit": "percent", "tolerance": null}
+    ],
+    "measurement_channel": 1,
+    "confirmation": {"present": true, "channel": 1, "snapshot": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "target_ref": "net/PWM_OUT"},
+    "facts": [
+      {"label": "instrument frequency", "value": 10020.0, "unit": "Hz", "quality": "good"},
+      {"label": "instrument vpp", "value": 0.4, "unit": "V", "quality": "good"}
+    ],
+    "analyses": [
+      {"label": "software frequency", "value": 10010.0, "unit": "Hz", "quality": "good"},
+      {"label": "software duty cycle", "value": {"ratio": 0.2995}, "unit": "ratio", "quality": "good"},
+      {"label": "software vpp", "value": 0.4, "unit": "V", "quality": "good"}
+    ],
+    "artifact": true,
+    "warnings": ["Instrument and software observations were sequential, not atomic."],
+    "coherence": {"software_observations": "same_artifact", "instrument_vs_software": "sequential_same_session"}
+  },
+  "explicit_tolerance_match": {
+    "targets": [{"metric": "FREQUENCY", "value": 10.0, "unit": "kHz", "tolerance": {"kind": "relative", "percent": 1.0}}],
+    "measurement_channel": 1,
+    "confirmation": {"present": true, "channel": 1, "snapshot": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "target_ref": "net/PWM_OUT"},
+    "facts": [{"label": "instrument frequency", "value": 10020.0, "unit": "Hz", "quality": "good"}],
+    "analyses": [],
+    "artifact": false,
+    "warnings": [],
+    "coherence": null
+  },
+  "explicit_tolerance_mismatch": {
+    "targets": [{"metric": "FREQUENCY", "value": 10.0, "unit": "kHz", "tolerance": {"kind": "relative", "percent": 1.0}}],
+    "measurement_channel": 1,
+    "confirmation": {"present": true, "channel": 1, "snapshot": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "target_ref": "net/PWM_OUT"},
+    "facts": [{"label": "instrument frequency", "value": 8000.0, "unit": "Hz", "quality": "good"}],
+    "analyses": [],
+    "artifact": false,
+    "warnings": [],
+    "coherence": null
+  },
+  "missing_confirmation": {
+    "targets": [{"metric": "FREQUENCY", "value": 10.0, "unit": "kHz", "tolerance": {"kind": "relative", "percent": 1.0}}],
+    "measurement_channel": 1,
+    "confirmation": {"present": false},
+    "facts": [{"label": "instrument frequency", "value": 10020.0, "unit": "Hz", "quality": "good"}],
+    "analyses": [],
+    "artifact": false,
+    "warnings": [],
+    "coherence": null
+  },
+  "channel_mismatch": {
+    "targets": [{"metric": "FREQUENCY", "value": 10.0, "unit": "kHz", "tolerance": {"kind": "relative", "percent": 1.0}}],
+    "measurement_channel": 2,
+    "confirmation": {"present": true, "channel": 1, "snapshot": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "target_ref": "net/PWM_OUT"},
+    "facts": [{"label": "instrument frequency", "value": 10020.0, "unit": "Hz", "quality": "good"}],
+    "analyses": [],
+    "artifact": false,
+    "warnings": [],
+    "coherence": null
+  },
+  "snapshot_mismatch": {
+    "targets": [{"metric": "FREQUENCY", "value": 10.0, "unit": "kHz", "tolerance": {"kind": "relative", "percent": 1.0}}],
+    "measurement_channel": 1,
+    "confirmation": {"present": true, "channel": 1, "snapshot": "dddddddd-dddd-4ddd-8ddd-dddddddddddd", "target_ref": "net/PWM_OUT"},
+    "facts": [{"label": "instrument frequency", "value": 10020.0, "unit": "Hz", "quality": "good"}],
+    "analyses": [],
+    "artifact": false,
+    "warnings": [],
+    "coherence": null
+  },
+  "conflicting_sources": {
+    "targets": [{"metric": "FREQUENCY", "value": 10.0, "unit": "kHz", "tolerance": {"kind": "relative", "percent": 1.0}}],
+    "measurement_channel": 1,
+    "confirmation": {"present": true, "channel": 1, "snapshot": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "target_ref": "net/PWM_OUT"},
+    "facts": [{"label": "instrument frequency", "value": 8000.0, "unit": "Hz", "quality": "good"}],
+    "analyses": [{"label": "software frequency", "value": 8020.0, "unit": "Hz", "quality": "good"}],
+    "artifact": false,
+    "warnings": ["Instrument and software values differ."],
+    "coherence": {"software_observations": "same_artifact", "instrument_vs_software": "sequential_same_session"}
+  },
+  "unavailable_measurement": {
+    "targets": [{"metric": "FREQUENCY", "value": 10.0, "unit": "kHz", "tolerance": {"kind": "relative", "percent": 1.0}}],
+    "measurement_channel": 1,
+    "confirmation": {"present": true, "channel": 1, "snapshot": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "target_ref": "net/PWM_OUT"},
+    "facts": [{"label": "instrument frequency", "value": null, "unit": "Hz", "quality": "unavailable"}],
+    "analyses": [],
+    "artifact": false,
+    "warnings": ["Instrument observation unavailable."],
+    "coherence": null
+  },
+  "empty_measurement": {
+    "targets": [{"metric": "FREQUENCY", "value": 10.0, "unit": "kHz", "tolerance": null}],
+    "measurement_channel": 1,
+    "confirmation": {"present": true, "channel": 1, "snapshot": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", "target_ref": "net/PWM_OUT"},
+    "facts": [],
+    "analyses": [],
+    "artifact": false,
+    "warnings": [],
+    "coherence": null
+  }
+}

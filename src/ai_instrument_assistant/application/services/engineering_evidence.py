@@ -81,7 +81,7 @@ def establish_evidence_cross_reference(
     cross_reference_id: UUID,
     workflow_id: str,
     request_correlation_id: str,
-    probe_target: ProbeTarget,
+    probe_target: ProbeTarget | None,
     confirmation: TrustedPhysicalConfirmationEvidence | None,
     measurement_context_id: UUID,
     measurement_channel: int,
@@ -89,19 +89,24 @@ def establish_evidence_cross_reference(
 ) -> EvidenceCrossReference:
     """Evaluate supplied trusted linkage facts; labels alone never establish a link."""
 
-    if confirmation is None:
+    if probe_target is None or confirmation is None:
+        reasons = []
+        if probe_target is None:
+            reasons.append("PROBE_TARGET_MISSING")
+        if confirmation is None:
+            reasons.append("TRUSTED_PHYSICAL_CONFIRMATION_MISSING")
         return EvidenceCrossReference(
             cross_reference_id=cross_reference_id,
             state=CrossReferenceState.INSUFFICIENT_EVIDENCE,
-            reasons=("TRUSTED_PHYSICAL_CONFIRMATION_MISSING",),
+            reasons=tuple(reasons),
             workflow_id=workflow_id,
-            probe_target_id=probe_target.target_id,
-            design_snapshot_id=probe_target.snapshot_id,
-            confirmation_id=None,
-            confirmation_source=None,
-            confirmed_by=None,
-            confirmed_target_ref=None,
-            request_correlation_id=None,
+            probe_target_id=None if probe_target is None else probe_target.target_id,
+            design_snapshot_id=None if probe_target is None else probe_target.snapshot_id,
+            confirmation_id=None if confirmation is None else confirmation.confirmation_id,
+            confirmation_source=None if confirmation is None else confirmation.source,
+            confirmed_by=None if confirmation is None else confirmation.confirmed_by,
+            confirmed_target_ref=None if confirmation is None else confirmation.target_ref,
+            request_correlation_id=None if confirmation is None else confirmation.request_correlation_id,
             measurement_context_id=measurement_context_id,
             measurement_channel=measurement_channel,
             confirmed_at=None,
@@ -146,6 +151,38 @@ def establish_evidence_cross_reference(
 class EngineeringEvidenceAssembler:
     """Composes existing evidence without invention, diagnosis, or inference."""
 
+    def validate_design_and_targets(
+        self,
+        *,
+        design_context: DesignEvidenceContext | None,
+        targets: tuple[EngineeringTarget, ...],
+    ) -> None:
+        """Validate source identity/provenance before linkage or comparison."""
+
+        target_values = tuple(targets)
+        if len({target.target_id for target in target_values}) != len(target_values):
+            raise DomainInvariantError("engineering target identifiers must be unique")
+        if design_context is None:
+            if target_values:
+                raise DomainInvariantError("targets require a design evidence context")
+            return
+
+        design_by_id = {item.evidence_id: item for item in design_context.evidence}
+        for target in target_values:
+            for source_id in target.source_evidence_ids:
+                source = design_by_id.get(source_id)
+                if source is None:
+                    raise DomainInvariantError("target references missing design evidence")
+                if source.category is not EvidenceCategory.DESIGN_TARGET:
+                    raise DomainInvariantError("target source must remain DESIGN_TARGET evidence")
+                expected_origin = (
+                    "DESIGN_DERIVED"
+                    if target.provenance.value == "DESIGN_DERIVED"
+                    else "USER_STATEMENT"
+                )
+                if source.origin.value != expected_origin:
+                    raise DomainInvariantError("target provenance must match source evidence origin")
+
     def assemble(
         self,
         *,
@@ -164,18 +201,14 @@ class EngineeringEvidenceAssembler:
         cross_values = tuple(cross_references)
         comparison_values = tuple(comparison_results)
         unresolved: list[UnresolvedQuestion] = []
+        self.validate_design_and_targets(
+            design_context=design_context,
+            targets=target_values,
+        )
 
         if design_context is None:
             unresolved.append(UnresolvedQuestion("DESIGN_EVIDENCE_MISSING", None, "No design evidence context was supplied."))
         else:
-            design_by_id = {item.evidence_id: item for item in design_context.evidence}
-            for target in target_values:
-                for source_id in target.source_evidence_ids:
-                    source = design_by_id.get(source_id)
-                    if source is None:
-                        raise DomainInvariantError("target references missing design evidence")
-                    if source.category is not EvidenceCategory.DESIGN_TARGET:
-                        raise DomainInvariantError("target source must remain DESIGN_TARGET evidence")
             if (
                 design_context.selection is not None
                 and len(design_context.selection.selection.selected_objects) > 1
@@ -203,7 +236,11 @@ class EngineeringEvidenceAssembler:
                 raise DomainInvariantError("cross-reference workflow must match assembled workflow")
             if link.measurement_context_id != measurement_context_id:
                 raise DomainInvariantError("cross-reference measurement context must match")
-            if design_context is not None and link.design_snapshot_id != design_context.document.snapshot_id:
+            if (
+                design_context is not None
+                and link.design_snapshot_id is not None
+                and link.design_snapshot_id != design_context.document.snapshot_id
+            ):
                 raise DomainInvariantError("cross-reference design snapshot must match")
 
         target_ids = {target.target_id for target in target_values}
