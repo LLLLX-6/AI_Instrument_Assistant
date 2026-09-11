@@ -9,6 +9,8 @@ Status meanings:
 - **COMPLETE**: reviewed and committed within its bounded claims.
 - **CURRENT**: next active phase; scope is defined but implementation is not
   implied.
+- **UNDER REVIEW**: implementation and automated validation exist, but the
+  phase is not complete until architecture review and closeout.
 - **PLANNED**: direction only; exact implementation requires later review.
 
 ## Phase Ledger
@@ -26,7 +28,9 @@ Status meanings:
 | Phase 8B.1 | **COMPLETE** | `76502f9` | Deterministic design-to-measurement workflow with cross-reference-before-comparison, source separation, explicit tolerance semantics, zero inference, and zero next-measurement generation. Uses recorded/synthetic inputs, not a live combined EDA/hardware run. |
 | Phase 8B.2 | **COMPLETE** | `2eff54a` | Real read-only JLCEDA design evidence plus an exact trusted Host/user selection decision was combined with recorded Hardware evidence through the deterministic `EngineeringEvidenceWorkflow`. No real hardware, model, EDA write, diagnosis, or inference was used. |
 | Phase 8B.3 | **COMPLETE** | Closeout commit | Attempt 1 remains historical NOT PASS (`hardware / receipt_semantics_invalid`). After the approved receipt-channel repair, separately authorized real Attempt 2 returned PASS with correct status-null/PWM-CH1 provenance, verified linkage, tolerance-unspecified comparisons, and zero inference/model calls. The private contract and authorization are validation-only. |
-| Phase 8C | **CURRENT** | None | Teaching/Diagnosis Agent over `TeachingDiagnosisContext`. Implementation has not started, and causal-diagnosis semantics are not yet defined. |
+| Phase 8C.1 | **COMPLETE** | This closeout commit | Provider-neutral deterministic claim-slot policy over `TeachingDiagnosisContext`; exact evidence/comparison/limitation claims only. Content hashes grant no trust, and ALLOW is not sufficient for publication. No model, execution, knowledge corpus, inference, hypothesis, causal diagnosis, or next-measurement authority. |
+| Phase 8C.2 | **CURRENT** | None | Structured model candidate and guarded publication integration. Implementation has not started and no external execution is authorized. |
+| Phase 8C.3 | **PLANNED** | None | Future proposal-only next-measurement semantics; no execution authority. |
 | Phase 9 | **PLANNED** | None | Governed multi-step teaching/diagnosis workflow. Planning and renewed authority semantics require future review. |
 | Phase 10 | **PLANNED** | None | Productization, UX, deployment, observability, and release hardening. |
 
@@ -61,12 +65,22 @@ is distinct from provider primary selection and physical confirmation;
 comparisons remain `INDETERMINATE / TOLERANCE_UNSPECIFIED`. No causal diagnosis
 occurred, and validation-only authority is not durable production authority.
 
-## Current Phase: 8C
+## Completed Phase: 8C.1
 
-Phase 8C is current, but implementation has not started. It is intended to
-design a Teaching/Diagnosis Agent over `TeachingDiagnosisContext`. It requires
-separate architecture review before causal inference, next-measurement planning,
-or any renewed execution authority can be introduced.
+The provider-neutral deterministic sufficiency evaluator and immutable
+claim-policy envelope are implemented, automatically validated, and
+architecture reviewed. Only exact evidence restatements, supported
+deterministic comparison statements, and limitation statements can be allowed.
+Content hashes are identity only; ALLOW remains insufficient for publication;
+and comparison interpretation binds exact status plus reason. All
+knowledge-dependent teaching, engineering inference, hypothesis, causal
+diagnosis, and next-measurement proposals remain explicitly blocked.
+
+## Current Phase: 8C.2
+
+Phase 8C.2 will design structured model candidates and guarded publication over
+the Phase 8C.1 envelope. Implementation has not started. It has no inherited
+authority to call a model, EDA, Hardware, Tool, or external runtime.
 
 ## Status Authority and References
 
@@ -86,6 +100,7 @@ approved at that time.
 - [Phase 8B.3 real EDA and real hardware workflow](phase8b3-real-eda-real-hardware-workflow.md)
 - [Phase 8B.3 real validation attempt 1](../validation/phase8b3-real-validation-attempt-1.md)
 - [Phase 8B.3 real validation attempt 2](../validation/phase8b3-real-validation-attempt-2.md)
+- [Phase 8C.1 claim policy](phase8c1-inference-sufficiency-teaching-policy.md)
 - [Evidence v1 contract](../../protocols/evidence/v1/README.md)
 - [Hardware Tool schema](../../protocols/hardware/v1/hardware-tool.schema.json)
 - [Harness compatibility](../integrations/deepseek-harness-phase7a-compatibility.md)

@@ -101,6 +101,23 @@ with explicit tolerance semantics, assembles the context, and projects the
 teaching view. It creates no diagnosis, inference, Tool call, operation scope,
 or physical confirmation.
 
+### Reasoning-policy side
+
+```text
+immutable TeachingDiagnosisContext + trusted typed TeachingGoal
+  -> deterministic InferenceSufficiencyEvaluator
+  -> exact AllowedClaimEnvelope slots
+  -> evidence/comparison/limitation-only fallback structure
+```
+
+Phase 8C.1 allows only exact evidence restatements, existing deterministic
+comparison statements, and limitations. Knowledge-dependent education,
+engineering inference, hypothesis, causal diagnosis, and next-measurement
+proposals remain blocked. An ALLOW permission is necessary but not sufficient
+for publication: later candidate validation must also resolve references,
+satisfy every obligation without strengthening, and pass Grounding and final
+Egress. Phase 8C.2 publication integration has not started.
+
 ## 4. Canonical Contracts
 
 - [`protocols/hardware/v1/hardware-tool.schema.json`](../../protocols/hardware/v1/hardware-tool.schema.json)
@@ -198,6 +215,9 @@ grounding, design immutability, or durable production authorization.
   `INDETERMINATE / TOLERANCE_UNSPECIFIED`.
 - Causal diagnosis is not implemented.
 - Candidate next measurements remain empty/deferred.
+- Phase 8C.1 SHA-256 fingerprints, envelope IDs, and comparison references are
+  deterministic content identities only. They provide no authentication,
+  authorization, freshness, persistence, signature, trust, or provenance proof.
 - JLCEDA highlight submission can be accepted without programmatic proof of
   the exact visible effect.
 
@@ -235,6 +255,7 @@ compilation, or behavior tests rather than brittle prose searches.
 - [Phase 8B.3 real EDA and real hardware workflow](phase8b3-real-eda-real-hardware-workflow.md)
 - [Phase 8B.3 real validation attempt 1](../validation/phase8b3-real-validation-attempt-1.md)
 - [Phase 8B.3 real validation attempt 2](../validation/phase8b3-real-validation-attempt-2.md)
+- [Phase 8C.1 inference sufficiency policy](phase8c1-inference-sufficiency-teaching-policy.md)
 - [Harness compatibility](../integrations/deepseek-harness-phase7a-compatibility.md)
 - [Harness hardware adapter ADR](../adr/0004-deepseek-harness-hardware-adapter.md)
 - [JLCEDA implementation constraints](jlceda-v0.2-implementation-constraints.md)

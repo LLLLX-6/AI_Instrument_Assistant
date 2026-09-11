@@ -29,15 +29,20 @@ make a feature pass.
 ## Current Baseline
 
 - Current completed implementation phase: Phase 8B.3.
-- Current next phase: Phase 8C.
+- Current completed implementation phase: Phase 8C.1.
+- Current next phase: Phase 8C.2 (implementation has not started).
 - Phase ledger: `docs/architecture/PHASE_STATUS.md`.
 - Architecture baseline: `docs/architecture/PROJECT_BASELINE.md`.
 - Frozen rules: `docs/architecture/ARCHITECTURE_INVARIANTS.md`.
 
 Phase 8B.3 completed its bounded real JLCEDA plus real DS1102Z-E validation.
-Phase 8C is current but has not started implementation. It must define reviewed
-teaching/diagnosis semantics before adding any causal inference; Phase 8B.3 does
-not authorize that work or any further real execution.
+Phase 8C.1 established the reviewed deterministic claim-policy boundary. It
+permits only exact evidence, deterministic comparison, and limitation claim
+slots; ALLOW is necessary but not sufficient for publication. Inference,
+hypothesis, causal diagnosis, educational knowledge, and next-measurement
+proposals remain blocked. SHA-256 identifiers in this boundary are content
+identities only, never trust or authority. Phase 8C.2 is current but has not
+started implementation, and no prior phase authorizes further real execution.
 
 ## Implementation Workflow
 

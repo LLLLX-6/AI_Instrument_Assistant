@@ -218,6 +218,32 @@ The following categories MUST remain distinct:
 - Current deterministic Phase 8 components MUST generate zero `INFERENCE`.
 - `candidate_next_measurements` MUST remain empty/deferred until a later phase
   explicitly designs and reviews it.
+
+## 12. Phase 8C Claim Sufficiency and Publication
+
+- Phase 8C.1 SHA-256 context fingerprints, envelope IDs, subject identities,
+  and comparison composite references MUST be interpreted as deterministic
+  content identities only. They MUST NOT be used as authentication,
+  authorization, trust, freshness, persistence, signature, or provenance proof.
+- Trust MUST continue to derive from structured provenance, trusted
+  Host/application boundaries, policy evaluation, and Grounding/Egress.
+- A `ClaimPermission` with `ALLOW` is necessary but MUST NOT be sufficient for
+  publication.
+- Publication MUST additionally resolve the exact subject and support refs,
+  preserve correct source attribution, semantically satisfy every mandatory
+  `PublicationObligation`, reject forbidden strengthening, pass Grounding, and
+  pass final Egress.
+- Comparison interpretation MUST bind `ComparisonStatus` and the exact
+  `ComparisonReason`. One `INDETERMINATE` reason MUST NOT be rendered as another.
+- Only `INDETERMINATE / TOLERANCE_UNSPECIFIED` may support the corresponding
+  missing-tolerance/compliance-undetermined statement. Other indeterminate
+  reasons MUST preserve their actual reason and fail closed for that claim slot.
+- Until separately reviewed knowledge/rule sources exist, educational
+  knowledge, engineering inference, hypothesis, causal diagnosis, and next
+  measurement proposals MUST remain blocked.
+- Reasoning-policy objects MUST NOT create Tool execution authority,
+  `TrustedOperationScope`, physical confirmation, IPC authorization, Hardware
+  action, or provider/runtime secrets.
 - Phase 8B.1 workflow ordering MUST remain: design/target validation ->
   cross-reference -> measurement evidence selection -> comparator -> assembler
   -> teaching projection.
