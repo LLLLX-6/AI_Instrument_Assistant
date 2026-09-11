@@ -58,6 +58,7 @@ export {
   renderGroundedFallback,
   toGroundingDiagnostic,
 } from "./grounding/index.ts";
+export { inspectDeterministicPublication } from "./publication/index.ts";
 export type {
   GroundedFallbackInput,
   GroundingClaimKind,

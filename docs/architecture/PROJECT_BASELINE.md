@@ -116,7 +116,11 @@ engineering inference, hypothesis, causal diagnosis, and next-measurement
 proposals remain blocked. An ALLOW permission is necessary but not sufficient
 for publication: later candidate validation must also resolve references,
 satisfy every obligation without strengthening, and pass Grounding and final
-Egress. Phase 8C.2 publication integration has not started.
+Egress. Phase 8C.2A now implements that deterministic publication boundary. Its
+minimal candidate contains only Host-binding claims and ordered Host-owned
+permission aliases; it contains no factual prose, numeric values, or Tool/action
+fields. The deterministic renderer is the only factual publication source.
+Phase 8C.2B one-shot model integration is current but has not started.
 
 ## 4. Canonical Contracts
 
@@ -128,6 +132,8 @@ Egress. Phase 8C.2 publication integration has not started.
   defines the independent authenticated Harness-to-Python IPC contract.
 - [`protocols/jlceda/v1/`](../../protocols/jlceda/v1/README.md) defines the
   independent JLCEDA integration wire contract.
+- [`protocols/teaching-claims/v1/`](../../protocols/teaching-claims/v1/README.md)
+  defines the minimal Phase 8C.2A structured candidate wire contract.
 
 JSON Schema governs individual wire-format structure. Cross-message sequence,
 authentication, correlation, nonce freshness, replay, session ownership, and

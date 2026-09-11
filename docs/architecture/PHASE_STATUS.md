@@ -11,6 +11,8 @@ Status meanings:
   implied.
 - **UNDER REVIEW**: implementation and automated validation exist, but the
   phase is not complete until architecture review and closeout.
+- **ARCHITECTURE REVIEW**: a design proposal exists, but implementation has not
+  started and no execution authority is implied.
 - **PLANNED**: direction only; exact implementation requires later review.
 
 ## Phase Ledger
@@ -29,7 +31,8 @@ Status meanings:
 | Phase 8B.2 | **COMPLETE** | `2eff54a` | Real read-only JLCEDA design evidence plus an exact trusted Host/user selection decision was combined with recorded Hardware evidence through the deterministic `EngineeringEvidenceWorkflow`. No real hardware, model, EDA write, diagnosis, or inference was used. |
 | Phase 8B.3 | **COMPLETE** | Closeout commit | Attempt 1 remains historical NOT PASS (`hardware / receipt_semantics_invalid`). After the approved receipt-channel repair, separately authorized real Attempt 2 returned PASS with correct status-null/PWM-CH1 provenance, verified linkage, tolerance-unspecified comparisons, and zero inference/model calls. The private contract and authorization are validation-only. |
 | Phase 8C.1 | **COMPLETE** | This closeout commit | Provider-neutral deterministic claim-slot policy over `TeachingDiagnosisContext`; exact evidence/comparison/limitation claims only. Content hashes grant no trust, and ALLOW is not sufficient for publication. No model, execution, knowledge corpus, inference, hypothesis, causal diagnosis, or next-measurement authority. |
-| Phase 8C.2 | **CURRENT** | None | Structured model candidate and guarded publication integration. Implementation has not started and no external execution is authorized. |
+| Phase 8C.2A | **COMPLETE** | This closeout commit | Minimal structured candidate protocol, Host-owned projection and aliases, strict parser, deterministic engineering Grounding, canonical English renderer, fail-whole fallback, final-Egress port, and bounded audit are reviewed and complete without any model or external execution. |
+| Phase 8C.2B | **CURRENT** | None | One-shot DeepSeek candidate generation and trusted Python/TypeScript composition require their approved implementation scope. No LlmRuntime, AgentLoop, model request, or transport has started. |
 | Phase 8C.3 | **PLANNED** | None | Future proposal-only next-measurement semantics; no execution authority. |
 | Phase 9 | **PLANNED** | None | Governed multi-step teaching/diagnosis workflow. Planning and renewed authority semantics require future review. |
 | Phase 10 | **PLANNED** | None | Productization, UX, deployment, observability, and release hardening. |
@@ -76,11 +79,20 @@ and comparison interpretation binds exact status plus reason. All
 knowledge-dependent teaching, engineering inference, hypothesis, causal
 diagnosis, and next-measurement proposals remain explicitly blocked.
 
-## Current Phase: 8C.2
+## Completed Phase: 8C.2A
 
-Phase 8C.2 will design structured model candidates and guarded publication over
-the Phase 8C.1 envelope. Implementation has not started. It has no inherited
-authority to call a model, EDA, Hardware, Tool, or external runtime.
+The deterministic Phase 8C.2A structured candidate and guarded publication
+boundary is implemented, regression validated, and architecture reviewed. Its
+candidate contains no factual prose, numeric values, or Tool/action fields;
+Host-owned bindings are validated as claims rather than authority; and factual
+publication is produced only by deterministic rendering followed by final
+Egress.
+
+## Current Phase: 8C.2B
+
+Phase 8C.2B implementation has not started. It has not inherited authority to
+call a model, AgentLoop, EDA, Hardware, Tool, IPC, or external runtime beyond
+the exact scope of a separately supplied and reviewed implementation task.
 
 ## Status Authority and References
 
@@ -101,6 +113,7 @@ approved at that time.
 - [Phase 8B.3 real validation attempt 1](../validation/phase8b3-real-validation-attempt-1.md)
 - [Phase 8B.3 real validation attempt 2](../validation/phase8b3-real-validation-attempt-2.md)
 - [Phase 8C.1 claim policy](phase8c1-inference-sufficiency-teaching-policy.md)
+- [Phase 8C.2 structured model publication proposal](phase8c2-structured-model-publication.md)
 - [Evidence v1 contract](../../protocols/evidence/v1/README.md)
 - [Hardware Tool schema](../../protocols/hardware/v1/hardware-tool.schema.json)
 - [Harness compatibility](../integrations/deepseek-harness-phase7a-compatibility.md)

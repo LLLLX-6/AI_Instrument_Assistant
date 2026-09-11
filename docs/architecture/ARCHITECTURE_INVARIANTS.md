@@ -244,6 +244,19 @@ The following categories MUST remain distinct:
 - Reasoning-policy objects MUST NOT create Tool execution authority,
   `TrustedOperationScope`, physical confirmation, IPC authorization, Hardware
   action, or provider/runtime secrets.
+- A Phase 8C.2 candidate MUST contain no factual prose, numeric measurement or
+  target values, Tool fields, or action fields.
+- The Host MUST own the projection-local alias-to-permission map. Candidate
+  bindings are untrusted claims to validate and MUST NOT become authority.
+- Structured engineering Grounding MUST remain deterministic, fail whole on
+  any candidate failure, and permit only the reviewed Phase 8C.1 ALLOW kinds.
+- The deterministic renderer MUST be the sole source of user-visible factual
+  content and MUST satisfy mandatory publication obligations from trusted
+  semantics rather than candidate acknowledgements.
+- Candidate rejection MUST use only the reviewed deterministic fallback; both
+  normal and fallback output MUST pass final Egress.
+- The deterministic publication core MUST NOT depend on DeepSeek, LlmRuntime,
+  AgentLoop, EDA, Hardware, Tool execution, or external transports.
 - Phase 8B.1 workflow ordering MUST remain: design/target validation ->
   cross-reference -> measurement evidence selection -> comparator -> assembler
   -> teaching projection.

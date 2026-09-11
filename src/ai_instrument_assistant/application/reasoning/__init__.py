@@ -1,6 +1,7 @@
 from .fallback import build_deterministic_fallback
 from .inference_sufficiency import (
     InferenceSufficiencyEvaluator,
+    claim_subject_catalog,
     comparison_subject_ref,
     context_fingerprint,
     measurement_subject_ref,

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-instrument-assistant.local/schemas/teaching-claims/v1/structured-claim-candidate-set.schema.json",
+  "title": "AIA Structured Claim Candidate Set v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "projection_id",
+    "context_fingerprint",
+    "envelope_id",
+    "goal",
+    "ordered_permission_refs"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "aia-teaching-claim-candidate/v1"
+    },
+    "projection_id": {
+      "$ref": "#/$defs/contentIdentity"
+    },
+    "context_fingerprint": {
+      "$ref": "#/$defs/contentIdentity"
+    },
+    "envelope_id": {
+      "$ref": "#/$defs/contentIdentity"
+    },
+    "goal": {
+      "enum": [
+        "EXPLAIN_MEASUREMENT",
+        "ASSESS_REQUIREMENT",
+        "EXPLAIN_CAUSE"
+      ]
+    },
+    "ordered_permission_refs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^p[0-9]{3}$",
+        "minLength": 4,
+        "maxLength": 4
+      }
+    }
+  },
+  "$defs": {
+    "contentIdentity": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "minLength": 71,
+      "maxLength": 71
+    }
+  }
+}

@@ -30,7 +30,8 @@ make a feature pass.
 
 - Current completed implementation phase: Phase 8B.3.
 - Current completed implementation phase: Phase 8C.1.
-- Current next phase: Phase 8C.2 (implementation has not started).
+- Current completed implementation phase: Phase 8C.2A.
+- Current phase: Phase 8C.2B (implementation has not started).
 - Phase ledger: `docs/architecture/PHASE_STATUS.md`.
 - Architecture baseline: `docs/architecture/PROJECT_BASELINE.md`.
 - Frozen rules: `docs/architecture/ARCHITECTURE_INVARIANTS.md`.
@@ -41,8 +42,11 @@ permits only exact evidence, deterministic comparison, and limitation claim
 slots; ALLOW is necessary but not sufficient for publication. Inference,
 hypothesis, causal diagnosis, educational knowledge, and next-measurement
 proposals remain blocked. SHA-256 identifiers in this boundary are content
-identities only, never trust or authority. Phase 8C.2 is current but has not
-started implementation, and no prior phase authorizes further real execution.
+identities only, never trust or authority. Phase 8C.2A established the reviewed
+deterministic structured publication boundary: Host-owned aliases, a minimal
+non-factual candidate, deterministic Grounding/rendering/fallback, and required
+final Egress. Phase 8C.2B is current but has not started implementation, and no
+prior phase authorizes a model call or further real execution.
 
 ## Implementation Workflow
 

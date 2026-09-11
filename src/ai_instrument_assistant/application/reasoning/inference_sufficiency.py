@@ -5,6 +5,7 @@ from datetime import datetime
 from enum import Enum
 import hashlib
 import json
+from types import MappingProxyType
 from uuid import UUID
 
 from ...domain.engineering_evidence import (
@@ -97,6 +98,83 @@ def comparison_subject_ref(
         kind=ClaimSubjectKind.COMPARISON,
         canonical_key="comparison:" + _digest_value(identity),
     )
+
+
+def claim_subject_catalog(context: TeachingDiagnosisContext) -> MappingProxyType:
+    """Resolve current context-bound claim subjects without creating new authority."""
+
+    if not isinstance(context, TeachingDiagnosisContext):
+        raise TypeError("context must be TeachingDiagnosisContext")
+    fingerprint = context_fingerprint(context)
+    catalog: dict[ClaimSubjectRef, object] = {
+        _subject(fingerprint, ClaimSubjectKind.CONTEXT, "context"): context,
+        _subject(
+            fingerprint,
+            ClaimSubjectKind.LIMITATION,
+            "constraint:design-observation-identity",
+        ): "The design snapshot is observation identity only.",
+    }
+    for fact in context.design_facts:
+        catalog[_subject(
+            fingerprint,
+            ClaimSubjectKind.DESIGN_EVIDENCE,
+            f"design-evidence:{fact.evidence_id}",
+        )] = fact
+    for target in context.design_targets:
+        catalog[_subject(
+            fingerprint,
+            ClaimSubjectKind.DESIGN_TARGET,
+            f"design-target:{target.target_id}",
+        )] = target
+    for located in context.physical_observations + context.software_analyses + context.simulated_evidence:
+        catalog[measurement_subject_ref(located.locator, fingerprint)] = located
+        for ordinal, warning in enumerate(located.item.warnings):
+            catalog[_text_subject(
+                fingerprint,
+                ClaimSubjectKind.WARNING,
+                "evidence-warning",
+                warning,
+                ordinal,
+            )] = warning
+    for comparison in context.comparisons:
+        catalog[comparison_subject_ref(comparison, fingerprint)] = comparison
+    for ordinal, limitation in enumerate(context.limitations):
+        catalog[_text_subject(
+            fingerprint,
+            ClaimSubjectKind.LIMITATION,
+            "limitation",
+            limitation,
+            ordinal,
+        )] = limitation
+    for ordinal, warning in enumerate(context.warnings):
+        catalog[_text_subject(
+            fingerprint,
+            ClaimSubjectKind.WARNING,
+            "warning",
+            warning,
+            ordinal,
+        )] = warning
+    for ordinal, question in enumerate(context.unresolved_questions):
+        catalog[_subject(
+            fingerprint,
+            ClaimSubjectKind.UNRESOLVED_QUESTION,
+            "unresolved:" + _digest_value(
+                {"code": question.code, "subject_ref": question.subject_ref, "ordinal": ordinal}
+            ),
+        )] = question
+    if context.coherence is not None:
+        catalog[_subject(
+            fingerprint,
+            ClaimSubjectKind.COHERENCE,
+            "coherence:" + _digest_value(context.coherence),
+        )] = context.coherence
+    if context.quality is not None:
+        catalog[_subject(
+            fingerprint,
+            ClaimSubjectKind.QUALITY,
+            "quality:" + _digest_value(context.quality),
+        )] = context.quality
+    return MappingProxyType(catalog)
 
 
 class InferenceSufficiencyEvaluator:

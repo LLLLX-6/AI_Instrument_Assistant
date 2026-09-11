@@ -1,0 +1,12 @@
+{
+  "description": "one exact permission selection",
+  "schema_ref": "https://ai-instrument-assistant.local/schemas/teaching-claims/v1/structured-claim-candidate-set.schema.json",
+  "instance": {
+    "schema_id": "aia-teaching-claim-candidate/v1",
+    "projection_id": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "context_fingerprint": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+    "envelope_id": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "goal": "ASSESS_REQUIREMENT",
+    "ordered_permission_refs": ["p001"]
+  }
+}
