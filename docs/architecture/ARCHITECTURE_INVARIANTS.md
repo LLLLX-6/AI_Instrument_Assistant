@@ -232,7 +232,24 @@ The following categories MUST remain distinct:
 - A validation claim MUST remain bounded to the recorded device, workflow,
   environment, authority, and observations.
 
-## 13. Change and Test Discipline
+## 13. Phase 8B.3 Real Validation Boundary
+
+- A JLCEDA snapshot in the current integration MUST mean observation identity
+  only; it MUST NOT be claimed as proof of provider design immutability.
+- Trusted design disambiguation MUST remain distinct from provider-observed
+  primary selection and from trusted physical confirmation.
+- A `VERIFIED_LINK` MUST NOT be interpreted as proof that the design remained
+  immutable outside the bounded observation and coherence checks.
+- Without explicit tolerance, Phase 8B.3 comparisons MUST remain
+  `INDETERMINATE / TOLERANCE_UNSPECIFIED` and MUST NOT produce causal diagnosis.
+- The Phase 8B.3 private request/receipt contract and its operation authority
+  MUST remain validation-only; they MUST NOT be described as durable production
+  authorization.
+- Validation observer hooks MUST remain read-only. They MUST NOT grant
+  authorization, mutate Scope or Physical Policy results, alter budgets or Tool
+  arguments, or bypass IPC gates.
+
+## 14. Change and Test Discipline
 
 - A new capability MUST begin with the current phase's Red -> Green tests.
 - Tests or safety semantics MUST NOT be weakened merely to accept a new feature.

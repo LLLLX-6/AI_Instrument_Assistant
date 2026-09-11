@@ -1,0 +1,17 @@
+{
+  "schema_ref": "https://aia.local/validation/support/phase8b3/v1/request.schema.json",
+  "instance": {
+    "contract": "aia-phase8b3-validation",
+    "contract_version": "1.0",
+    "kind": "governed_hardware_request",
+    "run_id": "11111111-1111-4111-8111-111111111111",
+    "workflow_id": "phase8b3-test-workflow",
+    "request_correlation_id": "phase8b3-test-request",
+    "backend": { "endpoint": "ws://127.0.0.1:49625", "auth_reference": "default-harness-hardware-secret", "connect_timeout_ms": 2000, "request_timeout_ms": 30000 },
+    "target": { "provider": "jlceda-pro", "document_canonical_id": "synthetic:document:main", "snapshot_id": "22222222-2222-4222-8222-222222222222", "probe_target_id": "33333333-3333-4333-8333-333333333333", "target_ref": "synthetic:net:pwm-out", "display_label": "PWM_OUT" },
+    "status_scope": { "scope_id": "44444444-4444-4444-8444-444444444444", "workflow_id": "phase8b3-test-workflow", "request_correlation_id": "phase8b3-test-request", "operation": "hardware.get_status", "max_invocations": 1, "target_channel": null, "origin": "TRUSTED_VALIDATION_SCENARIO", "authorization_ref": "synthetic-status-authorization" },
+    "pwm_scope": { "scope_id": "55555555-5555-4555-8555-555555555555", "workflow_id": "phase8b3-test-workflow", "request_correlation_id": "phase8b3-test-request", "operation": "hardware.measure_pwm", "max_invocations": 1, "target_channel": 1, "origin": "TRUSTED_VALIDATION_SCENARIO", "authorization_ref": "synthetic-pwm-authorization" },
+    "confirmation": { "confirmation_id": "66666666-6666-4666-8666-666666666666", "source": "TRUSTED_USER_EVENT", "confirmed_by": "synthetic-test-user", "workflow_id": "phase8b3-test-workflow", "request_correlation_id": "phase8b3-test-request", "channel": 1, "target_ref": "synthetic:net:pwm-out", "maximum_expected_voltage_v": 3.3, "safe_low_voltage_confirmed": true, "common_ground_confirmed": true, "wiring_checked": true, "wiring_unchanged": true, "confirmed_at": "2026-09-11T01:00:00Z" },
+    "scopeApproved": true
+  }
+}

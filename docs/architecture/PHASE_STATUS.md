@@ -24,9 +24,9 @@ Status meanings:
 | Phase 8A.1 | **COMPLETE** | `239d004` | Reviewed unified engineering evidence architecture and evidence-category boundaries. Design only at this commit. |
 | Phase 8A.2 | **COMPLETE** | `78ec167` | Evidence v1 shared contract, immutable engineering-evidence core, deterministic assembler/comparator, and evidence-only teaching projection. No diagnosis or execution authority. |
 | Phase 8B.1 | **COMPLETE** | `76502f9` | Deterministic design-to-measurement workflow with cross-reference-before-comparison, source separation, explicit tolerance semantics, zero inference, and zero next-measurement generation. Uses recorded/synthetic inputs, not a live combined EDA/hardware run. |
-| Phase 8B.2 | **COMPLETE** | Pending closeout commit | Real read-only JLCEDA design evidence plus an exact trusted Host/user selection decision was combined with recorded Hardware evidence through the deterministic `EngineeringEvidenceWorkflow`. No real hardware, model, EDA write, diagnosis, or inference was used. |
-| Phase 8B.3 | **CURRENT** | None | Real JLCEDA plus real DS1102Z-E through the deterministic evidence workflow. Exact authorization, physical confirmation, and temporal/coherence design require review before implementation. |
-| Phase 8C | **PLANNED** | None | Teaching/Diagnosis Agent over `TeachingDiagnosisContext`. Causal-diagnosis semantics are not yet defined. |
+| Phase 8B.2 | **COMPLETE** | `2eff54a` | Real read-only JLCEDA design evidence plus an exact trusted Host/user selection decision was combined with recorded Hardware evidence through the deterministic `EngineeringEvidenceWorkflow`. No real hardware, model, EDA write, diagnosis, or inference was used. |
+| Phase 8B.3 | **COMPLETE** | Closeout commit | Attempt 1 remains historical NOT PASS (`hardware / receipt_semantics_invalid`). After the approved receipt-channel repair, separately authorized real Attempt 2 returned PASS with correct status-null/PWM-CH1 provenance, verified linkage, tolerance-unspecified comparisons, and zero inference/model calls. The private contract and authorization are validation-only. |
+| Phase 8C | **CURRENT** | None | Teaching/Diagnosis Agent over `TeachingDiagnosisContext`. Implementation has not started, and causal-diagnosis semantics are not yet defined. |
 | Phase 9 | **PLANNED** | None | Governed multi-step teaching/diagnosis workflow. Planning and renewed authority semantics require future review. |
 | Phase 10 | **PLANNED** | None | Productization, UX, deployment, observability, and release hardening. |
 
@@ -42,7 +42,7 @@ phase and not a rewrite of Phase 7C history.
 See
 [Physical Confirmation Workflow Binding](physical-confirmation-workflow-binding.md).
 
-## Current Phase: 8B.3
+## Completed Phase: 8B.3
 
 Goal:
 
@@ -52,11 +52,21 @@ real JLCEDA design evidence
   -> deterministic EngineeringEvidenceWorkflow
 ```
 
-Phase 8B.3 is not implemented. Its architecture review must define renewed
-physical authority, observation timing/coherence, failure behavior, and the
-bounded validation workflow. Completion of Phase 8B.2 does not itself authorize
-real hardware, real DeepSeek, causal diagnosis, automatic next measurements,
-EDA mutation, or changes to Phase 7C safety semantics.
+Phase 8B.3 architecture, automated implementation, Attempt 1 diagnostic repair,
+and closeout are approved. Attempt 1 remains historical NOT PASS; separately
+authorized Attempt 2 returned bounded PASS. No further real run is authorized.
+The JLCEDA snapshot remains observation identity only; trusted design selection
+is distinct from provider primary selection and physical confirmation;
+`VERIFIED_LINK` does not prove design immutability. Without explicit tolerance,
+comparisons remain `INDETERMINATE / TOLERANCE_UNSPECIFIED`. No causal diagnosis
+occurred, and validation-only authority is not durable production authority.
+
+## Current Phase: 8C
+
+Phase 8C is current, but implementation has not started. It is intended to
+design a Teaching/Diagnosis Agent over `TeachingDiagnosisContext`. It requires
+separate architecture review before causal inference, next-measurement planning,
+or any renewed execution authority can be introduced.
 
 ## Status Authority and References
 
@@ -73,6 +83,9 @@ approved at that time.
 - [Phase 8B.1 workflow](phase8b1-evidence-workflow.md)
 - [Phase 8B.2 workflow](phase8b2-real-jlceda-recorded-hardware-workflow.md)
 - [Phase 8B.2A trusted selection disambiguation](phase8b2a-trusted-design-selection-disambiguation.md)
+- [Phase 8B.3 real EDA and real hardware workflow](phase8b3-real-eda-real-hardware-workflow.md)
+- [Phase 8B.3 real validation attempt 1](../validation/phase8b3-real-validation-attempt-1.md)
+- [Phase 8B.3 real validation attempt 2](../validation/phase8b3-real-validation-attempt-2.md)
 - [Evidence v1 contract](../../protocols/evidence/v1/README.md)
 - [Hardware Tool schema](../../protocols/hardware/v1/hardware-tool.schema.json)
 - [Harness compatibility](../integrations/deepseek-harness-phase7a-compatibility.md)

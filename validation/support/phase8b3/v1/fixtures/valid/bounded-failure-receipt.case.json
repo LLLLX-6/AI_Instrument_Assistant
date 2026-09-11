@@ -1,0 +1,16 @@
+{
+  "schema_ref": "https://aia.local/validation/support/phase8b3/v1/receipt.schema.json",
+  "instance": {
+    "contract": "aia-phase8b3-validation",
+    "contract_version": "1.0",
+    "kind": "governed_hardware_receipt",
+    "run_id": "11111111-1111-4111-8111-111111111111",
+    "workflow_id": "phase8b3-test-workflow",
+    "request_correlation_id": "phase8b3-test-request",
+    "status": "FAILED",
+    "operations": [],
+    "pwm_teaching_evidence": null,
+    "failure_code": "backend_unavailable",
+    "limitations": ["No hardware evidence was returned."]
+  }
+}

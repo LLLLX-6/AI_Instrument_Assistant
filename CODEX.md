@@ -28,15 +28,16 @@ make a feature pass.
 
 ## Current Baseline
 
-- Current completed implementation phase: Phase 8B.2.
-- Current next phase: Phase 8B.3.
+- Current completed implementation phase: Phase 8B.3.
+- Current next phase: Phase 8C.
 - Phase ledger: `docs/architecture/PHASE_STATUS.md`.
 - Architecture baseline: `docs/architecture/PROJECT_BASELINE.md`.
 - Frozen rules: `docs/architecture/ARCHITECTURE_INVARIANTS.md`.
 
-Phase 8B.3 is the next major phase and is not yet implemented. It must separately
-review real JLCEDA plus real DS1102Z-E execution, physical authorization, and
-temporal/coherence semantics. Phase 8B.2 does not authorize that execution.
+Phase 8B.3 completed its bounded real JLCEDA plus real DS1102Z-E validation.
+Phase 8C is current but has not started implementation. It must define reviewed
+teaching/diagnosis semantics before adding any causal inference; Phase 8B.3 does
+not authorize that work or any further real execution.
 
 ## Implementation Workflow
 

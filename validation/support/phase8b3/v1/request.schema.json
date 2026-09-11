@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/validation/support/phase8b3/v1/request.schema.json",
+  "title": "Phase 8B.3 private governed Hardware request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract", "contract_version", "kind", "run_id", "workflow_id",
+    "request_correlation_id", "backend", "target", "status_scope",
+    "pwm_scope", "confirmation"
+  ],
+  "properties": {
+    "contract": { "const": "aia-phase8b3-validation" },
+    "contract_version": { "const": "1.0" },
+    "kind": { "const": "governed_hardware_request" },
+    "run_id": { "type": "string", "format": "uuid" },
+    "workflow_id": { "$ref": "#/$defs/boundedText" },
+    "request_correlation_id": { "$ref": "#/$defs/boundedText" },
+    "backend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["endpoint", "auth_reference", "connect_timeout_ms", "request_timeout_ms"],
+      "properties": {
+        "endpoint": { "const": "ws://127.0.0.1:49625" },
+        "auth_reference": { "const": "default-harness-hardware-secret" },
+        "connect_timeout_ms": { "type": "integer", "minimum": 1, "maximum": 30000 },
+        "request_timeout_ms": { "type": "integer", "minimum": 1, "maximum": 60000 }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider", "document_canonical_id", "snapshot_id", "probe_target_id",
+        "target_ref", "display_label"
+      ],
+      "properties": {
+        "provider": { "$ref": "#/$defs/boundedText" },
+        "document_canonical_id": { "$ref": "#/$defs/boundedText" },
+        "snapshot_id": { "type": "string", "format": "uuid" },
+        "probe_target_id": { "type": "string", "format": "uuid" },
+        "target_ref": { "$ref": "#/$defs/boundedText" },
+        "display_label": { "$ref": "#/$defs/boundedText" }
+      }
+    },
+    "status_scope": { "$ref": "#/$defs/statusScope" },
+    "pwm_scope": { "$ref": "#/$defs/pwmScope" },
+    "confirmation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "confirmation_id", "source", "confirmed_by", "workflow_id",
+        "request_correlation_id", "channel", "target_ref",
+        "maximum_expected_voltage_v", "safe_low_voltage_confirmed",
+        "common_ground_confirmed", "wiring_checked", "wiring_unchanged",
+        "confirmed_at"
+      ],
+      "properties": {
+        "confirmation_id": { "type": "string", "format": "uuid" },
+        "source": { "const": "TRUSTED_USER_EVENT" },
+        "confirmed_by": { "$ref": "#/$defs/boundedText" },
+        "workflow_id": { "$ref": "#/$defs/boundedText" },
+        "request_correlation_id": { "$ref": "#/$defs/boundedText" },
+        "channel": { "const": 1 },
+        "target_ref": { "$ref": "#/$defs/boundedText" },
+        "maximum_expected_voltage_v": { "const": 3.3 },
+        "safe_low_voltage_confirmed": { "const": true },
+        "common_ground_confirmed": { "const": true },
+        "wiring_checked": { "const": true },
+        "wiring_unchanged": { "const": true },
+        "confirmed_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "$defs": {
+    "boundedText": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "scopeBase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope_id", "workflow_id", "request_correlation_id", "operation",
+        "max_invocations", "target_channel", "origin", "authorization_ref"
+      ],
+      "properties": {
+        "scope_id": { "type": "string", "format": "uuid" },
+        "workflow_id": { "$ref": "#/$defs/boundedText" },
+        "request_correlation_id": { "$ref": "#/$defs/boundedText" },
+        "operation": { "type": "string" },
+        "max_invocations": { "type": "integer" },
+        "target_channel": { "type": ["integer", "null"] },
+        "origin": { "const": "TRUSTED_VALIDATION_SCENARIO" },
+        "authorization_ref": { "$ref": "#/$defs/boundedText" }
+      }
+    },
+    "statusScope": {
+      "allOf": [
+        { "$ref": "#/$defs/scopeBase" },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "hardware.get_status" },
+            "max_invocations": { "const": 1 },
+            "target_channel": { "const": null }
+          }
+        }
+      ]
+    },
+    "pwmScope": {
+      "allOf": [
+        { "$ref": "#/$defs/scopeBase" },
+        {
+          "type": "object",
+          "properties": {
+            "operation": { "const": "hardware.measure_pwm" },
+            "max_invocations": { "const": 1 },
+            "target_channel": { "const": 1 }
+          }
+        }
+      ]
+    }
+  }
+}

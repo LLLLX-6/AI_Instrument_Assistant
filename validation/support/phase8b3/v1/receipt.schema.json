@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/validation/support/phase8b3/v1/receipt.schema.json",
+  "title": "Phase 8B.3 private governed Hardware receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract", "contract_version", "kind", "run_id", "workflow_id",
+    "request_correlation_id", "status", "operations", "pwm_teaching_evidence",
+    "failure_code", "limitations"
+  ],
+  "properties": {
+    "contract": { "const": "aia-phase8b3-validation" },
+    "contract_version": { "const": "1.0" },
+    "kind": { "const": "governed_hardware_receipt" },
+    "run_id": { "type": "string", "format": "uuid" },
+    "workflow_id": { "$ref": "#/$defs/boundedText" },
+    "request_correlation_id": { "$ref": "#/$defs/boundedText" },
+    "status": { "enum": ["COMPLETED", "FAILED", "UNKNOWN"] },
+    "operations": {
+      "type": "array",
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/operationReceipt" }
+    },
+    "pwm_teaching_evidence": {
+      "oneOf": [
+        { "type": "null" },
+        { "$ref": "https://aia.local/protocols/evidence/v1/teaching-evidence-context.schema.json" }
+      ]
+    },
+    "failure_code": {
+      "type": ["string", "null"],
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "limitations": {
+      "type": "array",
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/boundedText" },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "boundedText": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "timestampOrNull": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "format": "date-time" }
+      ]
+    },
+    "operationReceipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operation", "channel", "delivery_state", "scope_decision",
+        "policy_decision", "ipc_dispatch_count", "hardware_execution_count",
+        "execution_started_at", "execution_completed_at", "canonical_result",
+        "failure_code"
+      ],
+      "properties": {
+        "operation": { "enum": ["hardware.get_status", "hardware.measure_pwm"] },
+        "channel": {
+          "description": "Channel from the validated semantic Tool invocation; null only for an invocation without a channel.",
+          "type": ["integer", "null"],
+          "enum": [null, 1]
+        },
+        "delivery_state": {
+          "enum": ["NOT_SENT", "RESPONSE_RECEIVED", "SENT_UNCONFIRMED"]
+        },
+        "scope_decision": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/scopeDecision" }
+          ]
+        },
+        "policy_decision": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/policyDecision" }
+          ]
+        },
+        "ipc_dispatch_count": { "type": "integer", "minimum": 0, "maximum": 1 },
+        "hardware_execution_count": { "type": "integer", "minimum": 0, "maximum": 1 },
+        "execution_started_at": { "$ref": "#/$defs/timestampOrNull" },
+        "execution_completed_at": { "$ref": "#/$defs/timestampOrNull" },
+        "canonical_result": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "https://aia.local/protocols/hardware/v1/hardware-tool.schema.json" }
+          ]
+        },
+        "failure_code": { "type": ["string", "null"], "minLength": 1, "maxLength": 128 }
+      }
+    },
+    "scopeDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "reason_code", "remaining_invocations"],
+      "properties": {
+        "decision": { "enum": ["ALLOW", "DENY"] },
+        "reason_code": { "$ref": "#/$defs/boundedText" },
+        "remaining_invocations": { "type": "integer", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "policyDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "reason_code"],
+      "properties": {
+        "decision": { "enum": ["ALLOW", "REQUIRE_CONFIRMATION", "DENY"] },
+        "reason_code": { "$ref": "#/$defs/boundedText" }
+      }
+    }
+  }
+}

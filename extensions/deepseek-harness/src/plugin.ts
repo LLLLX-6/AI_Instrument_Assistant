@@ -28,11 +28,13 @@ import {
   createHardwareToolPolicyContext,
   evaluateHardwareToolPolicy,
   type BackendMode,
+  type PolicyDecision,
   type HardwareToolPolicyContext,
 } from "./policy/index.ts";
 import {
   OperationScopeGate,
   createTrustedOperationScope,
+  type OperationScopeDecision,
   type TrustedOperationScopeContext,
 } from "./operation-scope/index.ts";
 
@@ -55,6 +57,8 @@ export interface PluginDependencies {
   readonly createClient: (config: Required<Config>) => HardwareClientPort;
   readonly resolveOperationScopeContext: (
     config: Required<Config>,
+    operation?: HardwareOperation,
+    args?: unknown,
   ) => TrustedOperationScopeContext;
   readonly resolvePolicyContext: (
     operation: string,
@@ -64,6 +68,15 @@ export interface PluginDependencies {
   ) => HardwareToolPolicyContext;
   readonly onEgressDiagnostic?: (diagnostic: EgressDiagnostic) => void;
   readonly onGroundingDiagnostic?: (diagnostic: GroundingDiagnostic) => void;
+  readonly onOperationScopeDecision?: (event: Readonly<{
+    phase: "PREFLIGHT" | "FINAL_AUTHORIZATION";
+    operation: HardwareOperation;
+    decision: OperationScopeDecision;
+  }>) => void;
+  readonly onPolicyDecision?: (event: Readonly<{
+    operation: HardwareOperation;
+    decision: PolicyDecision;
+  }>) => void;
 }
 
 const DEFAULT_CONFIG: Required<Config> = {
@@ -175,7 +188,7 @@ export function applyWithDependencies(
         if (violations.length) {
           throw safeAdapterFailure("invalid_tool_arguments", "NOT_SENT");
         }
-        const trustedScopeContext = dependencies.resolveOperationScopeContext(config);
+        const trustedScopeContext = dependencies.resolveOperationScopeContext(config, operation, args);
         const scopeRequest = {
           requestCorrelationId: trustedScopeContext.requestCorrelationId,
           workflowId: trustedScopeContext.workflowId,
@@ -183,6 +196,11 @@ export function applyWithDependencies(
           channel: requestedChannel(args),
         };
         const scopeDecision = operationScopeGate.evaluate(trustedScopeContext.scope, scopeRequest);
+        dependencies.onOperationScopeDecision?.(Object.freeze({
+          phase: "PREFLIGHT",
+          operation,
+          decision: scopeDecision,
+        }));
         if (scopeDecision.decision !== "ALLOW") {
           throw safeAdapterFailure("operation_scope_denied", "NOT_SENT");
         }
@@ -198,6 +216,7 @@ export function applyWithDependencies(
           throw safeAdapterFailure("policy_denied", "NOT_SENT");
         }
         const policy = evaluateHardwareToolPolicy(policyContext);
+        dependencies.onPolicyDecision?.(Object.freeze({ operation, decision: policy }));
         const correlationId = exec.agent === undefined ? null : String(exec.agent.session.id);
         if (correlationId !== null) egressState.recordPolicy(correlationId, policy);
         if (policy.decision === "REQUIRE_CONFIRMATION") {
@@ -210,6 +229,11 @@ export function applyWithDependencies(
           trustedScopeContext.scope,
           scopeRequest,
         );
+        dependencies.onOperationScopeDecision?.(Object.freeze({
+          phase: "FINAL_AUTHORIZATION",
+          operation,
+          decision: dispatchAuthorization,
+        }));
         if (dispatchAuthorization.decision !== "ALLOW") {
           throw safeAdapterFailure("operation_scope_denied", "NOT_SENT");
         }

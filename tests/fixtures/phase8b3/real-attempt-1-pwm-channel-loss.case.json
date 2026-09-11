@@ -1,0 +1,27 @@
+{
+  "case": "synthetic-recorded-phase8b3-attempt-1-channel-loss",
+  "trusted_invocation": {
+    "status": {
+      "operation": "hardware.get_status",
+      "scope_channel": null,
+      "policy_channel": null,
+      "tool_argument_channel": null
+    },
+    "pwm": {
+      "operation": "hardware.measure_pwm",
+      "scope_channel": 1,
+      "policy_channel": 1,
+      "tool_argument_channel": 1
+    }
+  },
+  "recorded_receipt": {
+    "status_channel": null,
+    "pwm_channel": null
+  },
+  "expected": {
+    "receipt_semantics_valid": false,
+    "failure_code": "receipt_semantics_invalid",
+    "teaching_evidence_constructed": false,
+    "verified_link_constructed": false
+  }
+}

@@ -17,9 +17,9 @@ eventual diagnosis.
 
 The intended long-term loop is design -> test -> analysis -> diagnosis ->
 design feedback. The repository has established the bounded design, hardware,
-Agent-governance, and deterministic evidence foundations for that direction.
-It has not completed arbitrary autonomous diagnosis or a real combined
-EDA-plus-hardware workflow.
+Agent-governance, and deterministic evidence foundations for that direction,
+including one reviewed real EDA-plus-hardware validation. It has not completed
+arbitrary autonomous or causal diagnosis.
 
 ## 2. Architectural Style
 
@@ -162,9 +162,19 @@ real DeepSeek
   -> guarded grounded output or deterministic grounded fallback
 ```
 
+Phase 8B.3 additionally validated this bounded model-free evidence path:
+
+```text
+real read-only JLCEDA observation
+  + trusted design disambiguation
+  + separately trusted physical confirmation and operation scope
+  + real DS1102Z-E evidence
+  -> deterministic EngineeringEvidenceWorkflow
+```
+
 This proves deterministic containment for the recorded real scenarios. It does
 not prove arbitrary autonomous diagnosis, unconstrained natural-language
-grounding, or a combined real EDA-and-hardware loop.
+grounding, design immutability, or durable production authorization.
 
 ## 8. Current Limitations
 
@@ -172,14 +182,20 @@ grounding, or a combined real EDA-and-hardware loop.
   shape above.
 - The `TrustedOperationScope` invocation-budget ledger is process-local.
 - Production dynamic scope issuance, persistence, and recovery are incomplete.
-- `memory://` artifact references are scoped to the backend lifetime and are
-  not durable storage.
+- In-memory artifact references are scoped to the backend lifetime and are not
+  durable storage.
 - Grounding validates a constrained English claim surface; ambiguous or
   unrecognized claims fail closed.
 - Hardware validation is bounded to the current DS1102Z-E workflows.
-- Phase 8B.2 has combined real read-only JLCEDA design evidence with recorded
-  Hardware evidence. It has not completed a live combined EDA-plus-instrument
-  observation or authorized real hardware in Phase 8.
+- Phase 8B.3 completed one bounded real read-only JLCEDA plus real DS1102Z-E
+  validation. Its snapshot is observation identity only; `VERIFIED_LINK` does
+  not prove design immutability.
+- Trusted design disambiguation remains distinct from provider primary
+  selection and from physical probe confirmation.
+- The Phase 8B.3 authorization was validation-only and is not durable
+  production authorization.
+- Without explicit tolerance, the validated comparisons remain
+  `INDETERMINATE / TOLERANCE_UNSPECIFIED`.
 - Causal diagnosis is not implemented.
 - Candidate next measurements remain empty/deferred.
 - JLCEDA highlight submission can be accepted without programmatic proof of
@@ -216,6 +232,9 @@ compilation, or behavior tests rather than brittle prose searches.
 - [Phase 8B.1 workflow](phase8b1-evidence-workflow.md)
 - [Phase 8B.2 real JLCEDA and recorded Hardware workflow](phase8b2-real-jlceda-recorded-hardware-workflow.md)
 - [Phase 8B.2A trusted selection disambiguation](phase8b2a-trusted-design-selection-disambiguation.md)
+- [Phase 8B.3 real EDA and real hardware workflow](phase8b3-real-eda-real-hardware-workflow.md)
+- [Phase 8B.3 real validation attempt 1](../validation/phase8b3-real-validation-attempt-1.md)
+- [Phase 8B.3 real validation attempt 2](../validation/phase8b3-real-validation-attempt-2.md)
 - [Harness compatibility](../integrations/deepseek-harness-phase7a-compatibility.md)
 - [Harness hardware adapter ADR](../adr/0004-deepseek-harness-hardware-adapter.md)
 - [JLCEDA implementation constraints](jlceda-v0.2-implementation-constraints.md)
