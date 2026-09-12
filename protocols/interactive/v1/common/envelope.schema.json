@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/interactive/v1/common/envelope.schema.json",
+  "$defs": {
+    "protocol": {"const": "aia-interactive/v1"},
+    "messageType": {"enum": ["hello", "hello_ack", "command", "challenge_answer", "event"]},
+    "sessionId": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"}
+  }
+}

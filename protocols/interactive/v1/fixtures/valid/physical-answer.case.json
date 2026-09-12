@@ -1,0 +1,27 @@
+{
+  "description": "JLCEDA answers an exact physical setup challenge without carrying a trusted confirmation",
+  "schema_ref": "https://aia.local/protocols/interactive/v1/message.schema.json",
+  "instance": {
+    "protocol": "aia-interactive/v1",
+    "message_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    "sent_at": "2026-09-12T08:00:20Z",
+    "message_type": "challenge_answer",
+    "application_generation": "44444444-4444-4444-8444-444444444444",
+    "session_id": "66666666-6666-4666-8666-666666666666",
+    "workflow_id": "99999999-9999-4999-8999-999999999999",
+    "expected_workflow_revision": 6,
+    "challenge_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    "challenge_kind": "PHYSICAL_SETUP",
+    "nonce": "nonce-cccccccccccccccccccccccc",
+    "answer": {
+      "probe_target_identity": "target:pwm-out",
+      "operation_plan_identity": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "channel": 1,
+      "maximum_expected_voltage_v": 3.3,
+      "probe_connected": true,
+      "common_ground_confirmed": true,
+      "voltage_range_confirmed": true,
+      "wiring_unchanged": true
+    }
+  }
+}

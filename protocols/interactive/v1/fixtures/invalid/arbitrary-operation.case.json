@@ -1,0 +1,22 @@
+{
+  "description": "Operation authorization cannot carry arbitrary Tool names",
+  "schema_ref": "https://aia.local/protocols/interactive/v1/models/challenge.schema.json#/$defs/operationAuthorizationChallenge",
+  "instance": {
+    "challenge_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    "challenge_kind": "OPERATION_AUTHORIZATION",
+    "application_generation": "44444444-4444-4444-8444-444444444444",
+    "workflow_id": "99999999-9999-4999-8999-999999999999",
+    "workflow_revision": 4,
+    "request_correlation_id": "request-pwm-out",
+    "allowed_frontend_kind": "HARNESS",
+    "issued_at": "2026-09-12T08:00:02Z",
+    "expires_at": "2026-09-12T08:05:02Z",
+    "nonce": "nonce-aaaaaaaaaaaaaaaaaaaaaaaa",
+    "binding": {
+      "operation_plan_identity": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "semantic_operations": ["hardware.raw_scpi"],
+      "channel": 1,
+      "budgets": [{"operation": "hardware.raw_scpi", "maximum_invocations": 1}]
+    }
+  }
+}

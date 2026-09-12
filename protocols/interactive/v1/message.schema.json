@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/interactive/v1/message.schema.json",
+  "oneOf": [
+    {"$ref": "https://aia.local/protocols/interactive/v1/messages/hello.schema.json"},
+    {"$ref": "https://aia.local/protocols/interactive/v1/messages/hello-ack.schema.json"},
+    {"$ref": "https://aia.local/protocols/interactive/v1/messages/command.schema.json"},
+    {"$ref": "https://aia.local/protocols/interactive/v1/messages/challenge-answer.schema.json"},
+    {"$ref": "https://aia.local/protocols/interactive/v1/messages/event.schema.json"}
+  ]
+}

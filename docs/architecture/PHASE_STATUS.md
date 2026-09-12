@@ -2,7 +2,7 @@
 
 Baseline date: 2026-09-12
 
-Committed implementation baseline before Phase 8C.2B: `c5866e2`
+Committed implementation baseline before Phase 8.5A: `4a7be88`
 
 Status meanings:
 
@@ -34,8 +34,13 @@ Status meanings:
 | Phase 8C.2A | **COMPLETE** | `c5866e2` | Minimal structured candidate protocol, Host-owned projection and aliases, strict parser, deterministic engineering Grounding, canonical English renderer, fail-whole fallback, final-Egress port, and bounded audit are reviewed and complete without any model or external execution. |
 | Phase 8C.2B | **COMPLETE** | `e53fc98` | One-attempt provider-neutral orchestration, private bounded process bridge, frozen zero-Tool `LlmRuntime.stream()` route, strict stream/Egress/parser/Grounding/renderer boundaries, deterministic fallback, and independent final Egress. One authorized real request passed safety Case B; no Schema-valid real-model candidate was observed. |
 | Phase 8 | **COMPLETE** | This closeout commit | Trusted real design and Hardware evidence can feed deterministic engineering evidence and bounded teaching publication while an untrusted model has no authority over facts, comparison semantics, inference, diagnosis, or execution. |
+| Phase 8.5 | **CURRENT** | Phase 8.5A closeout commit | Interactive Productization architecture is approved. Phase 8.5A is complete; the bounded Phase 8.5B.0 real JLCEDA compatibility spike is current. |
+| Phase 8.5A | **COMPLETE** | This closeout commit | Authoritative Python Host, finite workflow/CAS, one-time Challenges, additive `aia-interactive/v1`, reconnect/status/cancellation, fake frontends, lifecycle/bootstrap seams, and offline tests. No permanent UI or real external runtime. |
+| Phase 8.5B | **CURRENT / COMPATIBILITY SPIKE** | Uncommitted spike follows 8.5A | Phase 8.5B.0 may validate real JLCEDA UI and transport compatibility only. The full product surface has not started. |
+| Phase 8.5C | **PLANNED / NOT STARTED** | None | Frozen-Harness conversational interaction surface after 8.5A review. |
+| Phase 8.5D | **PLANNED / NOT STARTED** | None | Separately authorized real interactive E2E only after 8.5A-C closeout. |
 | Phase 9 | **PLANNED / NOT STARTED** | None | Guided Engineering Reasoning & Diagnosis roadmap only: proposal-only next measurement, reviewed inference rules, structured hypotheses, causal-diagnosis policy, then human-authorized iteration. |
-| Phase 10 | **PLANNED** | None | Productization, UX, deployment, observability, and release hardening. |
+| Phase 10 | **PLANNED** | None | **Release & Deployment Hardening**: installer, signing, updater, durable operational state, production observability, OS sandboxing, packaging/distribution, and release engineering. Core interactive UX belongs to Phase 8.5. |
 
 ## Completed Context Drift Remediation
 
@@ -106,6 +111,28 @@ claim policy, and guarded teaching publication with an untrusted model. It did
 not implement next-measurement proposals, engineering inference, hypotheses,
 causal diagnosis, or autonomous experimentation.
 
+## Completed Intermediate Phase: 8.5A
+
+Phase 8.5 provides interactive adapters and runtime orchestration so normal
+users can operate the completed Phase 8 capabilities from Harness and JLCEDA
+without validation scripts or CLI confirmation tokens. The proposal keeps one
+authoritative Python Application Host and preserves all existing selection,
+Scope, Physical Policy, evidence, Grounding, and Egress boundaries.
+
+The Phase 8.5A offline foundation is approved and complete. It adds no
+permanent frontend UI and performed no real JLCEDA, Hardware, VISA, or model
+action. See
+[Phase 8.5 Interactive Productization](phase8_5-interactive-productization.md)
+and
+[Phase 8.5A Application Host & Runtime Lifecycle](phase8_5a-application-host-runtime.md).
+
+## Current Intermediate Phase: 8.5B.0 — JLCEDA Compatibility Spike
+
+Phase 8.5B.0 is a focused real JLCEDA UI and transport compatibility spike.
+It may perform bounded read/UI operations only. The full Phase 8.5B product
+surface has not started. Hardware, VISA, measurement, DeepSeek, arbitrary
+JavaScript, raw EDA dispatch, and EDA design mutation remain prohibited.
+
 ## Next Major Phase: 9 — Planned / Not Started
 
 Phase 9 is the Guided Engineering Reasoning & Diagnosis roadmap only. No Phase
@@ -134,6 +161,8 @@ approved at that time.
 - [Phase 8C.2B DeepSeek structured candidate integration](phase8c2b-deepseek-structured-candidate-integration.md)
 - [Phase 8C.2B bounded real validation](../validation/phase8c2b-real-deepseek-validation.md)
 - [Phase 8 closeout](phase8-evidence-grounded-teaching-closeout.md)
+- [Phase 8.5 Interactive Productization](phase8_5-interactive-productization.md)
+- [Phase 8.5A Application Host & Runtime Lifecycle](phase8_5a-application-host-runtime.md)
 - [Evidence v1 contract](../../protocols/evidence/v1/README.md)
 - [Hardware Tool schema](../../protocols/hardware/v1/hardware-tool.schema.json)
 - [Harness compatibility](../integrations/deepseek-harness-phase7a-compatibility.md)

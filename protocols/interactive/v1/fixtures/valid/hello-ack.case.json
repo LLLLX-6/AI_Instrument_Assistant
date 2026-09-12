@@ -1,0 +1,18 @@
+{
+  "description": "Host accepts a frontend connection without granting authority",
+  "schema_ref": "https://aia.local/protocols/interactive/v1/message.schema.json",
+  "instance": {
+    "protocol": "aia-interactive/v1",
+    "message_id": "33333333-3333-4333-8333-333333333333",
+    "sent_at": "2026-09-12T08:00:01Z",
+    "message_type": "hello_ack",
+    "accepted": true,
+    "selected_version": "aia-interactive/v1",
+    "application_generation": "44444444-4444-4444-8444-444444444444",
+    "connection_id": "55555555-5555-4555-8555-555555555555",
+    "connection_generation": 1,
+    "session_id": "66666666-6666-4666-8666-666666666666",
+    "current_event_cursor": 0,
+    "reason_code": null
+  }
+}

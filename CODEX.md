@@ -28,12 +28,21 @@ make a feature pass.
 
 ## Current Baseline
 
-- Current completed implementation phase: Phase 8C.2B.
+- Current completed implementation phase: Phase 8.5A.
 - Current completed major phase: Phase 8.
+- Current intermediate phase: Phase 8.5B.0 compatibility spike.
 - Next major phase: Phase 9 (planned; not started).
 - Phase ledger: `docs/architecture/PHASE_STATUS.md`.
 - Architecture baseline: `docs/architecture/PROJECT_BASELINE.md`.
 - Frozen rules: `docs/architecture/ARCHITECTURE_INVARIANTS.md`.
+
+Phase 8.5A established the reviewed authoritative Python Application Host,
+generation-scoped sessions, revisioned workflow state, one-time Challenges,
+the additive `aia-interactive/v1` frontend contract, reconnect/cancellation,
+safe status, and runtime/bootstrap lifecycle seams. Phase 8.5B.0 is a bounded
+real JLCEDA UI and transport compatibility spike only; full Phase 8.5B product
+UI has not started. No Hardware, VISA, measurement, EDA mutation, or model
+action is authorized by this status.
 
 Phase 8B.3 completed its bounded real JLCEDA plus real DS1102Z-E validation.
 Phase 8C.1 established the reviewed deterministic claim-policy boundary. It

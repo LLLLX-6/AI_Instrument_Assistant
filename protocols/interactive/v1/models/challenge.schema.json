@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/interactive/v1/models/challenge.schema.json",
+  "$defs": {
+    "operationBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "maximum_invocations"],
+      "properties": {
+        "operation": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/semanticOperation"},
+        "maximum_invocations": {"type": "integer", "minimum": 1, "maximum": 4}
+      }
+    },
+    "designSelectionBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observation_identity", "candidate_set_identity", "allowed_candidate_identities"],
+      "properties": {
+        "observation_identity": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/contentIdentity"},
+        "candidate_set_identity": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/contentIdentity"},
+        "allowed_candidate_identities": {
+          "type": "array", "minItems": 2, "maxItems": 16, "uniqueItems": true,
+          "items": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/opaqueIdentity"}
+        }
+      }
+    },
+    "operationAuthorizationBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation_plan_identity", "semantic_operations", "channel", "budgets"],
+      "properties": {
+        "operation_plan_identity": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/contentIdentity"},
+        "semantic_operations": {
+          "type": "array", "minItems": 1, "maxItems": 5, "uniqueItems": true,
+          "items": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/semanticOperation"}
+        },
+        "channel": {"type": ["integer", "null"], "enum": [null, 1, 2]},
+        "budgets": {"type": "array", "minItems": 1, "maxItems": 5, "items": {"$ref": "#/$defs/operationBudget"}}
+      }
+    },
+    "physicalSetupBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probe_target_identity", "operation_plan_identity", "channel",
+        "maximum_expected_voltage_v", "probe_statement", "ground_statement",
+        "voltage_statement", "wiring_statement"
+      ],
+      "properties": {
+        "probe_target_identity": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/opaqueIdentity"},
+        "operation_plan_identity": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/contentIdentity"},
+        "channel": {"type": "integer", "enum": [1, 2]},
+        "maximum_expected_voltage_v": {"type": "number", "exclusiveMinimum": 0, "maximum": 50},
+        "probe_statement": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/boundedText"},
+        "ground_statement": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/boundedText"},
+        "voltage_statement": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/boundedText"},
+        "wiring_statement": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/boundedText"}
+      }
+    },
+    "challengeBaseProperties": {
+      "type": "object",
+      "required": [
+        "challenge_id", "challenge_kind", "application_generation", "workflow_id",
+        "workflow_revision", "request_correlation_id", "allowed_frontend_kind",
+        "issued_at", "expires_at", "nonce", "binding"
+      ],
+      "properties": {
+        "challenge_id": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"},
+        "challenge_kind": {"enum": ["DESIGN_SELECTION", "OPERATION_AUTHORIZATION", "PHYSICAL_SETUP"]},
+        "application_generation": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"},
+        "workflow_id": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"},
+        "workflow_revision": {"type": "integer", "minimum": 0, "maximum": 2147483647},
+        "request_correlation_id": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/boundedText"},
+        "allowed_frontend_kind": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/frontendKind"},
+        "issued_at": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/timestamp"},
+        "expires_at": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/timestamp"},
+        "nonce": {"type": "string", "minLength": 24, "maxLength": 128, "pattern": "^[A-Za-z0-9_-]+$"},
+        "binding": {}
+      }
+    },
+    "designSelectionChallenge": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "allOf": [
+        {"$ref": "#/$defs/challengeBaseProperties"},
+        {
+          "properties": {
+            "challenge_kind": {"const": "DESIGN_SELECTION"},
+            "binding": {"$ref": "#/$defs/designSelectionBinding"}
+          }
+        }
+      ]
+    },
+    "operationAuthorizationChallenge": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "allOf": [
+        {"$ref": "#/$defs/challengeBaseProperties"},
+        {
+          "properties": {
+            "challenge_kind": {"const": "OPERATION_AUTHORIZATION"},
+            "binding": {"$ref": "#/$defs/operationAuthorizationBinding"}
+          }
+        }
+      ]
+    },
+    "physicalSetupChallenge": {
+      "type": "object",
+      "unevaluatedProperties": false,
+      "allOf": [
+        {"$ref": "#/$defs/challengeBaseProperties"},
+        {
+          "properties": {
+            "challenge_kind": {"const": "PHYSICAL_SETUP"},
+            "binding": {"$ref": "#/$defs/physicalSetupBinding"}
+          }
+        }
+      ]
+    },
+    "challenge": {
+      "oneOf": [
+        {"$ref": "#/$defs/designSelectionChallenge"},
+        {"$ref": "#/$defs/operationAuthorizationChallenge"},
+        {"$ref": "#/$defs/physicalSetupChallenge"}
+      ]
+    }
+  }
+}

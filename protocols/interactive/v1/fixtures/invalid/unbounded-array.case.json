@@ -1,0 +1,14 @@
+{
+  "description": "Candidate lists are bounded",
+  "schema_ref": "https://aia.local/protocols/interactive/v1/models/challenge.schema.json#/$defs/designSelectionBinding",
+  "instance": {
+    "observation_identity": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "candidate_set_identity": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "allowed_candidate_identities": [
+      "candidate:1", "candidate:2", "candidate:3", "candidate:4", "candidate:5",
+      "candidate:6", "candidate:7", "candidate:8", "candidate:9", "candidate:10",
+      "candidate:11", "candidate:12", "candidate:13", "candidate:14", "candidate:15",
+      "candidate:16", "candidate:17"
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "description": "Host event carries a bounded exact design-selection challenge",
+  "schema_ref": "https://aia.local/protocols/interactive/v1/message.schema.json",
+  "instance": {
+    "protocol": "aia-interactive/v1",
+    "message_id": "77777777-7777-4777-8777-777777777777",
+    "sent_at": "2026-09-12T08:00:02Z",
+    "message_type": "event",
+    "application_generation": "44444444-4444-4444-8444-444444444444",
+    "session_id": "66666666-6666-4666-8666-666666666666",
+    "event_id": "88888888-8888-4888-8888-888888888888",
+    "cursor": 3,
+    "event_type": "design_selection_required",
+    "workflow_id": "99999999-9999-4999-8999-999999999999",
+    "workflow_revision": 2,
+    "correlation_id": "request-pwm-out",
+    "payload": {
+      "challenge": {
+        "challenge_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "challenge_kind": "DESIGN_SELECTION",
+        "application_generation": "44444444-4444-4444-8444-444444444444",
+        "workflow_id": "99999999-9999-4999-8999-999999999999",
+        "workflow_revision": 2,
+        "request_correlation_id": "request-pwm-out",
+        "allowed_frontend_kind": "JLCEDA",
+        "issued_at": "2026-09-12T08:00:02Z",
+        "expires_at": "2026-09-12T08:05:02Z",
+        "nonce": "nonce-aaaaaaaaaaaaaaaaaaaaaaaa",
+        "binding": {
+          "observation_identity": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "candidate_set_identity": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "allowed_candidate_identities": [
+            "candidate:wire-pwm-out",
+            "candidate:component-u1"
+          ]
+        }
+      }
+    }
+  }
+}

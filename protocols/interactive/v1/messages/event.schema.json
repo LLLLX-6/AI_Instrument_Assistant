@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/interactive/v1/messages/event.schema.json",
+  "$defs": {
+    "baseProperties": {
+      "type": "object",
+      "required": ["protocol", "message_id", "sent_at", "message_type", "application_generation", "session_id", "event_id", "cursor", "event_type", "workflow_id", "workflow_revision", "correlation_id", "payload"],
+      "properties": {
+        "protocol": {"const": "aia-interactive/v1"},
+        "message_id": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"},
+        "sent_at": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/timestamp"},
+        "message_type": {"const": "event"},
+        "application_generation": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"},
+        "session_id": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"},
+        "event_id": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"},
+        "cursor": {"type": "integer", "minimum": 1, "maximum": 2147483647},
+        "event_type": {"enum": ["application_status_changed", "frontend_connection_changed", "workflow_snapshot", "workflow_state_changed", "design_observation_changed", "design_selection_required", "probe_target_ready", "operation_authorization_required", "physical_confirmation_required", "measurement_progress_changed", "evidence_summary_ready", "teaching_publication_ready", "workflow_cancelled", "workflow_failed"]},
+        "workflow_id": {"oneOf": [{"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"}, {"type": "null"}]},
+        "workflow_revision": {"type": ["integer", "null"], "minimum": 0, "maximum": 2147483647},
+        "correlation_id": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/boundedText"},
+        "payload": {}
+      }
+    },
+    "statusEvent": {
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/baseProperties"}, {"properties": {"event_type": {"const": "application_status_changed"}, "payload": {"type": "object", "additionalProperties": false, "required": ["status"], "properties": {"status": {"$ref": "https://aia.local/protocols/interactive/v1/models/status.schema.json"}}}}}],
+      "unevaluatedProperties": false
+    },
+    "challengeEvent": {
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/baseProperties"}, {"properties": {"event_type": {"enum": ["design_selection_required", "operation_authorization_required", "physical_confirmation_required"]}, "payload": {"type": "object", "additionalProperties": false, "required": ["challenge"], "properties": {"challenge": {"$ref": "https://aia.local/protocols/interactive/v1/models/challenge.schema.json#/$defs/challenge"}}}}}],
+      "unevaluatedProperties": false
+    },
+    "snapshotEvent": {
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/baseProperties"}, {"properties": {"event_type": {"const": "workflow_snapshot"}, "payload": {"type": "object", "additionalProperties": false, "required": ["snapshot"], "properties": {"snapshot": {"$ref": "https://aia.local/protocols/interactive/v1/models/snapshot.schema.json#/$defs/applicationSnapshot"}}}}}],
+      "unevaluatedProperties": false
+    },
+    "boundedStateEvent": {
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/baseProperties"}, {"properties": {"event_type": {"enum": ["frontend_connection_changed", "workflow_state_changed", "design_observation_changed", "probe_target_ready", "measurement_progress_changed", "evidence_summary_ready", "teaching_publication_ready", "workflow_cancelled", "workflow_failed"]}, "payload": {"type": "object", "additionalProperties": false, "required": ["code", "message"], "properties": {"code": {"type": "string", "minLength": 1, "maxLength": 80, "pattern": "^[a-z][a-z0-9_]+$"}, "message": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/boundedText"}}}}}],
+      "unevaluatedProperties": false
+    }
+  },
+  "oneOf": [{"$ref": "#/$defs/statusEvent"}, {"$ref": "#/$defs/challengeEvent"}, {"$ref": "#/$defs/snapshotEvent"}, {"$ref": "#/$defs/boundedStateEvent"}]
+}

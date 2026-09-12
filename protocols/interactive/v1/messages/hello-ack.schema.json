@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/interactive/v1/messages/hello-ack.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "message_id", "sent_at", "message_type", "accepted", "selected_version", "application_generation", "connection_id", "connection_generation", "session_id", "current_event_cursor", "reason_code"],
+  "properties": {
+    "protocol": {"const": "aia-interactive/v1"},
+    "message_id": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"},
+    "sent_at": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/timestamp"},
+    "message_type": {"const": "hello_ack"},
+    "accepted": {"type": "boolean"},
+    "selected_version": {"type": ["string", "null"], "maxLength": 64},
+    "application_generation": {"oneOf": [{"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"}, {"type": "null"}]},
+    "connection_id": {"oneOf": [{"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"}, {"type": "null"}]},
+    "connection_generation": {"type": ["integer", "null"], "minimum": 1, "maximum": 2147483647},
+    "session_id": {"oneOf": [{"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"}, {"type": "null"}]},
+    "current_event_cursor": {"type": ["integer", "null"], "minimum": 0, "maximum": 2147483647},
+    "reason_code": {"type": ["string", "null"], "enum": [null, "version_incompatible", "authentication_failed", "local_port_in_use"]}
+  },
+  "allOf": [
+    {"if": {"properties": {"accepted": {"const": true}}}, "then": {"properties": {"selected_version": {"const": "aia-interactive/v1"}, "application_generation": {"type": "string"}, "connection_id": {"type": "string"}, "connection_generation": {"type": "integer"}, "session_id": {"type": "string"}, "current_event_cursor": {"type": "integer"}, "reason_code": {"type": "null"}}}},
+    {"if": {"properties": {"accepted": {"const": false}}}, "then": {"properties": {"selected_version": {"type": "null"}, "connection_id": {"type": "null"}, "connection_generation": {"type": "null"}, "session_id": {"type": "null"}, "reason_code": {"type": "string"}}}}
+  ]
+}

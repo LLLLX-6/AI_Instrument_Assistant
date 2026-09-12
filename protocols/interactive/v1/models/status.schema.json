@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/interactive/v1/models/status.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "host_state", "protocol_compatible", "harness_state", "jlceda_state",
+    "hardware_state", "workflow_state", "workflow_revision",
+    "safe_workflow_label", "last_error_code", "message"
+  ],
+  "properties": {
+    "host_state": {"enum": ["STARTING", "READY", "STOPPING", "STOPPED", "FAULTED"]},
+    "protocol_compatible": {"type": "boolean"},
+    "harness_state": {"enum": ["DISCONNECTED", "CONNECTED"]},
+    "jlceda_state": {"enum": ["DISCONNECTED", "CONNECTED"]},
+    "hardware_state": {"enum": ["UNAVAILABLE", "AVAILABLE", "CONNECTING", "CONNECTED", "FAULTED"]},
+    "workflow_state": {"oneOf": [{"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/workflowState"}, {"type": "null"}]},
+    "workflow_revision": {"type": ["integer", "null"], "minimum": 0, "maximum": 2147483647},
+    "safe_workflow_label": {"oneOf": [{"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/shortText"}, {"type": "null"}]},
+    "last_error_code": {"oneOf": [{"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/productErrorCode"}, {"type": "null"}]},
+    "message": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/boundedText"}
+  }
+}

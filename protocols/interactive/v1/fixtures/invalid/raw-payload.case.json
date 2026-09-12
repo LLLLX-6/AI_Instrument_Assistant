@@ -1,0 +1,17 @@
+{
+  "description": "Status cannot carry raw provider payloads",
+  "schema_ref": "https://aia.local/protocols/interactive/v1/models/status.schema.json",
+  "instance": {
+    "host_state": "READY",
+    "protocol_compatible": true,
+    "harness_state": "CONNECTED",
+    "jlceda_state": "CONNECTED",
+    "hardware_state": "AVAILABLE",
+    "workflow_state": null,
+    "workflow_revision": null,
+    "safe_workflow_label": null,
+    "last_error_code": null,
+    "message": "ready",
+    "provider_payload": {"primitiveId": "real-id"}
+  }
+}

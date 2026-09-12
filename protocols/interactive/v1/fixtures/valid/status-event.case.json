@@ -1,0 +1,32 @@
+{
+  "description": "Bounded product status excludes runtime internals",
+  "schema_ref": "https://aia.local/protocols/interactive/v1/message.schema.json",
+  "instance": {
+    "protocol": "aia-interactive/v1",
+    "message_id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    "sent_at": "2026-09-12T08:00:30Z",
+    "message_type": "event",
+    "application_generation": "44444444-4444-4444-8444-444444444444",
+    "session_id": "66666666-6666-4666-8666-666666666666",
+    "event_id": "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+    "cursor": 4,
+    "event_type": "application_status_changed",
+    "workflow_id": null,
+    "workflow_revision": null,
+    "correlation_id": "status-refresh",
+    "payload": {
+      "status": {
+        "host_state": "READY",
+        "protocol_compatible": true,
+        "harness_state": "CONNECTED",
+        "jlceda_state": "CONNECTED",
+        "hardware_state": "AVAILABLE",
+        "workflow_state": null,
+        "workflow_revision": null,
+        "safe_workflow_label": null,
+        "last_error_code": null,
+        "message": "AI Instrument Assistant is ready."
+      }
+    }
+  }
+}

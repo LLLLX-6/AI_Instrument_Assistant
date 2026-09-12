@@ -1,0 +1,18 @@
+{
+  "description": "Incompatible version is rejected without a session",
+  "schema_ref": "https://aia.local/protocols/interactive/v1/message.schema.json",
+  "instance": {
+    "protocol": "aia-interactive/v1",
+    "message_id": "33333333-3333-4333-8333-333333333333",
+    "sent_at": "2026-09-12T08:00:01Z",
+    "message_type": "hello_ack",
+    "accepted": false,
+    "selected_version": null,
+    "application_generation": null,
+    "connection_id": null,
+    "connection_generation": null,
+    "session_id": null,
+    "current_event_cursor": null,
+    "reason_code": "version_incompatible"
+  }
+}

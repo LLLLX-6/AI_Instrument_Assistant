@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json",
+  "$defs": {
+    "uuid": {"type": "string", "format": "uuid", "maxLength": 36},
+    "timestamp": {"type": "string", "format": "date-time", "maxLength": 40},
+    "boundedText": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "\\S"},
+    "shortText": {"type": "string", "minLength": 1, "maxLength": 80, "pattern": "\\S"},
+    "contentIdentity": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "maxLength": 71},
+    "opaqueIdentity": {"type": "string", "minLength": 3, "maxLength": 192, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]+$"},
+    "frontendKind": {"enum": ["HARNESS", "JLCEDA"]},
+    "workflowState": {
+      "enum": [
+        "IDLE", "OBSERVING_DESIGN", "DESIGN_CONTEXT_READY",
+        "WAITING_FOR_DESIGN_SELECTION", "TARGET_RESOLVED",
+        "OPERATION_PREPARED", "WAITING_FOR_OPERATION_AUTHORIZATION",
+        "WAITING_FOR_PHYSICAL_CONFIRMATION", "READY_TO_EXECUTE",
+        "CONNECTING_INSTRUMENT", "MEASURING", "ANALYZING",
+        "BUILDING_EVIDENCE", "GENERATING_TEACHING_RESPONSE",
+        "COMPLETE", "FAILED", "CANCELLED"
+      ]
+    },
+    "semanticOperation": {
+      "enum": [
+        "hardware.get_status", "hardware.measure_frequency",
+        "hardware.measure_vpp", "hardware.capture_waveform",
+        "hardware.measure_pwm"
+      ]
+    },
+    "productErrorCode": {
+      "enum": [
+        "ambiguous_selection", "design_observation_stale",
+        "operation_authorization_required", "physical_confirmation_required",
+        "physical_confirmation_stale", "instrument_not_connected",
+        "instrument_disconnected", "model_candidate_invalid",
+        "fallback_published", "version_incompatible", "local_port_in_use",
+        "invalid_command", "stale_workflow_revision", "challenge_rejected",
+        "runtime_startup_failed", "runtime_crashed", "cancelled"
+      ]
+    }
+  }
+}

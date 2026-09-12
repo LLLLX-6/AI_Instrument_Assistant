@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aia.local/protocols/interactive/v1/models/snapshot.schema.json",
+  "$defs": {
+    "workflowSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workflow_id", "revision", "state", "safe_label", "pending_challenge_ids", "terminal"],
+      "properties": {
+        "workflow_id": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"},
+        "revision": {"type": "integer", "minimum": 0, "maximum": 2147483647},
+        "state": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/workflowState"},
+        "safe_label": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/shortText"},
+        "pending_challenge_ids": {"type": "array", "maxItems": 3, "uniqueItems": true, "items": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"}},
+        "terminal": {"type": "boolean"}
+      }
+    },
+    "applicationSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["application_generation", "event_cursor", "status", "workflows", "pending_challenges"],
+      "properties": {
+        "application_generation": {"$ref": "https://aia.local/protocols/interactive/v1/common/identifiers.schema.json#/$defs/uuid"},
+        "event_cursor": {"type": "integer", "minimum": 0, "maximum": 2147483647},
+        "status": {"$ref": "https://aia.local/protocols/interactive/v1/models/status.schema.json"},
+        "workflows": {"type": "array", "maxItems": 32, "items": {"$ref": "#/$defs/workflowSummary"}},
+        "pending_challenges": {"type": "array", "maxItems": 8, "items": {"$ref": "https://aia.local/protocols/interactive/v1/models/challenge.schema.json#/$defs/challenge"}}
+      }
+    }
+  }
+}
