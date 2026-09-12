@@ -257,6 +257,24 @@ The following categories MUST remain distinct:
   normal and fallback output MUST pass final Egress.
 - The deterministic publication core MUST NOT depend on DeepSeek, LlmRuntime,
   AgentLoop, EDA, Hardware, Tool execution, or external transports.
+- `StructuredCandidateRuntime` MUST remain provider-neutral and MUST NOT expose
+  provider/model selection, credentials, process paths, Tool schemas, retry
+  controls, or authority objects.
+- The Phase 8C.2B coordinator MUST invoke the candidate runtime at most once;
+  repair prompts, model retry, fallback models, Agent retry, and automatic
+  second requests remain forbidden.
+- The reviewed model executor MUST use the frozen provider/model route with
+  explicit zero Tools and no AgentLoop, ToolRuntime, EDA, or Hardware plugin.
+- Complete model text MUST pass the dedicated strict stream collector and raw
+  `MODEL_CANDIDATE_RAW` Egress before it can enter a private receipt. Any
+  reasoning or Tool event MUST discard buffered text and fail closed.
+- `harness-publication-bridge/v1` MUST remain integration-only. Its receipts
+  are untrusted transport claims and MUST NOT become evidence, authorization,
+  engineering truth, Grounding, or Tool authority.
+- Model candidates remain untrusted alias-selection claims. They MUST pass the
+  unchanged strict parser and deterministic Grounding; factual publication
+  MUST still come only from the canonical renderer and pass independent final
+  Egress.
 - Phase 8B.1 workflow ordering MUST remain: design/target validation ->
   cross-reference -> measurement evidence selection -> comparator -> assembler
   -> teaching projection.

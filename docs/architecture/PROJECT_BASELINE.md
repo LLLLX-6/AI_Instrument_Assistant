@@ -1,9 +1,9 @@
 # AI Instrument Assistant — Project Baseline
 
-Baseline date: 2026-09-11
+Baseline date: 2026-09-12
 
-Committed context baseline before the current remediation:
-`eff9a4192096cfca1f5dc6b45204d9b47bfda6dd`
+Committed implementation baseline before Phase 8C.2B:
+`c5866e2`
 
 This document is a concise current-state map. It does not replace canonical
 schemas, accepted ADRs, implementation, tests, or detailed validation records.
@@ -120,7 +120,13 @@ Egress. Phase 8C.2A now implements that deterministic publication boundary. Its
 minimal candidate contains only Host-binding claims and ordered Host-owned
 permission aliases; it contains no factual prose, numeric values, or Tool/action
 fields. The deterministic renderer is the only factual publication source.
-Phase 8C.2B one-shot model integration is current but has not started.
+Phase 8C.2B completes the one-shot model boundary with a provider-neutral
+runtime port, bounded private process bridge, zero-Tool frozen DeepSeek route,
+strict stream collection, raw Egress, strict candidate validation,
+deterministic fallback/rendering, and independent final Egress. One separately
+authorized real request passed approved safety Case B: its Schema-invalid
+candidate was discarded and deterministic fallback was safely published. A
+Schema-valid real-model happy path was not observed.
 
 ## 4. Canonical Contracts
 
@@ -134,6 +140,10 @@ Phase 8C.2B one-shot model integration is current but has not started.
   independent JLCEDA integration wire contract.
 - [`protocols/teaching-claims/v1/`](../../protocols/teaching-claims/v1/README.md)
   defines the minimal Phase 8C.2A structured candidate wire contract.
+- [`protocols/harness-publication-bridge/v1/`](../../protocols/harness-publication-bridge/v1/README.md)
+  is the private integration-only Phase 8C.2B process bridge. Its receipts are
+  transport claims to validate, never evidence, authorization, or engineering
+  truth.
 
 JSON Schema governs individual wire-format structure. Cross-message sequence,
 authentication, correlation, nonce freshness, replay, session ownership, and
@@ -199,6 +209,20 @@ This proves deterministic containment for the recorded real scenarios. It does
 not prove arbitrary autonomous diagnosis, unconstrained natural-language
 grounding, design immutability, or durable production authorization.
 
+Phase 8C.2B additionally validated this bounded publication path:
+
+```text
+recorded/synthetic TeachingDiagnosisContext
+  -> deterministic claim envelope and projection
+  -> one real DeepSeek request with zero Tools
+  -> invalid candidate discarded
+  -> deterministic grounded fallback and canonical renderer
+  -> independent final Egress
+```
+
+This is real-model safety integration PASS, not evidence of a valid-candidate
+happy path.
+
 ## 8. Current Limitations
 
 - Harness compatibility is proven only for the frozen reviewed commit/package
@@ -226,6 +250,12 @@ grounding, design immutability, or durable production authorization.
   authorization, freshness, persistence, signature, trust, or provenance proof.
 - JLCEDA highlight submission can be accepted without programmatic proof of
   the exact visible effect.
+- The Phase 8C.2B private stdio bridge is not authentication, its invocation
+  budget is process-local, and its Node child is not OS-sandboxed.
+- Phase 8C.2B did not observe a Schema-valid real-model candidate. It proved
+  safe rejection and deterministic fallback instead.
+- Phase 8 is complete without engineering inference, hypothesis, causal
+  diagnosis, next-measurement proposals, or autonomous experimentation.
 
 ## 9. Historical Validation Policy
 
@@ -262,6 +292,9 @@ compilation, or behavior tests rather than brittle prose searches.
 - [Phase 8B.3 real validation attempt 1](../validation/phase8b3-real-validation-attempt-1.md)
 - [Phase 8B.3 real validation attempt 2](../validation/phase8b3-real-validation-attempt-2.md)
 - [Phase 8C.1 inference sufficiency policy](phase8c1-inference-sufficiency-teaching-policy.md)
+- [Phase 8C.2B one-shot model integration](phase8c2b-deepseek-structured-candidate-integration.md)
+- [Phase 8C.2B bounded real validation](../validation/phase8c2b-real-deepseek-validation.md)
+- [Phase 8 closeout](phase8-evidence-grounded-teaching-closeout.md)
 - [Harness compatibility](../integrations/deepseek-harness-phase7a-compatibility.md)
 - [Harness hardware adapter ADR](../adr/0004-deepseek-harness-hardware-adapter.md)
 - [JLCEDA implementation constraints](jlceda-v0.2-implementation-constraints.md)

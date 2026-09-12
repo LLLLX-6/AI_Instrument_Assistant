@@ -28,10 +28,9 @@ make a feature pass.
 
 ## Current Baseline
 
-- Current completed implementation phase: Phase 8B.3.
-- Current completed implementation phase: Phase 8C.1.
-- Current completed implementation phase: Phase 8C.2A.
-- Current phase: Phase 8C.2B (implementation has not started).
+- Current completed implementation phase: Phase 8C.2B.
+- Current completed major phase: Phase 8.
+- Next major phase: Phase 9 (planned; not started).
 - Phase ledger: `docs/architecture/PHASE_STATUS.md`.
 - Architecture baseline: `docs/architecture/PROJECT_BASELINE.md`.
 - Frozen rules: `docs/architecture/ARCHITECTURE_INVARIANTS.md`.
@@ -45,8 +44,14 @@ proposals remain blocked. SHA-256 identifiers in this boundary are content
 identities only, never trust or authority. Phase 8C.2A established the reviewed
 deterministic structured publication boundary: Host-owned aliases, a minimal
 non-factual candidate, deterministic Grounding/rendering/fallback, and required
-final Egress. Phase 8C.2B is current but has not started implementation, and no
-prior phase authorizes a model call or further real execution.
+final Egress. Phase 8C.2B completed the one-attempt provider-neutral model port,
+strict private transport, zero-Tool frozen DeepSeek route, raw Egress precheck,
+strict candidate validation, deterministic fallback, canonical rendering, and
+independent final Egress. One separately authorized real request passed the
+approved safety Case B: the Schema-invalid candidate was discarded and the
+deterministic fallback was safely published. A Schema-valid real-model happy
+path was not observed. That authorization is consumed; no further real model,
+EDA, or Hardware execution is authorized. Phase 9 is roadmap only.
 
 ## Implementation Workflow
 
