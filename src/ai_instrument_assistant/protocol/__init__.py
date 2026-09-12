@@ -15,6 +15,7 @@ from .schema_validator import (
     ValidationIssue,
     ValidationResult,
 )
+from .harness_publication_bridge import HarnessPublicationBridge, PrivateBridgeError
 
 __all__ = [
     "FixtureCase",
@@ -30,4 +31,6 @@ __all__ = [
     "ValidatedInstance",
     "ValidationIssue",
     "ValidationResult",
+    "HarnessPublicationBridge",
+    "PrivateBridgeError",
 ]

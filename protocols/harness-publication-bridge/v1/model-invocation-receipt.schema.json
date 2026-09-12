@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-instrument-assistant.local/schemas/harness-publication-bridge/v1/model-invocation-receipt.schema.json",
+  "title": "Private model invocation receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "request_id", "request_digest", "status", "executor_version", "runtime_version", "provider_id", "model_id", "model_request_count", "raw_byte_count", "raw_digest", "raw_precheck", "finish_category", "duration_bucket", "failure_code"],
+  "properties": {
+    "schema_id": {"const": "aia-harness-publication-model-receipt/v1"},
+    "request_id": {"type": "string", "format": "uuid"},
+    "request_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "status": {"enum": ["CANDIDATE", "FAILED", "CANCELLED"]},
+    "executor_version": {"const": "aia-phase8c2b-executor/1"},
+    "runtime_version": {"const": "0.1.3-alpha.1"},
+    "provider_id": {"const": "deepseek-official"},
+    "model_id": {"const": "deepseek-v4-flash"},
+    "model_request_count": {"type": "integer", "minimum": 0, "maximum": 1},
+    "raw_byte_count": {"type": "integer", "minimum": 0, "maximum": 16384},
+    "raw_digest": {"type": ["string", "null"], "pattern": "^sha256:[0-9a-f]{64}$"},
+    "raw_precheck": {"enum": ["NOT_RUN", "SAFE", "REJECTED"]},
+    "finish_category": {"enum": ["NOT_STARTED", "STOP", "TOOL_CALLS", "MAX_TOKENS", "ABORTED", "ERROR", "INCOMPLETE", "PROTOCOL_INVALID"]},
+    "duration_bucket": {"enum": ["LT_1S", "LT_5S", "LT_20S", "LT_45S", "TIMEOUT"]},
+    "failure_code": {"type": ["string", "null"], "enum": [null, "MODEL_PROVIDER_UNAVAILABLE", "MODEL_REQUEST_TIMEOUT", "MODEL_REQUEST_CANCELLED", "MODEL_STREAM_INCOMPLETE", "MODEL_STREAM_PROTOCOL_INVALID", "MODEL_OUTPUT_TOO_LARGE", "MODEL_TOOL_EVENT_FORBIDDEN", "MODEL_REASONING_EVENT_FORBIDDEN", "RAW_MODEL_EGRESS_REJECTED", "MODEL_PROCESS_FAILED"]},
+    "raw_candidate": {"type": "string", "minLength": 1, "maxLength": 16384}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "CANDIDATE"}}}, "then": {"required": ["raw_candidate"], "properties": {"raw_candidate": {"type": "string", "minLength": 1, "maxLength": 16384}, "model_request_count": {"type": "integer", "const": 1}, "raw_byte_count": {"type": "integer", "minimum": 1}, "raw_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "raw_precheck": {"type": "string", "const": "SAFE"}, "finish_category": {"type": "string", "const": "STOP"}, "failure_code": {"type": "null", "const": null}}}},
+    {"if": {"properties": {"status": {"enum": ["FAILED", "CANCELLED"]}}}, "then": {"not": {"required": ["raw_candidate"]}, "properties": {"raw_byte_count": {"type": "integer", "const": 0}, "raw_digest": {"type": "null", "const": null}}}},
+    {"if": {"properties": {"status": {"const": "FAILED"}}}, "then": {"properties": {"failure_code": {"type": "string"}}}},
+    {"if": {"properties": {"status": {"const": "CANCELLED"}}}, "then": {"properties": {"failure_code": {"type": "string", "const": "MODEL_REQUEST_CANCELLED"}}}}
+  ]
+}

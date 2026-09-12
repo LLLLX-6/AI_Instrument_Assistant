@@ -10,7 +10,7 @@ export type EgressViolationCategory =
   | "WAVEFORM_SAMPLE_ARRAY"
   | "OVERSIZED_OUTPUT";
 
-export type EgressSource = "TOOL_ARGUMENTS" | "FINAL_RESPONSE" | "INTERMEDIATE_TEXT";
+export type EgressSource = "TOOL_ARGUMENTS" | "FINAL_RESPONSE" | "INTERMEDIATE_TEXT" | "MODEL_CANDIDATE_RAW";
 
 export interface EgressInspectionInput {
   readonly candidate: string;
@@ -48,4 +48,3 @@ export interface TrustedAgentEgressState {
   readonly policyDecision: PolicyDecision | null;
   readonly evidence: TeachingEvidenceContext | null;
 }
-

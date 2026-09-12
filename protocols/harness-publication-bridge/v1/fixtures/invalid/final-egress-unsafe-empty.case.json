@@ -1,0 +1,1 @@
+{"description":"unsafe receipt requires a category","schema_ref":"https://ai-instrument-assistant.local/schemas/harness-publication-bridge/v1/final-egress-receipt.schema.json","instance":{"schema_id":"aia-harness-publication-egress-receipt/v1","request_id":"22222222-2222-4222-8222-222222222222","status":"UNSAFE","violations":[]}}

@@ -80,40 +80,63 @@ class GovernedPublicationBoundary:
                     failure=PublicationFailureCode.BOUNDED_INTERNAL_FAILURE,
                 )
 
+        return self._publish_plan(
+            context=context, envelope=envelope, projection=projection, goal=goal,
+            correlation_id=correlation_id, candidate_digest=candidate_digest,
+            selected_aliases=selected_aliases, plan=plan, failure=failure,
+        )
+
+    def publish_fallback(
+        self,
+        *,
+        context: TeachingDiagnosisContext,
+        envelope: AllowedClaimEnvelope,
+        goal: TeachingGoal,
+        projection: PublicationProjection,
+        correlation_id: str,
+        reason: str,
+    ) -> PublicationResult:
+        """Enter only the existing deterministic plan, renderer and Egress path."""
+        bounded_reason = reason if isinstance(reason, str) and 0 < len(reason) <= 96 else "BOUNDED_UPSTREAM_FAILURE"
+        candidate_digest = _digest_raw("upstream-failure:" + bounded_reason)
         try:
-            text = self._renderer.render(plan)
-        except PublicationBoundaryError as error:
-            return self._terminal_result(
-                context=context,
-                envelope=envelope,
-                projection=projection,
-                goal=goal,
-                correlation_id=correlation_id,
-                candidate_digest=candidate_digest,
-                selected_aliases=selected_aliases,
-                failure=error.code,
-            )
-        try:
-            egress = self._egress.inspect(text, correlation_id=correlation_id)
+            plan = deterministic_fallback_plan(context, envelope, goal, projection)
         except Exception:
             return self._terminal_result(
-                context=context,
-                envelope=envelope,
-                projection=projection,
-                goal=goal,
-                correlation_id=correlation_id,
-                candidate_digest=candidate_digest,
+                context=context, envelope=envelope, projection=projection, goal=goal,
+                correlation_id=correlation_id, candidate_digest=candidate_digest,
+                selected_aliases=(), failure=bounded_reason,
+            )
+        return self._publish_plan(
+            context=context, envelope=envelope, projection=projection, goal=goal,
+            correlation_id=correlation_id, candidate_digest=candidate_digest,
+            selected_aliases=(), plan=plan, failure=bounded_reason,
+        )
+
+    def _publish_plan(
+        self, *, context, envelope, projection, goal, correlation_id,
+        candidate_digest, selected_aliases, plan, failure,
+    ) -> PublicationResult:
+        try:
+            text = self._renderer.render(plan)
+            egress = self._egress.inspect(text, correlation_id=correlation_id)
+        except PublicationBoundaryError as error:
+            return self._terminal_result(
+                context=context, envelope=envelope, projection=projection, goal=goal,
+                correlation_id=correlation_id, candidate_digest=candidate_digest,
+                selected_aliases=selected_aliases, failure=error.code,
+            )
+        except Exception:
+            return self._terminal_result(
+                context=context, envelope=envelope, projection=projection, goal=goal,
+                correlation_id=correlation_id, candidate_digest=candidate_digest,
                 selected_aliases=selected_aliases,
                 failure=PublicationFailureCode.BOUNDED_INTERNAL_FAILURE,
             )
         if egress.status is EgressStatus.UNSAFE:
             return self._terminal_result(
-                context=context,
-                envelope=envelope,
-                projection=projection,
-                goal=goal,
-                correlation_id=correlation_id,
-                candidate_digest=candidate_digest,
+                context=context, envelope=envelope, projection=projection, goal=goal,
+                correlation_id=correlation_id, candidate_digest=candidate_digest,
                 selected_aliases=selected_aliases,
                 failure=PublicationFailureCode.FINAL_EGRESS_BLOCKED,
             )
@@ -122,18 +145,11 @@ class GovernedPublicationBoundary:
             status=status,
             text=text,
             audit=_audit(
-                correlation_id=correlation_id,
-                goal=goal,
-                envelope=envelope,
-                projection=projection,
-                candidate_digest=candidate_digest,
-                aliases=selected_aliases,
-                plan_id=plan.plan_id,
-                grounding="FALLBACK" if plan.fallback else "PASS",
-                egress="SAFE",
-                fallback=plan.fallback,
-                status=status,
-                failure=failure,
+                correlation_id=correlation_id, goal=goal, envelope=envelope,
+                projection=projection, candidate_digest=candidate_digest,
+                aliases=selected_aliases, plan_id=plan.plan_id,
+                grounding="FALLBACK" if plan.fallback else "PASS", egress="SAFE",
+                fallback=plan.fallback, status=status, failure=failure,
             ),
         )
 
@@ -147,7 +163,7 @@ class GovernedPublicationBoundary:
         correlation_id: str,
         candidate_digest: str,
         selected_aliases: tuple[str, ...],
-        failure: PublicationFailureCode,
+        failure: PublicationFailureCode | str,
     ) -> PublicationResult:
         try:
             terminal = self._egress.inspect(TERMINAL_SAFE_TEXT, correlation_id=correlation_id)
@@ -193,7 +209,7 @@ def _audit(
     egress: str,
     fallback: bool,
     status: str,
-    failure: PublicationFailureCode | None,
+    failure: PublicationFailureCode | str | None,
 ) -> PublicationAuditRecord:
     bounded_correlation = correlation_id.strip()[:96] if isinstance(correlation_id, str) else "unscoped"
     return PublicationAuditRecord(
@@ -210,5 +226,5 @@ def _audit(
         final_egress_decision=egress,
         fallback_used=fallback,
         publication_status=status,
-        failure_code=None if failure is None else failure.value,
+        failure_code=None if failure is None else (failure.value if isinstance(failure, PublicationFailureCode) else failure),
     )

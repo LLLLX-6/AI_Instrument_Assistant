@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-instrument-assistant.local/schemas/harness-publication-bridge/v1/final-egress-request.schema.json",
+  "title": "Private final Egress request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "request_id", "correlation_id", "text"],
+  "properties": {
+    "schema_id": {"const": "aia-harness-publication-egress-request/v1"},
+    "request_id": {"type": "string", "format": "uuid"},
+    "correlation_id": {"type": "string", "minLength": 1, "maxLength": 96},
+    "text": {"type": "string", "minLength": 1, "maxLength": 16384}
+  }
+}

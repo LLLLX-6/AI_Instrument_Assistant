@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-instrument-assistant.local/schemas/harness-publication-bridge/v1/final-egress-receipt.schema.json",
+  "title": "Private final Egress receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "request_id", "status", "violations"],
+  "properties": {
+    "schema_id": {"const": "aia-harness-publication-egress-receipt/v1"},
+    "request_id": {"type": "string", "format": "uuid"},
+    "status": {"enum": ["SAFE", "UNSAFE"]},
+    "violations": {"type": "array", "maxItems": 7, "uniqueItems": true, "items": {"enum": ["LOCAL_PATH", "FULL_INSTRUMENT_SERIAL", "VISA_RESOURCE_IDENTIFIER", "CREDENTIAL_MATERIAL", "RAW_INSTRUMENT_COMMAND", "WAVEFORM_SAMPLE_ARRAY", "OVERSIZED_OUTPUT"]}}
+  },
+  "allOf": [
+    {"if": {"properties": {"status": {"const": "SAFE"}}}, "then": {"properties": {"violations": {"type": "array", "maxItems": 0}}}},
+    {"if": {"properties": {"status": {"const": "UNSAFE"}}}, "then": {"properties": {"violations": {"type": "array", "minItems": 1}}}}
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-instrument-assistant.local/schemas/harness-publication-bridge/v1/model-invocation-request.schema.json",
+  "title": "Private model invocation request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "request_id", "request_digest", "prompt_profile", "projection"],
+  "properties": {
+    "schema_id": {"const": "aia-harness-publication-model-request/v1"},
+    "request_id": {"type": "string", "format": "uuid"},
+    "request_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "prompt_profile": {"const": "AIA_STRUCTURED_CANDIDATE_V1"},
+    "projection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_id", "projection_id", "context_fingerprint", "envelope_id", "goal", "claim_limit", "slots"],
+      "properties": {
+        "schema_id": {"const": "aia-teaching-selection-projection/v1"},
+        "projection_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "context_fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "envelope_id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "goal": {"type": "string", "minLength": 1, "maxLength": 64},
+        "claim_limit": {"const": 12},
+        "slots": {
+          "type": "array", "maxItems": 64,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["permission_ref", "claim_kind", "claim_form", "subject_kind", "source_category", "metric", "quality", "comparison_status", "comparison_reason", "obligations"],
+            "properties": {
+              "permission_ref": {"type": "string", "pattern": "^p[0-9]{3}$"},
+              "claim_kind": {"type": "string", "minLength": 1, "maxLength": 64},
+              "claim_form": {"type": "string", "minLength": 1, "maxLength": 64},
+              "subject_kind": {"type": "string", "minLength": 1, "maxLength": 64},
+              "source_category": {"type": "string", "minLength": 1, "maxLength": 64},
+              "metric": {"type": ["string", "null"], "maxLength": 64},
+              "quality": {"type": ["string", "null"], "maxLength": 32},
+              "comparison_status": {"type": ["string", "null"], "maxLength": 32},
+              "comparison_reason": {"type": ["string", "null"], "maxLength": 64},
+              "obligations": {"type": "array", "maxItems": 16, "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 64}}
+            }
+          }
+        }
+      }
+    }
+  }
+}
