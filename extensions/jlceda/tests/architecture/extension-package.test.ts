@@ -14,7 +14,7 @@ test('extension manifest pins the reviewed engine and static menu allowlist', ()
   const manifest = jsonFile(join(extensionRoot, 'extension.json'));
   assert.deepEqual(manifest.engines, { eda: '^3.2.0' });
   assert.equal(manifest.entry, './dist/index');
-  assert.deepEqual(manifest.activationEvents, {});
+  assert.deepEqual(manifest.activationEvents, { onStartupFinished: true });
 
   const menus = manifest.headerMenus as {
     sch: Array<{ title: string; menuItems: Array<{ registerFn: string }> }>;
@@ -23,10 +23,18 @@ test('extension manifest pins the reviewed engine and static menu allowlist', ()
   assert.deepEqual(
     menus.sch[0].menuItems.map((item) => item.registerFn),
     [
-      'configureBackendConnection',
-      'inspectCurrentDocument',
-      'inspectSelection',
-      'highlightSelection',
+      'showStatus',
+      'refreshDesignContext',
+      'resolveCurrentSelection',
+      'showCurrentTarget',
+      'showPendingAction',
+      'showEvidenceSummary',
+      'highlightTarget',
+      'cancelWorkflow',
+      'configureConnection',
+      'configureProviderConnection',
+      'disconnect',
+      'reconnect',
       'about',
     ],
   );

@@ -11,6 +11,7 @@ from .errors import (
     ChallengeRejectedError,
     FrontendConnectionError,
     InvalidEventCursorError,
+    InteractiveCapabilityUnavailableError,
     StaleWorkflowRevisionError,
     WorkflowNotFoundError,
 )
@@ -36,13 +37,23 @@ from .models import (
     OperationPlan,
     PhysicalSetupBinding,
     SemanticOperation,
-    TrustedDecisionIssuer,
+    DesignSelectionDecisionIssuer,
+    OperationAuthorizationIssuer,
+    PhysicalConfirmationIssuer,
     ValidatedDesignSelectionRequest,
     ValidatedOperationAuthorizationRequest,
     ValidatedPhysicalSetupRequest,
     WorkflowSession,
+    WorkflowActionGuard,
     WorkflowState,
 )
+from ..services.design_selection_disambiguation import (
+    DesignSelectionCandidateSetBinding,
+    TrustedDesignSelectionResolution,
+    TrustedDesignSelectionResolutionStatus,
+    candidate_choice_tokens,
+)
+from ...domain.eda.models import ProbeTarget, SelectionContext
 from .state_machine import transition_allowed
 from .status import ProductErrorCode, ProductStatus, project_product_status
 
@@ -59,7 +70,9 @@ class ApplicationHost:
     def __init__(
         self,
         *,
-        trusted_issuer: TrustedDecisionIssuer,
+        design_selection_issuer: DesignSelectionDecisionIssuer,
+        operation_authorization_issuer: OperationAuthorizationIssuer | None = None,
+        physical_confirmation_issuer: PhysicalConfirmationIssuer | None = None,
         clock: Callable[[], datetime] | None = None,
         event_retention: int = 1024,
         runtime_lifecycle: RuntimeLifecyclePort | None = None,
@@ -69,7 +82,9 @@ class ApplicationHost:
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         now = self._clock()
         self._application_session = ApplicationSession(uuid4(), now)
-        self._trusted_issuer = trusted_issuer
+        self._design_selection_issuer = design_selection_issuer
+        self._operation_authorization_issuer = operation_authorization_issuer
+        self._physical_confirmation_issuer = physical_confirmation_issuer
         self._runtime_lifecycle = runtime_lifecycle
         self._workflows: dict[UUID, WorkflowSession] = {}
         self._connections: dict[UUID, FrontendConnection] = {}
@@ -190,10 +205,26 @@ class ApplicationHost:
             return workflow
 
     def get_workflow(self, workflow_id: UUID) -> WorkflowSession:
-        try:
-            return self._workflows[workflow_id]
-        except (KeyError, TypeError) as error:
-            raise WorkflowNotFoundError("workflow was not found") from error
+        with self._lock:
+            try:
+                return self._workflows[workflow_id]
+            except (KeyError, TypeError) as error:
+                raise WorkflowNotFoundError("workflow was not found") from error
+
+    def capture_workflow_guard(
+        self,
+        workflow_id: UUID,
+        expected_revision: int,
+    ) -> WorkflowActionGuard:
+        """Capture async-action coherence under the Host lock, without doing I/O."""
+        with self._lock:
+            workflow = self._cas(workflow_id, expected_revision)
+            return WorkflowActionGuard(
+                application_generation=self._application_session.generation,
+                workflow_id=workflow.workflow_id,
+                workflow_revision=workflow.revision,
+                request_correlation_id=workflow.request_correlation_id,
+            )
 
     def get_connection(self, connection_id: UUID) -> FrontendConnection:
         return self._active_connection(connection_id)
@@ -251,7 +282,10 @@ class ApplicationHost:
         workflow_id: UUID,
         expected_revision: int,
         observation_identity: str,
-        candidate_set_identity: str | None,
+        *,
+        selection_context: SelectionContext,
+        candidate_binding: DesignSelectionCandidateSetBinding | None,
+        probe_target: ProbeTarget | None,
     ) -> WorkflowSession:
         """Record only bounded observation references and invalidate dependent trust."""
         with self._lock:
@@ -263,9 +297,21 @@ class ApplicationHost:
                 revision=workflow.revision + 1,
                 state=WorkflowState.DESIGN_CONTEXT_READY,
                 design_observation_ref=observation_identity,
-                candidate_set_identity=candidate_set_identity,
+                candidate_set_identity=(
+                    None if candidate_binding is None
+                    else candidate_binding.candidate_set_fingerprint
+                ),
+                design_selection_context=(
+                    selection_context if candidate_binding is not None else None
+                ),
+                design_selection_binding=candidate_binding,
+                trusted_design_selection=None,
+                probe_target=probe_target,
                 trusted_design_decision_ref=None,
-                probe_target_ref=None,
+                probe_target_ref=(
+                    None if probe_target is None
+                    else f"probe-target:{probe_target.target_id}"
+                ),
                 operation_plan=None,
                 pending_challenge_ids=(),
                 operation_scope_ref=None,
@@ -275,20 +321,117 @@ class ApplicationHost:
             self._save(updated, EventType.DESIGN_OBSERVATION_CHANGED, "design_observation_changed", "Design observation was refreshed.")
             return updated
 
+    def commit_guarded_design_observation(
+        self,
+        guard: WorkflowActionGuard,
+        observation_identity: str,
+        *,
+        selection_context: SelectionContext,
+        candidate_binding: DesignSelectionCandidateSetBinding | None,
+        probe_target: ProbeTarget | None,
+    ) -> WorkflowSession | None:
+        """Commit only if generation, workflow, revision, and request are unchanged."""
+        if not isinstance(guard, WorkflowActionGuard):
+            raise TypeError("guard must be WorkflowActionGuard")
+        with self._lock:
+            if self._application_session.generation != guard.application_generation:
+                return None
+            workflow = self._workflows.get(guard.workflow_id)
+            if (
+                workflow is None
+                or workflow.revision != guard.workflow_revision
+                or workflow.request_correlation_id != guard.request_correlation_id
+            ):
+                return None
+            transition_allowed(
+                workflow.state,
+                WorkflowState.DESIGN_CONTEXT_READY,
+                raise_on_error=True,
+            )
+            self._withdraw(workflow.pending_challenge_ids)
+            updated = replace(
+                workflow,
+                revision=workflow.revision + 1,
+                state=WorkflowState.DESIGN_CONTEXT_READY,
+                design_observation_ref=observation_identity,
+                candidate_set_identity=(
+                    None if candidate_binding is None
+                    else candidate_binding.candidate_set_fingerprint
+                ),
+                design_selection_context=(
+                    selection_context if candidate_binding is not None else None
+                ),
+                design_selection_binding=candidate_binding,
+                trusted_design_selection=None,
+                probe_target=probe_target,
+                trusted_design_decision_ref=None,
+                probe_target_ref=(
+                    None if probe_target is None
+                    else f"probe-target:{probe_target.target_id}"
+                ),
+                operation_plan=None,
+                pending_challenge_ids=(),
+                operation_scope_ref=None,
+                remaining_budget=(),
+                physical_confirmation_ref=None,
+            )
+            self._save(
+                updated,
+                EventType.DESIGN_OBSERVATION_CHANGED,
+                "design_observation_changed",
+                "Design observation was refreshed.",
+            )
+            return updated
+
+    def fail_guarded_workflow(
+        self,
+        guard: WorkflowActionGuard,
+        *,
+        code: str,
+        message: str,
+    ) -> WorkflowSession | None:
+        """Fail only the still-current workflow with bounded application text."""
+        if not isinstance(guard, WorkflowActionGuard):
+            raise TypeError("guard must be WorkflowActionGuard")
+        with self._lock:
+            if self._application_session.generation != guard.application_generation:
+                return None
+            workflow = self._workflows.get(guard.workflow_id)
+            if (
+                workflow is None
+                or workflow.revision != guard.workflow_revision
+                or workflow.request_correlation_id != guard.request_correlation_id
+            ):
+                return None
+            transition_allowed(workflow.state, WorkflowState.FAILED, raise_on_error=True)
+            self._withdraw(workflow.pending_challenge_ids)
+            updated = replace(
+                workflow,
+                revision=workflow.revision + 1,
+                state=WorkflowState.FAILED,
+                pending_challenge_ids=(),
+            )
+            self._save(updated, EventType.WORKFLOW_FAILED, code, message)
+            return updated
+
     def request_design_selection(
         self,
         workflow_id: UUID,
         expected_revision: int,
-        observation_identity: str,
-        candidate_set_identity: str,
-        candidate_identities: tuple[str, ...],
         allowed_frontend: FrontendKind,
         ttl: timedelta,
     ) -> Challenge:
+        workflow = self._cas(workflow_id, expected_revision)
+        typed_binding = workflow.design_selection_binding
+        if typed_binding is None or workflow.design_selection_context is None:
+            raise ChallengeRejectedError("typed design selection is unavailable")
+        candidate_identities = tuple(
+            token for token, _identity in candidate_choice_tokens(typed_binding)
+        )
         binding = DesignSelectionBinding(
-            observation_identity,
-            candidate_set_identity,
-            tuple(candidate_identities),
+            workflow.design_observation_ref,
+            typed_binding.candidate_set_fingerprint,
+            candidate_identities,
         )
         if len(binding.allowed_candidate_identities) < 2 or len(set(binding.allowed_candidate_identities)) != len(binding.allowed_candidate_identities):
             raise ValueError("design-selection challenge requires unique ambiguous candidates")
@@ -321,22 +464,39 @@ class ApplicationHost:
                 raise ChallengeRejectedError("candidate set is stale")
             if candidate_identity not in binding.allowed_candidate_identities:
                 raise ChallengeRejectedError("candidate was not offered")
+            typed_binding = workflow.design_selection_binding
+            selection_context = workflow.design_selection_context
+            if typed_binding is None or selection_context is None:
+                raise ChallengeRejectedError("typed design selection is unavailable")
+            choice_map = dict(candidate_choice_tokens(typed_binding))
+            selected_candidate = choice_map.get(candidate_identity)
+            if selected_candidate is None:
+                raise ChallengeRejectedError("candidate was not offered")
             self._consume(challenge)
             self._audit_action(workflow, "challenge_answer_validated:design_selection")
-            reference = self._trusted_issuer.issue_design_selection(
+            resolution = self._design_selection_issuer.issue_design_selection(
                 ValidatedDesignSelectionRequest(
                     workflow.workflow_id, workflow.request_correlation_id,
-                    binding, candidate_identity, self._clock(),
+                    selection_context, typed_binding, selected_candidate, self._clock(),
                 )
             )
+            if (
+                not isinstance(resolution, TrustedDesignSelectionResolution)
+                or resolution.status is not TrustedDesignSelectionResolutionStatus.RESOLVED
+                or resolution.decision is None
+                or resolution.probe_target is None
+            ):
+                raise ChallengeRejectedError("trusted design selection was not resolved")
             updated = replace(
                 workflow,
                 revision=workflow.revision + 1,
                 state=WorkflowState.TARGET_RESOLVED,
                 design_observation_ref=binding.observation_identity,
                 candidate_set_identity=binding.candidate_set_identity,
-                trusted_design_decision_ref=reference.decision_ref,
-                probe_target_ref=reference.probe_target_ref,
+                trusted_design_selection=resolution,
+                probe_target=resolution.probe_target,
+                trusted_design_decision_ref=f"design-decision:{resolution.decision.decision_id}",
+                probe_target_ref=f"probe-target:{resolution.probe_target.target_id}",
                 pending_challenge_ids=(),
             )
             self._save(updated, EventType.PROBE_TARGET_READY, "probe_target_ready", "Design target was resolved.")
@@ -409,6 +569,10 @@ class ApplicationHost:
         allowed_frontend: FrontendKind,
         ttl: timedelta,
     ) -> Challenge:
+        if self._operation_authorization_issuer is None:
+            raise InteractiveCapabilityUnavailableError(
+                "operation authorization is deferred to Harness"
+            )
         workflow = self._cas(workflow_id, expected_revision)
         if workflow.operation_plan is None:
             raise ValueError("operation plan is required")
@@ -445,7 +609,11 @@ class ApplicationHost:
                 updated = replace(workflow, revision=workflow.revision + 1, state=WorkflowState.CANCELLED, pending_challenge_ids=())
                 self._save(updated, EventType.WORKFLOW_CANCELLED, "cancelled", "Operation authorization was declined.")
                 return updated
-            reference = self._trusted_issuer.issue_operation_authorization(
+            if self._operation_authorization_issuer is None:
+                raise InteractiveCapabilityUnavailableError(
+                    "operation authorization is deferred to Harness"
+                )
+            reference = self._operation_authorization_issuer.issue_operation_authorization(
                 ValidatedOperationAuthorizationRequest(
                     workflow.workflow_id, workflow.request_correlation_id,
                     binding, self._clock(),
@@ -469,6 +637,10 @@ class ApplicationHost:
         maximum_expected_voltage_v: float,
         ttl: timedelta,
     ) -> Challenge:
+        if self._physical_confirmation_issuer is None:
+            raise InteractiveCapabilityUnavailableError(
+                "physical confirmation is deferred to Harness"
+            )
         workflow = self._cas(workflow_id, expected_revision)
         plan = workflow.operation_plan
         if workflow.state is not WorkflowState.WAITING_FOR_PHYSICAL_CONFIRMATION or plan is None or plan.channel is None:
@@ -523,7 +695,11 @@ class ApplicationHost:
                 raise ChallengeRejectedError("physical confirmation does not match the current plan")
             self._consume(challenge)
             self._audit_action(workflow, "challenge_answer_validated:physical_setup")
-            reference = self._trusted_issuer.issue_physical_confirmation(
+            if self._physical_confirmation_issuer is None:
+                raise InteractiveCapabilityUnavailableError(
+                    "physical confirmation is deferred to Harness"
+                )
+            reference = self._physical_confirmation_issuer.issue_physical_confirmation(
                 ValidatedPhysicalSetupRequest(
                     workflow.workflow_id, workflow.request_correlation_id,
                     binding, self._clock(),
@@ -561,20 +737,33 @@ class ApplicationHost:
                 or cursor > current
             ):
                 raise InvalidEventCursorError("event cursor is outside the retained range")
-            pending = tuple(
-                challenge for challenge in self._challenges.values()
-                if challenge.challenge_id not in self._consumed_challenges
-                and challenge.challenge_id not in self._withdrawn_challenges
-                and challenge.application_generation == self._application_session.generation
-                and challenge.allowed_frontend_kind is connection.frontend_kind
-                and challenge.expires_at > self._clock()
-            )
-            snapshot = ApplicationSnapshot(
-                self._application_session, current,
-                tuple(self._workflows.values()), pending,
-            )
+            snapshot = self._snapshot_for(connection, current)
             events = tuple(event for event in self._events if event.cursor > cursor)
             return SubscriptionBatch(snapshot, events, current)
+
+    def current_snapshot(self, connection_id: UUID) -> ApplicationSnapshot:
+        """Return current state without requiring a retained historical cursor."""
+        with self._lock:
+            connection = self._active_connection(connection_id)
+            return self._snapshot_for(connection, self._next_event_cursor)
+
+    def _snapshot_for(
+        self,
+        connection: FrontendConnection,
+        current: int,
+    ) -> ApplicationSnapshot:
+        pending = tuple(
+            challenge for challenge in self._challenges.values()
+            if challenge.challenge_id not in self._consumed_challenges
+            and challenge.challenge_id not in self._withdrawn_challenges
+            and challenge.application_generation == self._application_session.generation
+            and challenge.allowed_frontend_kind is connection.frontend_kind
+            and challenge.expires_at > self._clock()
+        )
+        return ApplicationSnapshot(
+            self._application_session, current,
+            tuple(self._workflows.values()), pending,
+        )
 
     def _issue_challenge(
         self,

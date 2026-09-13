@@ -34,10 +34,10 @@ Status meanings:
 | Phase 8C.2A | **COMPLETE** | `c5866e2` | Minimal structured candidate protocol, Host-owned projection and aliases, strict parser, deterministic engineering Grounding, canonical English renderer, fail-whole fallback, final-Egress port, and bounded audit are reviewed and complete without any model or external execution. |
 | Phase 8C.2B | **COMPLETE** | `e53fc98` | One-attempt provider-neutral orchestration, private bounded process bridge, frozen zero-Tool `LlmRuntime.stream()` route, strict stream/Egress/parser/Grounding/renderer boundaries, deterministic fallback, and independent final Egress. One authorized real request passed safety Case B; no Schema-valid real-model candidate was observed. |
 | Phase 8 | **COMPLETE** | This closeout commit | Trusted real design and Hardware evidence can feed deterministic engineering evidence and bounded teaching publication while an untrusted model has no authority over facts, comparison semantics, inference, diagnosis, or execution. |
-| Phase 8.5 | **CURRENT** | Phase 8.5A closeout commit | Interactive Productization architecture is approved. Phase 8.5A is complete; the bounded Phase 8.5B.0 real JLCEDA compatibility spike is current. |
+| Phase 8.5 | **LIMITED INTEGRATION** | Phase 8.5A closeout commit | Phase 8.5A is complete. Phase 8.5B is CLOSED FOR NOW / LIMITED INTEGRATION; Phase 8.5C remains planned and has not started. |
 | Phase 8.5A | **COMPLETE** | This closeout commit | Authoritative Python Host, finite workflow/CAS, one-time Challenges, additive `aia-interactive/v1`, reconnect/status/cancellation, fake frontends, lifecycle/bootstrap seams, and offline tests. No permanent UI or real external runtime. |
-| Phase 8.5B | **CURRENT / COMPATIBILITY SPIKE** | Uncommitted spike follows 8.5A | Phase 8.5B.0 may validate real JLCEDA UI and transport compatibility only. The full product surface has not started. |
-| Phase 8.5C | **PLANNED / NOT STARTED** | None | Frozen-Harness conversational interaction surface after 8.5A review. |
+| Phase 8.5B | **CLOSED FOR NOW / LIMITED INTEGRATION** | Uncommitted implementation follows `d5ce8f8` | Attempts 1–4 remain historical NOT PASS. Real diagnostics proved the canonical object API works in a stable Provider context, while ID reconstruction is lossy (2 selected IDs resolved to 1 primitive). Version 0.2.26 retains safe bounded stabilization, but reliable automatic current UI-selection capture remains host-state-sensitive. Automatic candidate binding, trusted selection, and `ProbeTarget` derivation that depend on it are deferred. No further real run is authorized. |
+| Phase 8.5C | **PLANNED / NOT STARTED** | None | Harness-owned operation authorization, physical confirmation, hardware workflow, and teaching interaction surface. |
 | Phase 8.5D | **PLANNED / NOT STARTED** | None | Separately authorized real interactive E2E only after 8.5A-C closeout. |
 | Phase 9 | **PLANNED / NOT STARTED** | None | Guided Engineering Reasoning & Diagnosis roadmap only: proposal-only next measurement, reviewed inference rules, structured hypotheses, causal-diagnosis policy, then human-authorized iteration. |
 | Phase 10 | **PLANNED** | None | **Release & Deployment Hardening**: installer, signing, updater, durable operational state, production observability, OS sandboxing, packaging/distribution, and release engineering. Core interactive UX belongs to Phase 8.5. |
@@ -126,12 +126,38 @@ action. See
 and
 [Phase 8.5A Application Host & Runtime Lifecycle](phase8_5a-application-host-runtime.md).
 
-## Current Intermediate Phase: 8.5B.0 — JLCEDA Compatibility Spike
+## Phase 8.5B — Closed for Now / Limited Integration
 
-Phase 8.5B.0 is a focused real JLCEDA UI and transport compatibility spike.
-It may perform bounded read/UI operations only. The full Phase 8.5B product
-surface has not started. Hardware, VISA, measurement, DeepSeek, arbitrary
-JavaScript, raw EDA dispatch, and EDA design mutation remain prohibited.
+Phase 8.5B.0 is reviewed PASS and freezes UI-B `OFFICIAL_DIALOG_FALLBACK` plus
+Transport-C `SEPARATE_INTERACTIVE_LISTENER_REQUIRED`. Phase 8.5B.1 now wires
+the real production composition from the interactive listener through the Host
+and provider-neutral EDA application path to the separate AIA-JLCEDA v1
+gateway. Async provider I/O is lock-free and guarded against stale return.
+Hardware, VISA, measurement, DeepSeek, arbitrary JavaScript, raw EDA dispatch,
+and EDA design mutation remain prohibited. The production authority repair
+composes the existing Python trusted design-selection factory only;
+Harness-owned operation Scope and physical confirmation remain deferred to
+Phase 8.5C. The first real smoke proved both authenticated connections and two
+Host-side observations but remains historical NOT PASS. The offline runtime-
+coordination repair is approved. Separately authorized Attempt 2 proved the
+explicit Status request reached Python and a reply was sent, but client-side
+completion still failed, so it is also NOT PASS. Both authorizations are
+consumed. The offline client-completion repair passed review, but separately
+authorized Attempt 3 stopped at Gate A because the explicit Status action did
+not dispatch a snapshot request to the server. Attempts 1, 2, and 3 are
+consumed; any later real JLCEDA read/UI smoke requires a separate review and
+fresh explicit approval.
+
+Phase 8.5B is now **CLOSED FOR NOW / LIMITED INTEGRATION**. The retained
+surface includes extension activation, Provider and Interactive connections,
+ApplicationHost integration, the private cross-VM MessageBus command bridge,
+Status, manual Refresh, read-only EDA integration, and the existing security,
+authority, and bounded stabilization controls. Reliable automatic current
+JLCEDA UI-selection capture remains host-state-sensitive in the reviewed 3.x
+runtime and is explicitly deferred. Consequently, typed candidate binding
+originating from that capture, trusted design selection depending on it, and
+automatic `ProbeTarget` derivation are also deferred. This disposition does
+not alter Attempts 1–4 or any later compatibility evidence.
 
 ## Next Major Phase: 9 — Planned / Not Started
 
@@ -163,6 +189,16 @@ approved at that time.
 - [Phase 8 closeout](phase8-evidence-grounded-teaching-closeout.md)
 - [Phase 8.5 Interactive Productization](phase8_5-interactive-productization.md)
 - [Phase 8.5A Application Host & Runtime Lifecycle](phase8_5a-application-host-runtime.md)
+- [Phase 8.5B JLCEDA interaction surface](phase8_5b-jlceda-interaction-surface.md)
+- [Phase 8.5B.1 runtime composition remediation](phase8_5b1-runtime-composition-remediation.md)
+- [Phase 8.5B runtime coordination repair](phase8_5b2-interactive-runtime-coordination-repair.md)
+- [Phase 8.5B real JLCEDA smoke Attempt 2](../validation/phase8_5b-real-jlceda-design-smoke-attempt-2.md)
+- [Phase 8.5B client completion repair](phase8_5b3-client-completion-boundary-repair.md)
+- [Phase 8.5B real JLCEDA smoke Attempt 3](../validation/phase8_5b-real-jlceda-design-smoke-attempt-3.md)
+- [Phase 8.5B menu runtime bridge](phase8_5b4-jlceda-menu-runtime-bridge.md)
+- [Phase 8.5B real JLCEDA smoke Attempt 4](../validation/phase8_5b-real-jlceda-design-smoke-attempt-4.md)
+- [Phase 8.5B selection stabilization repair](phase8_5b5-selection-stabilization-repair.md)
+- [Phase 8.5B.0 compatibility spike](../validation/phase8_5b0-jlceda-ui-compatibility-spike.md)
 - [Evidence v1 contract](../../protocols/evidence/v1/README.md)
 - [Hardware Tool schema](../../protocols/hardware/v1/hardware-tool.schema.json)
 - [Harness compatibility](../integrations/deepseek-harness-phase7a-compatibility.md)

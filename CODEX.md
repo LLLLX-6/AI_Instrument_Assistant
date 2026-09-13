@@ -28,9 +28,10 @@ make a feature pass.
 
 ## Current Baseline
 
-- Current completed implementation phase: Phase 8.5A.
+- Current completed implementation phase: Phase 8.5A; Phase 8.5B is closed
+  for now as a limited integration. Attempts 1–4 remain historical NOT PASS.
 - Current completed major phase: Phase 8.
-- Current intermediate phase: Phase 8.5B.0 compatibility spike.
+- Current intermediate phase: Phase 8.5B CLOSED FOR NOW / LIMITED INTEGRATION.
 - Next major phase: Phase 9 (planned; not started).
 - Phase ledger: `docs/architecture/PHASE_STATUS.md`.
 - Architecture baseline: `docs/architecture/PROJECT_BASELINE.md`.
@@ -39,10 +40,41 @@ make a feature pass.
 Phase 8.5A established the reviewed authoritative Python Application Host,
 generation-scoped sessions, revisioned workflow state, one-time Challenges,
 the additive `aia-interactive/v1` frontend contract, reconnect/cancellation,
-safe status, and runtime/bootstrap lifecycle seams. Phase 8.5B.0 is a bounded
-real JLCEDA UI and transport compatibility spike only; full Phase 8.5B product
-UI has not started. No Hardware, VISA, measurement, EDA mutation, or model
-action is authorized by this status.
+safe status, and runtime/bootstrap lifecycle seams. Phase 8.5B.0 is reviewed
+PASS with official-Dialog UI and separate-listener dispositions. The Phase
+8.5B JLCEDA interaction surface now has a minimal production composition from
+the interactive listener through the authoritative Host and provider-neutral
+EDA path to the separate AIA-JLCEDA provider boundary. Async EDA I/O occurs
+outside the Host mutation lock and stale results fail closed. The first real
+smoke proved both authenticated connections and real Host-side observations,
+but ended NOT PASS on interactive runtime coordination. The approved offline
+repair separates snapshot servicing from pending EDA commands and
+generation-binds selection callbacks. Attempt 2 proved that an explicit Status
+request reaches Python snapshot construction and reply send, but the JLCEDA
+Status action still fails before successful client completion. The offline
+client repair now completes a same-session explicit waiter before
+calling non-authoritative snapshot observers and adds bounded completion-stage
+diagnostics. Separately authorized Attempt 3 used v0.2.17 and stopped at Gate
+A: the server sent one initial snapshot, but the explicit Status action
+produced zero server-side snapshot requests and replies. Subsequent bounded
+real diagnostics proved that exported menu functions may run in a different
+VM/module context from activation, while private `SYS_MessageBus` reaches the
+connected activation-owned Runtime. The uncommitted 0.2.23 repair makes menu
+exports thin stubs over one closed private command bridge; offline production
+Status and design-observe loopbacks pass. Attempt 4 then bounded the remaining
+failure to selection observation. Provider-context diagnostics proved the
+canonical object read succeeds when stable and that ID reconstruction is
+lossy. The uncommitted 0.2.26 repair removes the competing presentation read
+and adds one bounded read-only stabilization retry. Phase 8.5B is now closed
+for now as a limited integration: reliable automatic JLCEDA current-selection
+capture remains deferred because it is host-state-sensitive in the reviewed
+JLCEDA 3.x runtime. Typed candidate binding from that UI capture, trusted
+design selection depending on it, and automatic `ProbeTarget` derivation from
+it are likewise deferred. No further real run is authorized. Python production
+authority is limited to trusted design selection; operation Scope and physical
+confirmation remain deferred to their existing Harness TypeScript factories
+in Phase 8.5C. No further retry or real JLCEDA, Hardware, VISA, measurement, EDA
+mutation, or model action is authorized by this status.
 
 Phase 8B.3 completed its bounded real JLCEDA plus real DS1102Z-E validation.
 Phase 8C.1 established the reviewed deterministic claim-policy boundary. It

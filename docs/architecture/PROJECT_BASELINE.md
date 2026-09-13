@@ -57,6 +57,71 @@ JLCEDA official extension (TypeScript)
   -> provider-neutral EDAInterface and EDA domain
 ```
 
+The separately authenticated `aia-interactive/v1` connection links the
+JLCEDA official-Dialog companion to the authoritative Python Application Host.
+Its configurable default is `127.0.0.1:49626`; 49624 remains provider-only and
+49625 remains Hardware-only. The frontend submits bounded commands and exact
+design-selection Challenge answers but creates no trusted decision or execution
+authority.
+The Phase 8.5B.1 production composition routes `design.observe` through an
+async application adapter and provider-neutral `EDAInterface` to the separate
+AIA-JLCEDA v1 gateway. Remote EDA I/O never holds the Host mutation lock; a
+generation, revision, workflow, or request change discards the returning result
+instead of overwriting newer Host state.
+
+The first real Phase 8.5B interaction smoke remains historical NOT PASS even
+though it proved both authenticated connections and two real Host-side
+observations. The approved offline coordination repair keeps one inbound
+consumer while
+servicing authoritative snapshot requests independently of a pending async EDA
+command. The JLCEDA client has an explicit synchronization state, and selection
+callbacks, debounce work, waiters, and connections are generation-bound. A
+separately authorized Attempt 2 proved that one explicit Status request reached
+Python and one reply was sent, but successful TypeScript client completion was
+not observed. Attempt 2 is NOT PASS.
+The offline client-completion repair makes the explicit waiter
+single-session/single-pending, completes it before non-authoritative snapshot
+observers, and separates transport, validation, session, waiter, and
+presentation diagnostics. Its offline architecture review passed. Separately
+authorized Attempt 3 used v0.2.17 and stopped at Gate A: one initial snapshot
+was sent, but the explicit Status action produced zero server-side snapshot
+requests and replies. Phase 8.5B remains real-runtime incomplete, and no
+further real retry is authorized by that record.
+
+Bounded follow-up diagnostics established the root cause: exported JLCEDA menu
+functions may execute in a separate VM/module context, so module-local activation
+state is not a valid menu ownership mechanism. The official private
+`SYS_MessageBus` successfully crossed that boundary to the connected
+activation-owned Runtime. The uncommitted 0.2.23 repair routes a closed set of
+runtime-dependent menu actions through one private command bridge. Service
+registration is restricted to the connected owner, and offline production
+Status plus design-observe loopbacks pass. Attempt 4 preserved that success but
+ended NOT PASS at selection observation. Later Provider-context diagnostics
+proved `getAllSelectedPrimitives()` succeeds for stable selection and that
+ID-based reconstruction is lossy (two selected IDs resolved to one primitive).
+The uncommitted 0.2.26 repair therefore retains the canonical object read,
+removes the competing presentation-only read at the debounce boundary, and
+allows at most one bounded read-only retry after an event-loop stabilization
+turn. Phase 8.5B is **CLOSED FOR NOW / LIMITED INTEGRATION**. Reliable
+automatic current-selection capture remains host-state-sensitive in the
+reviewed JLCEDA 3.x runtime, so it no longer blocks the product roadmap. No
+further real run is authorized under this disposition.
+
+The retained integration capabilities are extension activation, Provider and
+Interactive connections, ApplicationHost integration, the private cross-VM
+MessageBus command bridge, Status, manual Refresh, and read-only EDA access.
+Automatic current-selection capture, typed candidate binding sourced from that
+UI capture, trusted design selection that depends on it, and automatic
+`ProbeTarget` derivation from it are deferred. They may be reconsidered only
+through a later reviewed product requirement and a demonstrably more reliable
+integration mechanism.
+
+Phase 8.5B production authority is deliberately split by runtime. Python
+retains the full typed design-selection candidate binding and delegates an
+exact validated choice to its existing trusted selection factory. Operation
+Scope and physical-confirmation issuance stay in the Harness TypeScript
+runtime and are deferred to Phase 8.5C; JLCEDA does not answer those Challenges.
+
 Only the JLCEDA API adapter may touch official `eda.*` runtime objects. The
 integration exposes read-only document/selection operations and a guarded view
 highlight operation. It has no arbitrary JavaScript execution, raw method
@@ -138,6 +203,8 @@ Schema-valid real-model happy path was not observed.
   defines the independent authenticated Harness-to-Python IPC contract.
 - [`protocols/jlceda/v1/`](../../protocols/jlceda/v1/README.md) defines the
   independent JLCEDA integration wire contract.
+- [`protocols/interactive/v1/`](../../protocols/interactive/v1/README.md)
+  defines the independent unprivileged frontend/Host contract.
 - [`protocols/teaching-claims/v1/`](../../protocols/teaching-claims/v1/README.md)
   defines the minimal Phase 8C.2A structured candidate wire contract.
 - [`protocols/harness-publication-bridge/v1/`](../../protocols/harness-publication-bridge/v1/README.md)
@@ -227,6 +294,10 @@ happy path.
 
 - Harness compatibility is proven only for the frozen reviewed commit/package
   shape above.
+- JLCEDA 3.x current UI-selection capture remains host-state-sensitive despite
+  the bounded stabilization repair. It is not a source of automatic candidate
+  binding, trusted design selection, or `ProbeTarget` derivation in the current
+  limited integration.
 - The `TrustedOperationScope` invocation-budget ledger is process-local.
 - Production dynamic scope issuance, persistence, and recovery are incomplete.
 - In-memory artifact references are scoped to the backend lifetime and are not
@@ -294,6 +365,12 @@ compilation, or behavior tests rather than brittle prose searches.
 - [Phase 8C.1 inference sufficiency policy](phase8c1-inference-sufficiency-teaching-policy.md)
 - [Phase 8C.2B one-shot model integration](phase8c2b-deepseek-structured-candidate-integration.md)
 - [Phase 8C.2B bounded real validation](../validation/phase8c2b-real-deepseek-validation.md)
+- [Phase 8.5B runtime coordination repair](phase8_5b2-interactive-runtime-coordination-repair.md)
+- [Phase 8.5B real JLCEDA smoke Attempt 2](../validation/phase8_5b-real-jlceda-design-smoke-attempt-2.md)
+- [Phase 8.5B client completion repair](phase8_5b3-client-completion-boundary-repair.md)
+- [Phase 8.5B menu runtime bridge](phase8_5b4-jlceda-menu-runtime-bridge.md)
+- [Phase 8.5B selection stabilization repair](phase8_5b5-selection-stabilization-repair.md)
+- [Phase 8.5B real JLCEDA smoke Attempt 4](../validation/phase8_5b-real-jlceda-design-smoke-attempt-4.md)
 - [Phase 8 closeout](phase8-evidence-grounded-teaching-closeout.md)
 - [Harness compatibility](../integrations/deepseek-harness-phase7a-compatibility.md)
 - [Harness hardware adapter ADR](../adr/0004-deepseek-harness-hardware-adapter.md)

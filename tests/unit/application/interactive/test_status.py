@@ -19,7 +19,7 @@ from ai_instrument_assistant.application.interactive import (
     ApplicationHost,
     FrontendKind,
 )
-from tests.support.interactive_fakes import FakeTrustedDecisionIssuer
+from tests.support.interactive_fakes import FakeDecisionAuthorities
 
 
 class ProductStatusTests(unittest.TestCase):
@@ -56,7 +56,7 @@ class ProductStatusTests(unittest.TestCase):
 
     def test_host_status_reflects_connections_without_exposing_authentication(self) -> None:
         host = ApplicationHost(
-            trusted_issuer=FakeTrustedDecisionIssuer(),
+            design_selection_issuer=FakeDecisionAuthorities(),
             clock=lambda: datetime(2026, 9, 12, tzinfo=timezone.utc),
         )
         host.connect_frontend(FrontendKind.HARNESS, "opaque-authenticated-principal")

@@ -13,7 +13,8 @@ from ai_instrument_assistant.application.interactive import (
     WorkflowState,
     HostState,
 )
-from tests.support.interactive_fakes import FakeRuntimeLifecycle, FakeTrustedDecisionIssuer
+from ai_instrument_assistant.adapters.eda.in_memory import InMemoryEDAAdapter
+from tests.support.interactive_fakes import FakeDecisionAuthorities, FakeRuntimeLifecycle
 
 
 NOW = datetime(2026, 9, 12, tzinfo=timezone.utc)
@@ -21,8 +22,13 @@ NOW = datetime(2026, 9, 12, tzinfo=timezone.utc)
 
 class ApplicationHostTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.issuer = FakeTrustedDecisionIssuer()
-        self.host = ApplicationHost(trusted_issuer=self.issuer, clock=lambda: NOW)
+        self.issuer = FakeDecisionAuthorities()
+        self.host = ApplicationHost(
+            design_selection_issuer=self.issuer,
+            operation_authorization_issuer=self.issuer,
+            physical_confirmation_issuer=self.issuer,
+            clock=lambda: NOW,
+        )
 
     def test_one_authoritative_application_session_and_workflow_creation(self) -> None:
         self.assertIs(self.host.application_session, self.host.application_session)
@@ -74,8 +80,12 @@ class ApplicationHostTests(unittest.TestCase):
         flow = self.host.start_workflow("inspect", "request")
         flow = self.host.transition(flow.workflow_id, 0, WorkflowState.OBSERVING_DESIGN)
         observed = self.host.record_design_observation(
-            flow.workflow_id, flow.revision, "sha256:" + "a" * 64,
-            "sha256:" + "b" * 64,
+            flow.workflow_id,
+            flow.revision,
+            "sha256:" + "a" * 64,
+            selection_context=InMemoryEDAAdapter.for_pwm_out_scenario().selection_context,
+            candidate_binding=None,
+            probe_target=None,
         )
         self.assertEqual(observed.state, WorkflowState.DESIGN_CONTEXT_READY)
         self.assertIsNone(observed.trusted_design_decision_ref)
@@ -102,7 +112,7 @@ class ApplicationHostLifecycleTests(unittest.IsolatedAsyncioTestCase):
     async def test_host_owns_shutdown_and_invalidates_ephemeral_frontend_state(self) -> None:
         lifecycle = FakeRuntimeLifecycle()
         host = ApplicationHost(
-            trusted_issuer=FakeTrustedDecisionIssuer(),
+            design_selection_issuer=FakeDecisionAuthorities(),
             clock=lambda: NOW,
             runtime_lifecycle=lifecycle,
         )

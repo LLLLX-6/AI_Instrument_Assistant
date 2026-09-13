@@ -23,3 +23,10 @@ __all__ = [
     "build_hardware_tool_composition",
     "build_real_hardware_tool_composition",
 ]
+from .interactive import (
+    InteractiveHostRuntime,
+    compose_interactive_host,
+    compose_jlceda_interactive_host,
+)
+
+__all__ = [name for name in globals() if not name.startswith("_")]

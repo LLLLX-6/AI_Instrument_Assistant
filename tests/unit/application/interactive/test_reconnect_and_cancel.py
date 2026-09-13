@@ -12,7 +12,10 @@ from ai_instrument_assistant.application.interactive import (
     SemanticOperation,
     WorkflowState,
 )
-from tests.support.interactive_fakes import FakeTrustedDecisionIssuer
+from tests.support.interactive_fakes import (
+    FakeDecisionAuthorities,
+    synthetic_ambiguous_binding,
+)
 
 
 NOW = datetime(2026, 9, 12, tzinfo=timezone.utc)
@@ -20,8 +23,33 @@ NOW = datetime(2026, 9, 12, tzinfo=timezone.utc)
 
 class ReconnectAndCancelTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.issuer = FakeTrustedDecisionIssuer()
-        self.host = ApplicationHost(trusted_issuer=self.issuer, clock=lambda: NOW)
+        self.issuer = FakeDecisionAuthorities()
+        self.host = ApplicationHost(
+            design_selection_issuer=self.issuer,
+            operation_authorization_issuer=self.issuer,
+            physical_confirmation_issuer=self.issuer,
+            clock=lambda: NOW,
+        )
+
+    def _selection_challenge(self, label: str, request: str):
+        flow = self.host.start_workflow(label, request)
+        flow = self.host.transition(flow.workflow_id, 0, WorkflowState.OBSERVING_DESIGN)
+        context, binding, tokens = synthetic_ambiguous_binding(NOW)
+        flow = self.host.record_design_observation(
+            flow.workflow_id,
+            flow.revision,
+            "sha256:" + "a" * 64,
+            selection_context=context,
+            candidate_binding=binding,
+            probe_target=None,
+        )
+        challenge = self.host.request_design_selection(
+            flow.workflow_id,
+            flow.revision,
+            FrontendKind.JLCEDA,
+            timedelta(minutes=5),
+        )
+        return challenge, tokens[0][0]
 
     def test_reconnect_receives_snapshot_before_events_and_grants_no_authority(self) -> None:
         old = self.host.connect_frontend(FrontendKind.HARNESS, "token")
@@ -52,7 +80,9 @@ class ReconnectAndCancelTests(unittest.TestCase):
 
     def test_cursor_older_than_retained_event_window_fails_closed(self) -> None:
         host = ApplicationHost(
-            trusted_issuer=self.issuer,
+            design_selection_issuer=self.issuer,
+            operation_authorization_issuer=self.issuer,
+            physical_confirmation_issuer=self.issuer,
             clock=lambda: NOW,
             event_retention=2,
         )
@@ -66,16 +96,9 @@ class ReconnectAndCancelTests(unittest.TestCase):
 
     def test_cancel_waiting_challenge_withdraws_it_and_has_zero_side_effects(self) -> None:
         connection = self.host.connect_frontend(FrontendKind.JLCEDA, "token")
-        flow = self.host.start_workflow("inspect", "request")
-        flow = self.host.transition(flow.workflow_id, 0, WorkflowState.OBSERVING_DESIGN)
-        flow = self.host.transition(flow.workflow_id, 1, WorkflowState.DESIGN_CONTEXT_READY)
-        challenge = self.host.request_design_selection(
-            flow.workflow_id, 2, "sha256:" + "a" * 64, "sha256:" + "b" * 64,
-            ("candidate:a", "candidate:b"), FrontendKind.JLCEDA,
-            timedelta(minutes=5),
-        )
+        challenge, selected = self._selection_challenge("inspect", "request")
         cancelled = self.host.cancel_workflow(
-            flow.workflow_id, challenge.workflow_revision, "user_cancelled"
+            challenge.workflow_id, challenge.workflow_revision, "user_cancelled"
         )
         self.assertEqual(cancelled.state, WorkflowState.CANCELLED)
         self.assertEqual(cancelled.pending_challenge_ids, ())
@@ -85,23 +108,17 @@ class ReconnectAndCancelTests(unittest.TestCase):
             self.host.answer_design_selection(
                 connection.connection_id, challenge.workflow_id,
                 challenge.workflow_revision, challenge.challenge_id, challenge.nonce,
-                challenge.binding.candidate_set_identity, "candidate:a",
+                challenge.binding.candidate_set_identity, selected,
             )
 
     def test_cancel_waiting_authorization_or_confirmation_never_dispatches(self) -> None:
         jlceda = self.host.connect_frontend(FrontendKind.JLCEDA, "jlceda")
         harness = self.host.connect_frontend(FrontendKind.HARNESS, "harness")
-        flow = self.host.start_workflow("measure", "request")
-        flow = self.host.transition(flow.workflow_id, 0, WorkflowState.OBSERVING_DESIGN)
-        flow = self.host.transition(flow.workflow_id, 1, WorkflowState.DESIGN_CONTEXT_READY)
-        selection = self.host.request_design_selection(
-            flow.workflow_id, 2, "sha256:" + "a" * 64, "sha256:" + "b" * 64,
-            ("candidate:a", "candidate:b"), FrontendKind.JLCEDA, timedelta(minutes=5),
-        )
+        selection, selected = self._selection_challenge("measure", "request")
         flow = self.host.answer_design_selection(
             jlceda.connection_id, selection.workflow_id, selection.workflow_revision,
             selection.challenge_id, selection.nonce, selection.binding.candidate_set_identity,
-            "candidate:a",
+            selected,
         )
         flow = self.host.prepare_measurement_plan(
             flow.workflow_id, flow.revision, flow.probe_target_ref,
@@ -118,17 +135,11 @@ class ReconnectAndCancelTests(unittest.TestCase):
         self.assertEqual(self.issuer.operation_calls, 0)
         self.assertEqual(self.host.execution_dispatch_count, 0)
 
-        flow = self.host.start_workflow("measure-2", "request-2")
-        flow = self.host.transition(flow.workflow_id, 0, WorkflowState.OBSERVING_DESIGN)
-        flow = self.host.transition(flow.workflow_id, 1, WorkflowState.DESIGN_CONTEXT_READY)
-        selection = self.host.request_design_selection(
-            flow.workflow_id, 2, "sha256:" + "c" * 64, "sha256:" + "d" * 64,
-            ("candidate:c", "candidate:d"), FrontendKind.JLCEDA, timedelta(minutes=5),
-        )
+        selection, selected = self._selection_challenge("measure-2", "request-2")
         flow = self.host.answer_design_selection(
             jlceda.connection_id, selection.workflow_id, selection.workflow_revision,
             selection.challenge_id, selection.nonce, selection.binding.candidate_set_identity,
-            "candidate:c",
+            selected,
         )
         flow = self.host.prepare_measurement_plan(
             flow.workflow_id, flow.revision, flow.probe_target_ref,

@@ -2,8 +2,8 @@
   "name": "ai-instrument-assistant",
   "uuid": "a1a5eda000024e5a9000000000000001",
   "displayName": "AI Instrument Assistant",
-  "description": "Read-only EDA runtime validation for normalized instrument-analysis context.",
-  "version": "0.2.10",
+  "description": "Read-only EDA interaction surface for AI Instrument Assistant.",
+  "version": "0.2.26",
   "publisher": "AI Instrument Assistant Project",
   "engines": {
     "eda": "^3.2.0"
@@ -21,7 +21,9 @@
   ],
   "homepage": "",
   "bugs": "",
-  "activationEvents": {},
+  "activationEvents": {
+    "onStartupFinished": true
+  },
   "entry": "./dist/index",
   "dependentExtensions": {},
   "headerMenus": {
@@ -30,26 +32,18 @@
         "id": "AI Instrument Assistant",
         "title": "AI Instrument Assistant",
         "menuItems": [
-          {
-            "id": "Configure Backend Connection",
-            "title": "Configure Backend Connection",
-            "registerFn": "configureBackendConnection"
-          },
-          {
-            "id": "Inspect Current Document",
-            "title": "Inspect Current Document",
-            "registerFn": "inspectCurrentDocument"
-          },
-          {
-            "id": "Inspect Selection",
-            "title": "Inspect Selection",
-            "registerFn": "inspectSelection"
-          },
-          {
-            "id": "Highlight Selection",
-            "title": "Highlight Selection",
-            "registerFn": "highlightSelection"
-          },
+          { "id": "Status", "title": "Status", "registerFn": "showStatus" },
+          { "id": "Refresh Design Context", "title": "Refresh Design Context", "registerFn": "refreshDesignContext" },
+          { "id": "Resolve Current Selection", "title": "Resolve Current Selection", "registerFn": "resolveCurrentSelection" },
+          { "id": "Current Target", "title": "Current Target", "registerFn": "showCurrentTarget" },
+          { "id": "Pending Action", "title": "Pending Action", "registerFn": "showPendingAction" },
+          { "id": "Evidence Summary", "title": "Evidence Summary", "registerFn": "showEvidenceSummary" },
+          { "id": "Highlight Target", "title": "Highlight Target", "registerFn": "highlightTarget" },
+          { "id": "Cancel Workflow", "title": "Cancel Workflow", "registerFn": "cancelWorkflow" },
+          { "id": "Configure Connection", "title": "Configure Connection", "registerFn": "configureConnection" },
+          { "id": "Configure EDA Provider Connection", "title": "Configure EDA Provider Connection", "registerFn": "configureProviderConnection" },
+          { "id": "Disconnect", "title": "Disconnect", "registerFn": "disconnect" },
+          { "id": "Reconnect", "title": "Reconnect", "registerFn": "reconnect" },
           {
             "id": "About",
             "title": "About",

@@ -8,6 +8,14 @@ from enum import StrEnum
 from typing import Protocol
 from uuid import UUID
 
+from ai_instrument_assistant.application.services.design_selection_disambiguation import (
+    DesignSelectionCandidateIdentity,
+    DesignSelectionCandidateSetBinding,
+    TrustedDesignSelectionResolution,
+    TrustedDesignSelectionResolutionStatus,
+)
+from ai_instrument_assistant.domain.eda.models import ProbeTarget, SelectionContext
+
 
 class FrontendKind(StrEnum):
     HARNESS = "HARNESS"
@@ -182,6 +190,10 @@ class WorkflowSession:
     harness_conversation_id: str | None = None
     design_observation_ref: str | None = None
     candidate_set_identity: str | None = None
+    design_selection_context: SelectionContext | None = None
+    design_selection_binding: DesignSelectionCandidateSetBinding | None = None
+    trusted_design_selection: TrustedDesignSelectionResolution | None = None
+    probe_target: ProbeTarget | None = None
     trusted_design_decision_ref: str | None = None
     probe_target_ref: str | None = None
     operation_plan: OperationPlan | None = None
@@ -205,10 +217,57 @@ class WorkflowSession:
             raise ValueError("at most three pending challenges are permitted")
         if not all(isinstance(item, UUID) for item in self.pending_challenge_ids):
             raise TypeError("pending challenge ids must be UUID values")
+        if (self.design_selection_context is None) != (self.design_selection_binding is None):
+            raise ValueError("design selection context and binding must be retained together")
+        if self.design_selection_context is not None:
+            context = self.design_selection_context
+            binding = self.design_selection_binding
+            if not isinstance(context, SelectionContext) or not isinstance(
+                binding, DesignSelectionCandidateSetBinding
+            ):
+                raise TypeError("design selection state must use provider-neutral typed values")
+            if binding.document_ref != context.selection.document_ref:
+                raise ValueError("design selection binding must belong to retained selection")
+            if binding.presented_candidates != context.selection.selected_objects:
+                raise ValueError("design selection binding must preserve exact selected objects")
+            _content_identity(self.design_observation_ref, "design_observation_ref")
+            if self.candidate_set_identity != binding.candidate_set_fingerprint:
+                raise ValueError("candidate set identity must match the retained typed binding")
+        if self.trusted_design_selection is not None:
+            resolution = self.trusted_design_selection
+            if not isinstance(resolution, TrustedDesignSelectionResolution):
+                raise TypeError("trusted design selection must use the reviewed resolution")
+            if resolution.status is not TrustedDesignSelectionResolutionStatus.RESOLVED:
+                raise ValueError("workflow can retain only a resolved trusted design selection")
+            if resolution.provider_selection != self.design_selection_context:
+                raise ValueError("trusted design selection must belong to retained observation")
+            if resolution.candidate_binding != self.design_selection_binding:
+                raise ValueError("trusted design selection binding changed")
+            if resolution.probe_target != self.probe_target:
+                raise ValueError("trusted design selection and probe target differ")
+        elif self.probe_target is not None and self.design_selection_binding is not None:
+            raise ValueError("ambiguous design binding requires trusted resolution")
 
     @property
     def terminal(self) -> bool:
         return self.state.terminal
+
+
+@dataclass(frozen=True, slots=True)
+class WorkflowActionGuard:
+    """Trusted snapshot used to commit one async application action safely."""
+
+    application_generation: UUID
+    workflow_id: UUID
+    workflow_revision: int
+    request_correlation_id: str
+
+    def __post_init__(self) -> None:
+        _uuid(self.application_generation, "application_generation")
+        _uuid(self.workflow_id, "workflow_id")
+        if self.workflow_revision < 0:
+            raise ValueError("workflow_revision must be non-negative")
+        _text(self.request_correlation_id, "request_correlation_id", 256)
 
 
 @dataclass(frozen=True, slots=True)
@@ -305,24 +364,24 @@ class Challenge:
 
 
 @dataclass(frozen=True, slots=True)
-class TrustedDesignSelectionReceipt:
-    """Reference-only outcome from the existing trusted design service."""
-
-    decision_ref: str
-    probe_target_ref: str
-
-    def __post_init__(self) -> None:
-        _text(self.decision_ref, "decision_ref", 192)
-        _text(self.probe_target_ref, "probe_target_ref", 192)
-
-
-@dataclass(frozen=True, slots=True)
 class ValidatedDesignSelectionRequest:
     workflow_id: UUID
     request_correlation_id: str
-    binding: DesignSelectionBinding
-    selected_candidate_identity: str
+    selection_context: SelectionContext
+    candidate_binding: DesignSelectionCandidateSetBinding
+    selected_candidate: DesignSelectionCandidateIdentity
     decided_at: datetime
+
+    def __post_init__(self) -> None:
+        _uuid(self.workflow_id, "workflow_id")
+        _text(self.request_correlation_id, "request_correlation_id", 256)
+        if not isinstance(self.selection_context, SelectionContext):
+            raise TypeError("selection_context must be SelectionContext")
+        if not isinstance(self.candidate_binding, DesignSelectionCandidateSetBinding):
+            raise TypeError("candidate_binding must be DesignSelectionCandidateSetBinding")
+        if not isinstance(self.selected_candidate, DesignSelectionCandidateIdentity):
+            raise TypeError("selected_candidate must be DesignSelectionCandidateIdentity")
+        _aware(self.decided_at, "decided_at")
 
 
 @dataclass(frozen=True, slots=True)
@@ -341,11 +400,23 @@ class ValidatedPhysicalSetupRequest:
     confirmed_at: datetime
 
 
-class TrustedDecisionIssuer(Protocol):
-    """Inward port to existing trusted factories; frontend DTOs never implement it."""
+class DesignSelectionDecisionIssuer(Protocol):
+    """Inward Python authority for an already Host-validated exact selection."""
 
-    def issue_design_selection(self, request: ValidatedDesignSelectionRequest) -> TrustedDesignSelectionReceipt: ...
+    def issue_design_selection(
+        self, request: ValidatedDesignSelectionRequest
+    ) -> TrustedDesignSelectionResolution: ...
+
+
+class OperationAuthorizationIssuer(Protocol):
+    """Optional authority owned by a later product composition."""
+
     def issue_operation_authorization(self, request: ValidatedOperationAuthorizationRequest) -> str: ...
+
+
+class PhysicalConfirmationIssuer(Protocol):
+    """Optional authority owned by a later product composition."""
+
     def issue_physical_confirmation(self, request: ValidatedPhysicalSetupRequest) -> str: ...
 
 

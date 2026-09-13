@@ -21,6 +21,23 @@ MUST and MUST NOT are normative. A conflicting request requires an Architecture
   field or operation contracts.
 - Protocol state, authentication, correlation, nonce, replay, and session rules
   MUST remain separate from single-message Schema validation.
+- AIA-JLCEDA provider transport and `aia-interactive/v1` MUST retain separate
+  credentials, authentication framing, sessions, correlation, and reconnect
+  state. Ports 49624 and 49625 MUST NOT be repurposed for interactive traffic.
+- JLCEDA interaction UI MUST use official bounded Dialog surfaces on the
+  reviewed runtime. It MUST NOT depend on `createDesignPortal`, injected HTML,
+  arbitrary scripts, or frontend-created trust/Hardware authority.
+- Interactive remote application actions MUST propagate async I/O normally.
+  The Application Host mutation lock MUST NOT be held across provider I/O;
+  returning results MUST revalidate application generation, workflow,
+  revision, and request correlation before committing.
+- A JLCEDA-local fresh selection DTO is presentation-only. Authoritative
+  `design.observe` MUST perform a fresh Host-side observation through the
+  provider-neutral EDA application path.
+- A JLCEDA UI-selection event is only an observation trigger. Until a later
+  reviewed integration proves reliable current-selection capture, it MUST NOT
+  create automatic typed candidate binding, trusted design selection, or
+  `ProbeTarget` derivation.
 
 ## 2. Agent Execution Safety
 
@@ -278,6 +295,53 @@ The following categories MUST remain distinct:
 - Phase 8B.1 workflow ordering MUST remain: design/target validation ->
   cross-reference -> measurement evidence selection -> comparator -> assembler
   -> teaching projection.
+
+## 11A. Interactive Production Authority Split
+
+- Phase 8.5B Python production composition MUST issue only trusted design
+  selection through the existing Python factory and full typed candidate-set
+  binding.
+- Display labels, array order, and opaque frontend tokens MUST NOT be used to
+  reconstruct provider-neutral candidate identity.
+- `TrustedOperationScope` and `ProbeSetupConfirmation` production issuance
+  remains owned by the Harness TypeScript runtime and is deferred to Phase
+  8.5C.
+- JLCEDA MUST NOT answer operation-authorization or physical-setup Challenges
+  in Phase 8.5B production mode; it may only direct the user to Harness.
+- This internal authority split MUST NOT alter the frozen wire contracts.
+
+## 11B. Interactive Runtime Coordination
+
+- A live interactive connection MUST have exactly one inbound message
+  consumer, one current session/connection generation, and one correlation
+  table.
+- Authoritative snapshot control traffic MUST remain serviceable while one
+  validated asynchronous EDA command is pending. Remote EDA I/O MUST NOT block
+  the inbound control-message pump.
+- Initial synchronization MUST accept the current-session authoritative
+  snapshot before entering `CONNECTED`; ordinary `CONNECTED` MUST NOT be a
+  prerequisite for that initial snapshot.
+- An explicit snapshot waiter MUST be registered before its outbound request
+  and bound to the current connection attempt and session. It MUST be rejected
+  on disconnect and MUST NOT complete from a later connection generation.
+- Selection listeners, debounce work, and post-read callbacks MUST be bound to
+  the active extension generation. A synchronization-time selection MAY create
+  one current-state refresh latch, never an event-history replay queue.
+
+## 11C. JLCEDA Menu Runtime Compatibility
+
+- Exported JLCEDA menu functions MUST be thin invocation stubs and MUST NOT use
+  module-local activation state as Runtime or Host availability authority.
+- Runtime-dependent menu actions MUST use the single closed private
+  `SYS_MessageBus` command bridge to the connected activation-owned Runtime.
+- Only a Runtime owning an `InteractiveClient` that reached `CONNECTED` may
+  register the service. Registration MUST be idempotent and MUST NOT rely on
+  duplicate-topic precedence or `removePrivateMessageBus()`.
+- The bridge MUST use a static action allowlist and MUST carry no credentials,
+  sessions, raw frames, provider/Host payloads, authority objects, arbitrary
+  methods, callbacks, or executable code.
+- The private bridge grants no design-selection, operation, physical, EDA-write,
+  Hardware, or model authority and MUST NOT create another WebSocket client.
 
 ## 12. Historical Validation Integrity
 

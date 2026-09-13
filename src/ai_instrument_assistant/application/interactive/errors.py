@@ -27,5 +27,9 @@ class FrontendConnectionError(InteractiveApplicationError):
     code = "invalid_command"
 
 
+class InteractiveCapabilityUnavailableError(InteractiveApplicationError):
+    code = "host_unavailable"
+
+
 class InvalidEventCursorError(InteractiveApplicationError):
     code = "invalid_command"

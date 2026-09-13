@@ -1,17 +1,56 @@
 # Phase 8.5 — Interactive Productization Architecture
 
-Status: **ARCHITECTURE APPROVED; 8.5A COMPLETE; 8.5B.0 CURRENT**
+Status: **ARCHITECTURE APPROVED; 8.5A COMPLETE; 8.5B REAL SMOKE ATTEMPT 2 NOT PASS**
 Date: 2026-09-12
-Implementation: **8.5A COMPLETE; 8.5B.0 COMPATIBILITY SPIKE ONLY**
+Implementation: **8.5A COMPLETE; 8.5B OFFLINE COORDINATION REPAIR APPROVED / REAL STATUS COMPLETION BLOCKED**
 
 This document defines how the completed Phase 8 capabilities become a normal
 interactive product without weakening their safety, evidence, or publication
 boundaries. The architecture and bounded Phase 8.5A offline foundation are
-approved. Phase 8.5B.0 is limited to the separately authorized real JLCEDA UI
-and transport compatibility spike. It authorizes no model, instrument, VISA,
-measurement, EDA-write, or other external action. Implementation detail and
-current limitations are recorded in
+approved. Phase 8.5B.0 is reviewed PASS and its findings bound the offline
+Phase 8.5B.1 runtime composition. The coordination repair is approved, but real
+Attempt 2 remains NOT PASS at Status client completion. This status authorizes no model,
+instrument, VISA, measurement, EDA-write, or other external action.
+Implementation detail and current limitations are recorded in
 [Phase 8.5A Application Host & Runtime Lifecycle](phase8_5a-application-host-runtime.md).
+
+### Phase 8.5B.0 runtime compatibility amendment (approved)
+
+Real JLCEDA client `3.2.149.88089769` did not expose
+`SYS_Dialog.createDesignPortal()` at runtime although the frozen type package
+declared it. Official information, confirmation, and select dialogs were
+viable, and selection notification followed by a fresh bounded Adapter read
+was validated. The V1 JLCEDA surface therefore changes from a
+modeless design portal to `OFFICIAL_DIALOG_FALLBACK`; persistent rich
+presentation is deferred to a reviewed Harness/AIA view.
+
+The current 49624 AIA-JLCEDA server is not a path router and Phase 8.5A has no
+interactive socket implementation. A separately authenticated spike listener
+completed a real connection and reconnect. The transport disposition is
+`SEPARATE_INTERACTIVE_LISTENER_REQUIRED`. Phase 8.5B uses a configurable,
+loopback-only endpoint with reviewed default port 49626 and independent
+`aia-interactive-auth/v1` HMAC framing. The port is configuration, not protocol
+identity. The spike's 49625 endpoint and v0 framing are not production contracts.
+Shared process ownership must not merge protocol identity, credentials,
+sessions, negotiation, or authority.
+
+The bounded observations and zero-side-effect counts are recorded in
+[Phase 8.5B.0 Real JLCEDA UI Compatibility Spike](../validation/phase8_5b0-jlceda-ui-compatibility-spike.md).
+The resulting offline implementation is recorded in
+[Phase 8.5B JLCEDA Interaction Surface](phase8_5b-jlceda-interaction-surface.md).
+
+[Phase 8.5B.1 Runtime Composition Remediation](phase8_5b1-runtime-composition-remediation.md).
+
+### Phase 8.5B production authority amendment
+
+Production authority follows the existing runtime locations rather than one
+generic cross-runtime issuer. Python owns trusted design-selection issuance
+through the existing factory and retains the full typed candidate binding in
+Host state. Harness TypeScript owns `TrustedOperationScope` and
+`ProbeSetupConfirmation`; their interactive product paths are deferred to
+Phase 8.5C. JLCEDA therefore resolves design selection but only directs the
+user to Harness for operation authorization or physical confirmation. This
+amendment changes no wire protocol.
 
 ## 1. Decision summary
 
@@ -45,8 +84,8 @@ The proposed delivery sequence is:
 | Phase | Scope | Key result |
 | --- | --- | --- |
 | 8.5A | Application Host and runtime lifecycle | One authoritative workflow state and a bounded frontend command/event boundary |
-| 8.5B | JLCEDA interaction surface | Design observation, disambiguation, target/status display, highlight, and safe confirmation surfaces |
-| 8.5C | Harness interaction surface | Natural-language goals and evidence-grounded publication through the existing governed core |
+| 8.5B | JLCEDA interaction surface | Design observation, trusted disambiguation, target/status display, highlight, cancellation, and connection UX |
+| 8.5C | Harness interaction surface | Operation authorization, physical confirmation, hardware workflow, and evidence-grounded publication through the governed core |
 | 8.5D | Real interactive validation | One separately authorized, user-facing-only E2E with no CLI actions |
 
 This split is preferred over building each frontend independently because the
@@ -72,13 +111,11 @@ The V1 happy path is:
    it create the existing trusted design-selection decision.
 7. The Host derives and displays a provider-neutral `ProbeTarget`; this is not
    a claim that a probe is physically connected.
-8. A measurement request causes the Host to show an exact operation plan. A
-   one-shot UI response may cause the Host to issue a workflow-, request-,
-   operation-, channel-, and budget-bound `TrustedOperationScope`.
-9. For real physical measurement, the Host separately presents the existing
-   physical setup fields. All required acknowledgements must be checked. The
-   Host validates them against the unchanged plan before creating
-   `ProbeSetupConfirmation`.
+8. A measurement request continues in Harness. Its existing TypeScript
+   authority may issue a workflow-, request-, operation-, channel-, and
+   budget-bound `TrustedOperationScope` only after its own validation.
+9. Harness separately presents and validates the existing physical setup
+   fields before its existing factory can create `ProbeSetupConfirmation`.
 10. The Host dispatches only through the existing ordered guards and Hardware
     Tool path. The frontend never invokes the driver or transport.
 11. Measurement and analysis enter the existing evidence workflow. Publication
@@ -321,9 +358,12 @@ HTML, backend-supplied code, raw method name, or EDA mutation. It cannot call
 Hardware or model paths. All `eda.*` use remains in `JlcEdaApiAdapter`.
 
 Selection events are debounce/coalescing hints. The adapter performs a fresh
-bounded read and the Host creates a new observation. Until the event APIs pass
-the 8.5B compatibility spike, manual Refresh remains available. Polling is not
-the default.
+bounded read and the Host creates a new observation. Phase 8.5B is now closed
+for now as a limited integration: current UI-selection capture is
+host-state-sensitive in the reviewed JLCEDA 3.x runtime. Manual Refresh and
+read-only design observation remain available, but automatic UI-selection
+capture and dependent candidate-binding, trusted-selection, and `ProbeTarget`
+paths are deferred. Polling is not the default.
 
 ## 10. Interaction details
 
@@ -533,15 +573,17 @@ Current defaults remain owned by their existing processes:
 
 | Endpoint | Owner | Purpose |
 | --- | --- | --- |
-| `127.0.0.1:49624` | AIA Host/JLCEDA gateway | AIA-JLCEDA v1; proposed path-multiplexed interactive ingress after validation |
+| `127.0.0.1:49624` | AIA Host/JLCEDA gateway | AIA-JLCEDA v1 provider/EDA gateway only |
 | `127.0.0.1:49625` | managed Hardware backend | Harness-Hardware v1, on demand |
+| `127.0.0.1:49626` (configurable) | AIA Application Host | Separate `aia-interactive/v1` frontend listener |
 | `127.0.0.1:3080` | Harness `dsh web` | Harness Web UI default, independently owned |
 
-No new hard-coded port is proposed. The Host performs a single-instance check
-before binding 49624. If the port is held by another process or incompatible
+Port 49626 is a reviewed configurable Windows V1 default, never protocol
+identity. The Host binds explicit `127.0.0.1` and rejects collision with 49624
+or 49625. If the configured port is held by another process or incompatible
 AIA generation, it reports `local_port_in_use`; it never terminates that
-process. A user-selected alternate Host port is saved in protected local
-settings and entered once through the existing JLCEDA Configure Connection UI;
+process. The non-secret port is saved through JLCEDA extension user settings;
+the connection secret remains separate and is never persisted by this UI;
 the Harness Host plugin reads Host-owned local configuration. Longer term, a
 per-user named-pipe bootstrap may remove manual port alignment, but it is not a
 V1 prerequisite and cannot serve the JLCEDA sandbox directly.
@@ -690,7 +732,7 @@ URIs, provider payloads, or rejected model prose.
 - ambiguous candidate rendering and exact hidden identity mapping;
 - candidate-set and snapshot staleness disables/denies old actions;
 - ProbeTarget and observation-only snapshot wording;
-- confirmation form completeness and no local trust-object construction;
+- operation/physical pending actions defer to Harness with zero Challenge answer;
 - sanitized status/evidence display;
 - static API allowlist, dependency boundary, and no design mutation/arbitrary
   execution tests;
@@ -809,10 +851,10 @@ EDA/Hardware/model is required.
 Entry: 8.5A is committed; a focused runtime spike chooses official design
 portal or official dialog fallback without arbitrary scripts.
 Exit: the extension shows connection/design/target/workflow/evidence state,
-performs exact trusted disambiguation and allowed confirmation answers through
-the Host, handles stale/reconnect safely, and retains read-only/static API
-boundaries. Automated fake-runtime tests and separately approved real JLCEDA
-smoke tests pass; Hardware/model remain fake/off.
+performs exact trusted design disambiguation through the Host, defers operation
+and physical authority to Harness, handles stale/reconnect safely, and retains
+read-only/static API boundaries. Automated fake-runtime tests and separately
+approved real JLCEDA smoke tests pass; Hardware/model remain off.
 
 ### Phase 8.5C — Harness interactive surface
 

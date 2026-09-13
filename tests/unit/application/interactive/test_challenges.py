@@ -11,7 +11,10 @@ from ai_instrument_assistant.application.interactive import (
     SemanticOperation,
     WorkflowState,
 )
-from tests.support.interactive_fakes import FakeTrustedDecisionIssuer
+from tests.support.interactive_fakes import (
+    FakeDecisionAuthorities,
+    synthetic_ambiguous_binding,
+)
 
 
 NOW = datetime(2026, 9, 12, tzinfo=timezone.utc)
@@ -20,21 +23,31 @@ NOW = datetime(2026, 9, 12, tzinfo=timezone.utc)
 class ChallengeTests(unittest.TestCase):
     def setUp(self) -> None:
         self.now = NOW
-        self.issuer = FakeTrustedDecisionIssuer()
-        self.host = ApplicationHost(trusted_issuer=self.issuer, clock=lambda: self.now)
+        self.issuer = FakeDecisionAuthorities()
+        self.host = ApplicationHost(
+            design_selection_issuer=self.issuer,
+            operation_authorization_issuer=self.issuer,
+            physical_confirmation_issuer=self.issuer,
+            clock=lambda: self.now,
+        )
         self.jlceda = self.host.connect_frontend(FrontendKind.JLCEDA, "jlceda-token")
         self.harness = self.host.connect_frontend(FrontendKind.HARNESS, "harness-token")
 
     def _selection_challenge(self):
         flow = self.host.start_workflow("inspect PWM_OUT", "request-1")
         flow = self.host.transition(flow.workflow_id, 0, WorkflowState.OBSERVING_DESIGN)
-        flow = self.host.transition(flow.workflow_id, 1, WorkflowState.DESIGN_CONTEXT_READY)
+        context, binding, _tokens = synthetic_ambiguous_binding(self.now)
+        flow = self.host.record_design_observation(
+            flow.workflow_id,
+            flow.revision,
+            "sha256:" + "a" * 64,
+            selection_context=context,
+            candidate_binding=binding,
+            probe_target=None,
+        )
         return self.host.request_design_selection(
             flow.workflow_id,
-            expected_revision=2,
-            observation_identity="sha256:" + "a" * 64,
-            candidate_set_identity="sha256:" + "b" * 64,
-            candidate_identities=("candidate:wire-pwm-out", "candidate:component-u1"),
+            expected_revision=flow.revision,
             allowed_frontend=FrontendKind.JLCEDA,
             ttl=timedelta(minutes=5),
         )
@@ -48,7 +61,7 @@ class ChallengeTests(unittest.TestCase):
             challenge_id=challenge.challenge_id,
             nonce=challenge.nonce,
             candidate_set_identity=challenge.binding.candidate_set_identity,
-            candidate_identity="candidate:wire-pwm-out",
+            candidate_identity=challenge.binding.allowed_candidate_identities[0],
         )
         self.assertEqual(result.state, WorkflowState.TARGET_RESOLVED)
         self.assertEqual(self.issuer.design_calls, 1)
@@ -60,7 +73,7 @@ class ChallengeTests(unittest.TestCase):
                 challenge_id=challenge.challenge_id,
                 nonce=challenge.nonce,
                 candidate_set_identity=challenge.binding.candidate_set_identity,
-                candidate_identity="candidate:wire-pwm-out",
+                candidate_identity=challenge.binding.allowed_candidate_identities[0],
             )
         self.assertEqual(self.issuer.design_calls, 1)
 
@@ -83,7 +96,7 @@ class ChallengeTests(unittest.TestCase):
                     challenge_id=challenge.challenge_id,
                     nonce=challenge.nonce,
                     candidate_set_identity=challenge.binding.candidate_set_identity,
-                    candidate_identity="candidate:wire-pwm-out",
+                    candidate_identity=challenge.binding.allowed_candidate_identities[0],
                 )
                 values.update(mutation)
                 with self.assertRaises(ChallengeRejectedError):
@@ -101,9 +114,14 @@ class ChallengeTests(unittest.TestCase):
                 challenge_id=challenge.challenge_id,
                 nonce=challenge.nonce,
                 candidate_set_identity=challenge.binding.candidate_set_identity,
-                candidate_identity="candidate:wire-pwm-out",
+                candidate_identity=challenge.binding.allowed_candidate_identities[0],
             )
-        restarted = ApplicationHost(trusted_issuer=self.issuer, clock=lambda: self.now)
+        restarted = ApplicationHost(
+            design_selection_issuer=self.issuer,
+            operation_authorization_issuer=self.issuer,
+            physical_confirmation_issuer=self.issuer,
+            clock=lambda: self.now,
+        )
         with self.assertRaises(ChallengeRejectedError):
             restarted.answer_design_selection(
                 connection_id=self.jlceda.connection_id,
@@ -112,7 +130,7 @@ class ChallengeTests(unittest.TestCase):
                 challenge_id=challenge.challenge_id,
                 nonce=challenge.nonce,
                 candidate_set_identity=challenge.binding.candidate_set_identity,
-                candidate_identity="candidate:wire-pwm-out",
+                candidate_identity=challenge.binding.allowed_candidate_identities[0],
             )
 
     def test_changed_operation_plan_channel_and_target_invalidate_physical_confirmation(self) -> None:
@@ -120,7 +138,8 @@ class ChallengeTests(unittest.TestCase):
         flow = self.host.answer_design_selection(
             self.jlceda.connection_id, challenge.workflow_id,
             challenge.workflow_revision, challenge.challenge_id, challenge.nonce,
-            challenge.binding.candidate_set_identity, "candidate:wire-pwm-out",
+            challenge.binding.candidate_set_identity,
+            challenge.binding.allowed_candidate_identities[0],
         )
         flow = self.host.prepare_measurement_plan(
             flow.workflow_id, flow.revision, "target:pwm-out",

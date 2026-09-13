@@ -5,10 +5,23 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from ai_instrument_assistant.application.interactive import FrontendKind, TrustedDesignSelectionReceipt
+from ai_instrument_assistant.adapters.eda.in_memory import InMemoryEDAAdapter
+from ai_instrument_assistant.application.interactive import FrontendKind
+from ai_instrument_assistant.application.services.design_selection_disambiguation import (
+    build_candidate_set_binding,
+    candidate_choice_tokens,
+    issue_trusted_design_selection_decision,
+    resolve_trusted_design_selection,
+)
+from ai_instrument_assistant.domain.eda import (
+    DesignObjectKind,
+    DesignObjectRef,
+    DesignSelection,
+    SelectionContext,
+)
 
 
-class FakeTrustedDecisionIssuer:
+class FakeDecisionAuthorities:
     def __init__(self) -> None:
         self.design_calls = 0
         self.operation_calls = 0
@@ -20,9 +33,20 @@ class FakeTrustedDecisionIssuer:
 
     def issue_design_selection(self, request):
         self.design_calls += 1
-        return TrustedDesignSelectionReceipt(
-            f"design-decision:{self.design_calls}",
-            f"probe-target:{request.selected_candidate_identity}",
+        decision = issue_trusted_design_selection_decision(
+            decision_id=uuid4(),
+            candidate_binding=request.candidate_binding,
+            selected_candidate=request.selected_candidate,
+            workflow_id=str(request.workflow_id),
+            request_correlation_id=request.request_correlation_id,
+            decided_at=request.decided_at,
+        )
+        return resolve_trusted_design_selection(
+            current_selection=request.selection_context,
+            current_binding=request.candidate_binding,
+            decision=decision,
+            trusted_workflow_id=str(request.workflow_id),
+            trusted_request_correlation_id=request.request_correlation_id,
         )
 
     def issue_operation_authorization(self, request):
@@ -32,6 +56,38 @@ class FakeTrustedDecisionIssuer:
     def issue_physical_confirmation(self, request):
         self.physical_calls += 1
         return f"physical-confirmation:{self.physical_calls}"
+
+
+def synthetic_ambiguous_selection() -> SelectionContext:
+    source = InMemoryEDAAdapter.for_pwm_out_scenario().selection_context
+    document = source.selection.document_ref
+    component = DesignObjectRef(
+        provider=document.provider,
+        object_type=DesignObjectKind.COMPONENT,
+        document_id=document.document_id,
+        snapshot_id=document.snapshot_id,
+        native_id="component-u1",
+        canonical_id="jlceda-pro:project-stm32-test:doc-main-schematic:component:u1",
+        display_name="U1",
+        provider_kind="component",
+    )
+    return SelectionContext(
+        selection=DesignSelection(
+            document_ref=document,
+            selected_objects=(source.selection.selected_objects[0], component),
+            primary_object=None,
+        ),
+        nets=source.nets,
+    )
+
+
+def synthetic_ambiguous_binding(observed_at: datetime | None = None):
+    context = synthetic_ambiguous_selection()
+    binding = build_candidate_set_binding(
+        selection_context=context,
+        selection_observed_at=observed_at or datetime.now(timezone.utc),
+    )
+    return context, binding, candidate_choice_tokens(binding)
 
 
 class FakeRuntimeHandle:
@@ -177,7 +233,7 @@ class FakeFrontend:
         self.cursor = batch.next_cursor
         return batch
 
-    def start_workflow(self, label, correlation):
+    async def start_workflow(self, label, correlation):
         message = {
             "protocol": "aia-interactive/v1", "message_id": str(uuid4()),
             "sent_at": "2026-09-12T08:00:00Z", "message_type": "command",
@@ -186,7 +242,7 @@ class FakeFrontend:
             "command": "workflow.start",
             "payload": {"safe_label": label, "harness_conversation_id": "conversation:fake"},
         }
-        return self.gateway.handle_command(self.connection.connection_id, message)
+        return await self.gateway.handle_command(self.connection.connection_id, message)
 
     def cancel_message(self, workflow_id, revision):
         return {

@@ -73,6 +73,60 @@ export interface RuntimeDiagnosticsDto {
   };
 }
 
+export const RUNTIME_COMMAND_ACTIONS = [
+  'STATUS',
+  'REFRESH_DESIGN_CONTEXT',
+  'RESOLVE_CURRENT_SELECTION',
+  'CURRENT_TARGET',
+  'PENDING_ACTION',
+  'EVIDENCE_SUMMARY',
+  'HIGHLIGHT_TARGET',
+  'CANCEL_WORKFLOW',
+  'DISCONNECT',
+  'RECONNECT',
+] as const;
+export type RuntimeCommandAction = typeof RUNTIME_COMMAND_ACTIONS[number];
+
+export type RuntimeCommandFailureCode =
+  | 'runtime_owner_stale'
+  | 'runtime_owner_unavailable'
+  | 'runtime_not_connected'
+  | 'runtime_action_failed'
+  | 'SNAPSHOT_FRAME_INVALID'
+  | 'SNAPSHOT_SESSION_MISMATCH'
+  | 'SNAPSHOT_TRANSPORT_TIMEOUT'
+  | 'SNAPSHOT_TRANSPORT_UNAVAILABLE'
+  | 'SNAPSHOT_WAITER_ALREADY_PENDING'
+  | 'STATUS_PRESENTATION_FAILED';
+
+export type RuntimeCommandResult =
+  | Readonly<{ status: 'COMPLETED'; reasonCode: null }>
+  | Readonly<{ status: 'REJECTED'; reasonCode: RuntimeCommandFailureCode }>;
+
+export type RuntimeCommandRpcErrorCode =
+  | 'message_bus_unavailable'
+  | 'message_bus_registration_failed'
+  | 'message_bus_call_failed'
+  | 'message_bus_response_invalid'
+  | 'runtime_command_invalid'
+  | RuntimeCommandFailureCode;
+
+export class RuntimeCommandRpcError extends Error {
+  readonly code: RuntimeCommandRpcErrorCode;
+  constructor(code: RuntimeCommandRpcErrorCode) {
+    super(code); this.name = 'RuntimeCommandRpcError'; this.code = code;
+  }
+}
+
+const RUNTIME_COMMAND_TOPIC = 'aia.runtime.command';
+const RUNTIME_COMMAND_ACTION_SET = new Set<string>(RUNTIME_COMMAND_ACTIONS);
+const RUNTIME_COMMAND_FAILURE_CODES = new Set<RuntimeCommandFailureCode>([
+  'runtime_owner_stale', 'runtime_owner_unavailable', 'runtime_not_connected',
+  'runtime_action_failed', 'SNAPSHOT_FRAME_INVALID', 'SNAPSHOT_SESSION_MISMATCH',
+  'SNAPSHOT_TRANSPORT_TIMEOUT', 'SNAPSHOT_TRANSPORT_UNAVAILABLE',
+  'SNAPSHOT_WAITER_ALREADY_PENDING', 'STATUS_PRESENTATION_FAILED',
+]);
+
 export interface JlcEdaRuntimeBoundary {
   readonly sch_PrimitiveWire?: Partial<Pick<SCH_PrimitiveWire, 'get' | 'getAll'>>;
   readonly sch_PrimitiveComponent?: Partial<Pick<SCH_PrimitiveComponent, 'get' | 'getAll'>>;
@@ -100,9 +154,21 @@ export interface JlcEdaRuntimeBoundary {
       | 'isEasyEDAProEdition'
     >
   >;
-  readonly sys_Dialog?: Partial<Pick<SYS_Dialog, 'showInformationMessage' | 'showInputDialog'>>;
+  readonly sys_Dialog?: Partial<Pick<
+    SYS_Dialog,
+    'showInformationMessage' | 'showInputDialog' | 'showConfirmationMessage' | 'showSelectDialog'
+  >>;
   readonly sys_Message?: Partial<Pick<SYS_Message, 'showToastMessage'>>;
   readonly sys_WebSocket?: Partial<Pick<SYS_WebSocket, 'register' | 'send' | 'close'>>;
+  readonly sys_MessageBus?: Partial<Pick<SYS_MessageBus, 'rpcService' | 'rpcCall'>>;
+  readonly sch_Event?: Partial<Pick<
+    SCH_Event,
+    'addMouseEventListener' | 'removeEventListener' | 'isEventListenerAlreadyExist'
+  >>;
+  readonly sys_Storage?: Partial<Pick<
+    SYS_Storage,
+    'getExtensionUserConfig' | 'setExtensionUserConfig'
+  >>;
 }
 
 export class JlcEdaCapabilityUnavailableError extends Error {
@@ -130,6 +196,44 @@ export class JlcEdaApiAdapter {
 
   constructor(runtime: JlcEdaRuntimeBoundary) {
     this.#runtime = runtime;
+  }
+
+  registerRuntimeCommandService(
+    dispatch: (action: RuntimeCommandAction) => Promise<RuntimeCommandResult>,
+  ): void {
+    const service = this.#runtime.sys_MessageBus;
+    if (typeof service?.rpcService !== 'function') {
+      throw new RuntimeCommandRpcError('message_bus_unavailable');
+    }
+    try {
+      service.rpcService(RUNTIME_COMMAND_TOPIC, async (request: unknown) => {
+        const action = normalizeRuntimeCommandRequest(request);
+        return normalizeRuntimeCommandResult(await dispatch(action));
+      });
+    }
+    catch {
+      throw new RuntimeCommandRpcError('message_bus_registration_failed');
+    }
+  }
+
+  async callRuntimeCommand(action: RuntimeCommandAction): Promise<RuntimeCommandResult> {
+    const service = this.#runtime.sys_MessageBus;
+    if (typeof service?.rpcCall !== 'function') {
+      throw new RuntimeCommandRpcError('message_bus_unavailable');
+    }
+    let result: unknown;
+    try {
+      result = await service.rpcCall(
+        RUNTIME_COMMAND_TOPIC,
+        Object.freeze({ action }),
+      );
+    }
+    catch (error) {
+      if (error instanceof RuntimeCommandRpcError) throw error;
+      throw new RuntimeCommandRpcError('message_bus_call_failed');
+    }
+    try { return normalizeRuntimeCommandResult(result); }
+    catch { throw new RuntimeCommandRpcError('message_bus_response_invalid'); }
   }
 
   async readCurrentDocument(): Promise<CurrentDocumentReadDto> {
@@ -174,37 +278,40 @@ export class JlcEdaApiAdapter {
       throw new JlcEdaCapabilityUnavailableError(identityOperation);
     }
 
-    try {
-      const primitiveIds =
-        await control.getAllSelectedPrimitives_PrimitiveId();
-      const rawObjects = await control.getAllSelectedPrimitives();
-      if (primitiveIds.length !== rawObjects.length) {
-        throw new TypeError(
-          'selection changed while reading primitive identities and objects',
-        );
+    let lastFailure: unknown;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const rawObjects = await control.getAllSelectedPrimitives();
+        const primitiveIds = await control.getAllSelectedPrimitives_PrimitiveId();
+        if (primitiveIds.length !== rawObjects.length) {
+          throw new TypeError(
+            'selection changed while reading primitive objects and identities',
+          );
+        }
+        const objects = rawObjects
+          .slice(0, MAX_SELECTION_OBJECTS)
+          .map((primitive, index) => normalizePrimitive(
+            primitive,
+            primitiveIds[index],
+          ));
+        const primitiveTypeSummary: Record<string, number> = {};
+        for (const object of objects) {
+          primitiveTypeSummary[object.primitiveType] =
+            (primitiveTypeSummary[object.primitiveType] ?? 0) + 1;
+        }
+        return Object.freeze({
+          objects: Object.freeze(objects),
+          totalSelected: rawObjects.length,
+          truncated: rawObjects.length > objects.length,
+          primitiveTypeSummary: Object.freeze(primitiveTypeSummary),
+        });
       }
-      const objects = rawObjects
-        .slice(0, MAX_SELECTION_OBJECTS)
-        .map((primitive, index) => normalizePrimitive(
-          primitive,
-          primitiveIds[index],
-        ));
-      const primitiveTypeSummary: Record<string, number> = {};
-      for (const object of objects) {
-        primitiveTypeSummary[object.primitiveType] =
-          (primitiveTypeSummary[object.primitiveType] ?? 0) + 1;
+      catch (error) {
+        lastFailure = error;
+        if (attempt === 0) await nextSelectionStabilizationTurn();
       }
-      return Object.freeze({
-        objects: Object.freeze(objects),
-        totalSelected: rawObjects.length,
-        truncated: rawObjects.length > objects.length,
-        primitiveTypeSummary: Object.freeze(primitiveTypeSummary),
-      });
     }
-    catch (error) {
-      if (error instanceof JlcEdaCapabilityUnavailableError) throw error;
-      throw apiCallError(operation, error);
-    }
+    throw apiCallError(operation, lastFailure);
   }
 
   highlightSelection(): Promise<HighlightSelectionResultDto>;
@@ -478,7 +585,7 @@ export class JlcEdaApiAdapter {
     });
   }
 
-  showInformation(message: string, title: string): void {
+  showInformation(message: string, title = 'AI Instrument Assistant'): void {
     const operation = 'sys_Dialog.showInformationMessage';
     const dialog = this.#runtime.sys_Dialog;
     if (typeof dialog?.showInformationMessage !== 'function') {
@@ -493,6 +600,125 @@ export class JlcEdaApiAdapter {
     catch (error) {
       throw apiCallError(operation, error);
     }
+  }
+
+  showConfirmation(
+    message: string,
+    title = 'AI Instrument Assistant',
+    accept = 'Confirm',
+    cancel = 'Cancel',
+  ): Promise<boolean> {
+    const operation = 'sys_Dialog.showConfirmationMessage';
+    const dialog = this.#runtime.sys_Dialog;
+    if (typeof dialog?.showConfirmationMessage !== 'function') {
+      throw new JlcEdaCapabilityUnavailableError(operation);
+    }
+    const show = dialog.showConfirmationMessage.bind(dialog);
+    return new Promise((resolve) => {
+      try {
+        show(
+          requiredFiniteText(message, 'message', 4_096),
+          requiredFiniteText(title, 'title'), requiredFiniteText(accept, 'accept'),
+          requiredFiniteText(cancel, 'cancel'), (value) => resolve(value === true),
+        );
+      }
+      catch (error) { throw apiCallError(operation, error); }
+    });
+  }
+
+  showSelection(
+    options: ReadonlyArray<{ value: string; displayContent: string }>,
+    before = 'Choose an option.',
+    after = '',
+    title = 'AI Instrument Assistant',
+  ): Promise<string | null> {
+    const operation = 'sys_Dialog.showSelectDialog';
+    const dialog = this.#runtime.sys_Dialog;
+    if (typeof dialog?.showSelectDialog !== 'function') {
+      throw new JlcEdaCapabilityUnavailableError(operation);
+    }
+    const show = dialog.showSelectDialog.bind(dialog);
+    if (options.length < 1 || options.length > 16) throw new TypeError('select options must be bounded');
+    const boundedOptions = options.map((value) => ({
+      value: requiredFiniteText(value.value, 'option value', 192),
+      displayContent: requiredFiniteText(value.displayContent, 'option label', 160),
+    }));
+    return new Promise((resolve) => {
+      try {
+        show(
+          boundedOptions, before.slice(0, 1_024), after.slice(0, 1_024), title.slice(0, 120),
+          boundedOptions[0]?.value, false,
+          (value) => resolve(typeof value === 'string' && boundedOptions.some((item) => item.value === value) ? value : null),
+        );
+      }
+      catch (error) { throw apiCallError(operation, error); }
+    });
+  }
+
+  registerSelectionListener(id: string, callback: () => void | Promise<void>): boolean {
+    const operation = 'sch_Event.addMouseEventListener';
+    const events = this.#runtime.sch_Event;
+    if (typeof events?.addMouseEventListener !== 'function'
+      || typeof events.isEventListenerAlreadyExist !== 'function') {
+      throw new JlcEdaCapabilityUnavailableError(operation);
+    }
+    const listenerId = requiredFiniteText(id, 'listener id', 80);
+    try {
+      if (events.isEventListenerAlreadyExist(listenerId)) {
+        if (typeof events.removeEventListener !== 'function') return false;
+        events.removeEventListener(listenerId);
+        if (events.isEventListenerAlreadyExist(listenerId)) return false;
+      }
+      events.addMouseEventListener(
+        listenerId, 'all', () => invokeHostCallbackSafely(callback, () => undefined), false,
+      );
+      return events.isEventListenerAlreadyExist(listenerId);
+    }
+    catch (error) { throw apiCallError(operation, error); }
+  }
+
+  removeSelectionListener(id: string): boolean {
+    const operation = 'sch_Event.removeEventListener';
+    const events = this.#runtime.sch_Event;
+    if (typeof events?.removeEventListener !== 'function') return true;
+    try {
+      const listenerId = requiredFiniteText(id, 'listener id', 80);
+      if (typeof events.isEventListenerAlreadyExist === 'function'
+        && !events.isEventListenerAlreadyExist(listenerId)) return true;
+      events.removeEventListener(listenerId);
+      return typeof events.isEventListenerAlreadyExist !== 'function'
+        || !events.isEventListenerAlreadyExist(listenerId);
+    }
+    catch (error) { throw apiCallError(operation, error); }
+  }
+
+  readInteractivePort(defaultPort: number): number {
+    const value = this.#runtime.sys_Storage?.getExtensionUserConfig?.('aia_interactive_port');
+    return validInteractivePort(value) ? value : validInteractivePort(defaultPort) ? defaultPort : 49_626;
+  }
+
+  async writeInteractivePort(port: number): Promise<boolean> {
+    if (!validInteractivePort(port)) throw new TypeError('interactive port is invalid or reserved');
+    const write = this.#runtime.sys_Storage?.setExtensionUserConfig;
+    if (typeof write !== 'function') return false;
+    try { return await write.call(this.#runtime.sys_Storage, 'aia_interactive_port', port); }
+    catch (error) { throw apiCallError('sys_Storage.setExtensionUserConfig', error); }
+  }
+
+  requestInteractivePort(defaultPort: number, callback: (port: number | null) => void): void {
+    const operation = 'sys_Dialog.showInputDialog';
+    const dialog = this.#runtime.sys_Dialog;
+    if (typeof dialog?.showInputDialog !== 'function') throw new JlcEdaCapabilityUnavailableError(operation);
+    dialog.showInputDialog(
+      'Interactive Host port on 127.0.0.1',
+      '49624 is reserved for EDA; 49625 is reserved for Hardware.',
+      'Configure AI Instrument Assistant Connection', 'number', defaultPort,
+      { min: 1, max: 65_535, step: 1 },
+      (value) => {
+        const port = Number(value);
+        callback(validInteractivePort(port) ? port : null);
+      },
+    );
   }
 
   showToast(message: string): void {
@@ -715,6 +941,11 @@ function validClientCloseCode(value: number | undefined): number | undefined {
   return value;
 }
 
+function validInteractivePort(value: unknown): value is number {
+  return Number.isInteger(value) && Number(value) >= 1 && Number(value) <= 65_535
+    && Number(value) !== 49_624 && Number(value) !== 49_625;
+}
+
 function invokeHostCallbackSafely(
   callback: () => void | Promise<void>,
   onFailure: (detail: string) => void,
@@ -761,6 +992,10 @@ function apiCallError(operation: string, error: unknown): JlcEdaApiCallError {
   return new JlcEdaApiCallError(operation, detail);
 }
 
+function nextSelectionStabilizationTurn(): Promise<void> {
+  return new Promise((resolve) => globalThis.setTimeout(resolve, 0));
+}
+
 function safeEnvironmentText(
   read: () => unknown,
 ): string | null {
@@ -782,6 +1017,41 @@ function safeEnvironmentBoolean(
     return false;
   }
 }
+
+function normalizeRuntimeCommandRequest(value: unknown): RuntimeCommandAction {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new RuntimeCommandRpcError('runtime_command_invalid');
+  }
+  const object = value as Record<string, unknown>;
+  if (Object.keys(object).join('\n') !== 'action'
+    || typeof object.action !== 'string'
+    || !RUNTIME_COMMAND_ACTION_SET.has(object.action)) {
+    throw new RuntimeCommandRpcError('runtime_command_invalid');
+  }
+  return object.action as RuntimeCommandAction;
+}
+
+function normalizeRuntimeCommandResult(value: unknown): RuntimeCommandResult {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError('runtime command result required');
+  }
+  const object = value as Record<string, unknown>;
+  if (Object.keys(object).sort().join('\n') !== 'reasonCode\nstatus') {
+    throw new TypeError('runtime command result fields invalid');
+  }
+  if (object.status === 'COMPLETED' && object.reasonCode === null) {
+    return Object.freeze({ status: 'COMPLETED', reasonCode: null });
+  }
+  if (object.status === 'REJECTED' && typeof object.reasonCode === 'string'
+    && RUNTIME_COMMAND_FAILURE_CODES.has(object.reasonCode as RuntimeCommandFailureCode)) {
+    return Object.freeze({
+      status: 'REJECTED',
+      reasonCode: object.reasonCode as RuntimeCommandFailureCode,
+    });
+  }
+  throw new TypeError('runtime command result invalid');
+}
+
 function exactSemanticText(value: unknown): string | null {
   if (typeof value !== 'string' || !value.trim() || value.length > 512) return null;
   // Routing keys must never be truncated into a different target.

@@ -11,6 +11,7 @@ from ...application.interactive import (
     FrontendKind,
     SubscriptionBatch,
 )
+from ...application.interactive.errors import InvalidEventCursorError
 from .protocol import INTERACTIVE_PROTOCOL, InteractiveProtocolBinding, InteractiveProtocolError
 
 
@@ -26,19 +27,13 @@ class FrontendAuthenticator(Protocol):
     def authenticate(self, frontend_kind: FrontendKind, credential: str) -> str | None: ...
 
 
-@dataclass(frozen=True, slots=True)
-class LoopbackGatewayConfig:
-    host: str = "127.0.0.1"
-    port: int = 49624
-    path: str = "/interactive/v1"
+class InteractiveApplicationActions(Protocol):
+    """Inward orchestration seam; implementations re-observe through trusted adapters."""
 
-    def __post_init__(self) -> None:
-        if self.host != "127.0.0.1":
-            raise ValueError("interactive gateway must bind explicit 127.0.0.1")
-        if not isinstance(self.port, int) or not 1 <= self.port <= 65535:
-            raise ValueError("interactive gateway port must be valid")
-        if self.path != "/interactive/v1":
-            raise ValueError("interactive gateway path is version-bound")
+    async def request_design_observation(self, workflow_id: UUID, expected_revision: int): ...
+    async def prepare_measurement(self, workflow_id: UUID, expected_revision: int, payload: Mapping[str, Any]): ...
+    async def highlight_target(self, workflow_id: UUID, expected_revision: int): ...
+    async def request_teaching_publication(self, workflow_id: UUID, expected_revision: int): ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,10 +52,12 @@ class InteractiveGateway:
         host: ApplicationHost,
         protocol: InteractiveProtocolBinding,
         authenticator: FrontendAuthenticator,
+        actions: InteractiveApplicationActions | None = None,
     ) -> None:
         self._host = host
         self._protocol = protocol
         self._authenticator = authenticator
+        self._actions = actions
 
     def handle_hello(self, message: Mapping[str, Any], credential: str) -> HandshakeResult:
         validated = self._protocol.validate_message(message).instance
@@ -73,9 +70,38 @@ class InteractiveGateway:
         principal = self._authenticator.authenticate(frontend_kind, credential)
         if principal is None:
             raise AuthenticationError("frontend authentication failed")
+        return self._accept_hello(validated, frontend_kind, principal)
+
+    def handle_authenticated_hello(
+        self,
+        message: Mapping[str, Any],
+        authenticated_principal: str,
+    ) -> HandshakeResult:
+        """Accept a hello after the separate transport authenticator succeeded."""
+        validated = self._protocol.validate_message(message).instance
+        if validated["message_type"] != "hello":
+            raise ProtocolNegotiationError("first message must be hello")
+        versions = tuple(validated["supported_versions"])
+        if INTERACTIVE_PROTOCOL not in versions:
+            raise ProtocolNegotiationError("interactive protocol version is incompatible")
+        frontend_kind = FrontendKind(validated["frontend_kind"])
+        return self._accept_hello(validated, frontend_kind, authenticated_principal)
+
+    def _accept_hello(
+        self,
+        validated: Mapping[str, Any],
+        frontend_kind: FrontendKind,
+        principal: str,
+    ) -> HandshakeResult:
         connection = self._host.connect_frontend(frontend_kind, principal)
         cursor = validated["resume_cursor"]
-        initial = self._host.subscribe(connection.connection_id, 0 if cursor is None else cursor)
+        try:
+            initial = self._host.subscribe(connection.connection_id, 0 if cursor is None else cursor)
+        except InvalidEventCursorError:
+            # A cursor is delivery state only. A fresh authoritative snapshot is
+            # safer than treating a stale cursor as application authority.
+            snapshot = self._host.current_snapshot(connection.connection_id)
+            initial = SubscriptionBatch(snapshot, (), snapshot.event_cursor)
         acknowledgement = {
             "protocol": INTERACTIVE_PROTOCOL,
             "message_id": str(uuid4()),
@@ -123,8 +149,8 @@ class InteractiveGateway:
             answer["voltage_range_confirmed"], answer["wiring_unchanged"],
         )
 
-    def handle_command(self, connection_id: UUID, message: Mapping[str, Any]):
-        value = self._session_message(connection_id, message, "command")
+    async def handle_command(self, connection_id: UUID, message: Mapping[str, Any]):
+        value = self.validate_command_message(connection_id, message)
         command = value["command"]
         payload = value["payload"]
         if command == "workflow.start":
@@ -141,10 +167,33 @@ class InteractiveGateway:
                 payload["expected_workflow_revision"],
                 payload["reason"],
             )
+        if self._actions is None:
+            raise InteractiveProtocolError("interactive application action is unavailable")
+        workflow_id = UUID(payload["workflow_id"])
+        revision = payload["expected_workflow_revision"]
+        if command == "design.observe":
+            return await self._actions.request_design_observation(workflow_id, revision)
+        if command == "measurement.prepare":
+            return await self._actions.prepare_measurement(workflow_id, revision, payload)
+        if command == "view.highlight":
+            return await self._actions.highlight_target(workflow_id, revision)
+        if command == "teaching.publish":
+            return await self._actions.request_teaching_publication(workflow_id, revision)
         raise InteractiveProtocolError("command is valid but not orchestrated in Phase 8.5A")
+
+    def validate_command_message(
+        self,
+        connection_id: UUID,
+        message: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        """Validate wire/session authority before asynchronous command scheduling."""
+        return self._session_message(connection_id, message, "command")
 
     def subscribe(self, connection_id: UUID, cursor: int) -> SubscriptionBatch:
         return self._host.subscribe(connection_id, cursor)
+
+    def current_snapshot(self, connection_id: UUID):
+        return self._host.current_snapshot(connection_id)
 
     def disconnect(self, connection_id: UUID) -> None:
         self._host.disconnect_frontend(connection_id)

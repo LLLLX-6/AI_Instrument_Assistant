@@ -146,6 +146,59 @@ test('one selected wire is normalized and the raw object is cropped', async () =
   assert.ok(serialized.length < 2_000);
 });
 
+test('canonical object read precedes the separate identity read', async () => {
+  const calls: string[] = [];
+  const adapter = new JlcEdaApiAdapter(runtime({
+    sch_SelectControl: {
+      getAllSelectedPrimitives: async () => { calls.push('objects'); return [fakeWire()]; },
+      getAllSelectedPrimitives_PrimitiveId: async () => { calls.push('identities'); return ['wire-1']; },
+    },
+  }));
+
+  await adapter.readCurrentSelection();
+
+  assert.deepEqual(calls, ['objects', 'identities']);
+});
+
+test('one transient stable-selection read failure is retried once', async () => {
+  let objectReads = 0; let identityReads = 0;
+  const adapter = new JlcEdaApiAdapter(runtime({
+    sch_SelectControl: {
+      getAllSelectedPrimitives: async () => {
+        objectReads += 1;
+        if (objectReads === 1) throw new Error('transient host selection state');
+        return [fakeWire(), fakeComponent()];
+      },
+      getAllSelectedPrimitives_PrimitiveId: async () => {
+        identityReads += 1;
+        return ['wire-1', 'component-1'];
+      },
+    },
+  }));
+
+  const result = await adapter.readCurrentSelection();
+
+  assert.equal(result.totalSelected, 2);
+  assert.equal(objectReads, 2);
+  assert.equal(identityReads, 1);
+});
+
+test('two stable-selection read failures remain bounded provider_error', async () => {
+  let objectReads = 0;
+  const adapter = new JlcEdaApiAdapter(runtime({
+    sch_SelectControl: {
+      getAllSelectedPrimitives: async () => {
+        objectReads += 1;
+        throw new Error('private provider failure');
+      },
+      getAllSelectedPrimitives_PrimitiveId: async () => ['wire-1'],
+    },
+  }));
+
+  await assert.rejects(adapter.readCurrentSelection(), JlcEdaApiCallError);
+  assert.equal(objectReads, 2);
+});
+
 test('component, unsupported type, and wire without a net remain finite distinct DTOs', async () => {
   const objects = [fakeComponent(), fakeOther(), fakeWire('wire-no-net', '')];
   const adapter = new JlcEdaApiAdapter(runtime({

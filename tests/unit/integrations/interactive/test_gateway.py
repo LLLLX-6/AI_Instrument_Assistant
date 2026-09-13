@@ -6,18 +6,18 @@ from ai_instrument_assistant.integrations.interactive import LoopbackGatewayConf
 
 
 class InteractiveGatewayConfigTests(unittest.TestCase):
-    def test_default_reuses_existing_host_port_with_versioned_path(self) -> None:
+    def test_default_uses_reviewed_separate_interactive_listener(self) -> None:
         config = LoopbackGatewayConfig()
-        self.assertEqual(config.host, "127.0.0.1")
-        self.assertEqual(config.port, 49624)
-        self.assertEqual(config.path, "/interactive/v1")
+        self.assertEqual(config.bind_host, "127.0.0.1")
+        self.assertEqual(config.port, 49626)
 
     def test_non_loopback_or_invalid_path_fails_closed(self) -> None:
         for values in (
-            {"host": "0.0.0.0"},
-            {"host": "localhost"},
+            {"bind_host": "0.0.0.0"},
+            {"bind_host": "localhost"},
             {"port": 0},
-            {"path": "/"},
+            {"port": 49624},
+            {"port": 49625},
         ):
             with self.subTest(values=values):
                 with self.assertRaises(ValueError):
