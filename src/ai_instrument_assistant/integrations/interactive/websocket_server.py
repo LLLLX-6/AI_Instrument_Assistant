@@ -217,15 +217,30 @@ class InteractiveWebSocketServer:
         except ConnectionClosed:
             pass
         finally:
-            for task in (command_task, heartbeat, events):
-                if task is not None:
-                    task.cancel()
-                    with suppress(asyncio.CancelledError):
-                        await task
-            if connection_id is not None:
-                self._gateway.disconnect(connection_id)
-            self._connection_ids.pop(socket, None)
-            self._connections.discard(socket)
+            await self._teardown(socket, connection_id, (command_task, heartbeat, events))
+
+    async def _teardown(
+        self,
+        socket: ServerConnection,
+        connection_id: UUID | None,
+        tasks: tuple[asyncio.Task[None] | None, ...],
+    ) -> None:
+        """Release connection state even when helper tasks already failed.
+
+        A helper task may have completed with ConnectionClosed (or another
+        exception) before teardown runs; awaiting it directly would re-raise
+        and skip the authoritative gateway disconnect. Gather with
+        return_exceptions collects every outcome without aborting cleanup.
+        """
+        live = tuple(task for task in tasks if task is not None)
+        for task in live:
+            task.cancel()
+        if live:
+            await asyncio.gather(*live, return_exceptions=True)
+        if connection_id is not None:
+            self._gateway.disconnect(connection_id)
+        self._connection_ids.pop(socket, None)
+        self._connections.discard(socket)
 
     async def _dispatch_command(
         self,

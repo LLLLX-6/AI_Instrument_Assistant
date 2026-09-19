@@ -8,11 +8,12 @@ import socket
 import unittest
 import asyncio
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from websockets.asyncio.client import connect
 
 from ai_instrument_assistant.application.interactive import ApplicationHost
+from ai_instrument_assistant.application.interactive.errors import FrontendConnectionError
 from ai_instrument_assistant.integrations.interactive import (
     InteractiveEndpointConfig,
     InteractiveGateway,
@@ -129,6 +130,56 @@ class InteractiveWebSocketRuntimeTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(reply["event_type"], "workflow_snapshot")
             self.assertEqual(self.server.counters.command_failures, 1)
             self.assertEqual(self.server.counters.snapshot_replies_sent, 1)
+
+    async def test_teardown_releases_connection_state_when_helper_task_already_failed(self) -> None:
+        # Regression: a heartbeat or event-pump task can complete with
+        # ConnectionClosed before teardown runs. Awaiting it after a no-op
+        # cancel re-raises that exception; teardown must still reach the
+        # authoritative gateway disconnect and drop local socket state.
+        from websockets.exceptions import ConnectionClosedError
+        from websockets.frames import Close
+
+        websocket = await connect(self.server.uri, ping_interval=None)
+        try:
+            hello = await self._authenticate_and_hello(websocket)
+            connection_id = UUID(str(hello["connection_id"]))
+            tracked_socket = next(iter(self.server._connections))
+
+            async def already_failed() -> None:
+                raise ConnectionClosedError(Close(1006, "simulated"), None)
+
+            failed_task = asyncio.create_task(already_failed())
+            with self.assertRaises(ConnectionClosedError):
+                await failed_task
+
+            await self.server._teardown(
+                tracked_socket, connection_id, (failed_task, None, None)
+            )
+
+            with self.assertRaises(FrontendConnectionError):
+                self.host.get_connection(connection_id)
+            self.assertNotIn(tracked_socket, self.server._connections)
+            self.assertNotIn(tracked_socket, self.server._connection_ids)
+        finally:
+            await websocket.close()
+
+    async def test_abrupt_client_disconnect_always_releases_host_connection(self) -> None:
+        for _ in range(5):
+            websocket = await connect(self.server.uri, ping_interval=None)
+            hello = await self._authenticate_and_hello(websocket)
+            await websocket.recv()
+            connection_id = UUID(str(hello["connection_id"]))
+            # Abrupt transport loss while heartbeat (0.1s) and event pump run.
+            await asyncio.sleep(0.15)
+            await websocket.close()
+            for _ in range(50):
+                try:
+                    self.host.get_connection(connection_id)
+                except FrontendConnectionError:
+                    break
+                await asyncio.sleep(0.02)
+            else:
+                self.fail("host connection state leaked after client disconnect")
 
     async def test_invalid_session_is_rejected_before_async_command_task(self) -> None:
         async with connect(self.server.uri, ping_interval=None) as websocket:
