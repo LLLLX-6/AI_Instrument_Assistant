@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 
+import type { Agent } from "@deepseek-ai/dsh-agent";
 import type { Context } from "@deepseek-ai/cordis";
 import {
   validateJsonSchemaValue,
@@ -37,6 +38,15 @@ import {
   type OperationScopeDecision,
   type TrustedOperationScopeContext,
 } from "./operation-scope/index.ts";
+import { Re001dApplicationClient, type Re001dApplicationPort } from "./re001d-application-client.ts";
+import {
+  installInteractiveRe001dAuthority,
+  type InteractiveRe001dAuthority,
+} from "./interactive-re001d-authority.ts";
+import {
+  installInteractiveStatusScopeAuthority,
+  type InteractiveStatusScopeAuthority,
+} from "./interactive-status-scope-authority.ts";
 
 export interface Config {
   readonly endpoint?: string;
@@ -55,16 +65,19 @@ export interface HardwareClientPort {
 
 export interface PluginDependencies {
   readonly createClient: (config: Required<Config>) => HardwareClientPort;
+  readonly createRe001dApplication?: (config: Required<Config>) => Re001dApplicationPort;
   readonly resolveOperationScopeContext: (
     config: Required<Config>,
     operation?: HardwareOperation,
     args?: unknown,
+    agent?: Agent,
   ) => TrustedOperationScopeContext;
   readonly resolvePolicyContext: (
     operation: string,
     args: unknown,
     config: Required<Config>,
     trustedWorkflowId: string,
+    agent?: Agent,
   ) => HardwareToolPolicyContext;
   readonly onEgressDiagnostic?: (diagnostic: EgressDiagnostic) => void;
   readonly onGroundingDiagnostic?: (diagnostic: GroundingDiagnostic) => void;
@@ -144,11 +157,69 @@ export function applyWithDependencies(
   suppliedConfig: Config = {},
   suppliedDependencies: Partial<PluginDependencies> = {},
 ): void {
-  const dependencies: PluginDependencies = { ...REAL_DEPENDENCIES, ...suppliedDependencies };
   const config = normalizeConfig(suppliedConfig);
+  // Strict mode is the only production behavior: scopes are issued exclusively
+  // by the trusted interactive authorities below, and only after a prepared
+  // workflow receives its explicit confirmation. There is no automatic scope
+  // provisioning and no synthesized ProbeSetupConfirmation.
+  const re001dApplication = (suppliedDependencies.createRe001dApplication
+    ?? defaultRe001dApplication)(config);
+  const productionComposition = suppliedDependencies.resolveOperationScopeContext === undefined;
+  const statusAuthority = productionComposition
+    ? installInteractiveStatusScopeAuthority(ctx)
+    : undefined;
+  const re001dAuthority = productionComposition
+    ? installInteractiveRe001dAuthority(ctx, re001dApplication)
+    : undefined;
+  const productionScopeContext = (
+    _cfg: Required<Config>,
+    operation: HardwareOperation | undefined,
+    args: unknown,
+    agent: Agent | undefined,
+  ): TrustedOperationScopeContext => {
+    if (agent !== undefined) {
+      const status = statusAuthority?.resolve(agent);
+      if (status !== undefined) return status;
+      if (operation !== undefined) {
+        const re001d = re001dAuthority?.resolve(agent, operation, args);
+        if (re001d !== undefined) return re001d;
+      }
+    }
+    return Object.freeze({
+      scope: FAIL_CLOSED_OPERATION_SCOPE,
+      requestCorrelationId: FAIL_CLOSED_OPERATION_SCOPE.requestCorrelationId,
+      workflowId: FAIL_CLOSED_OPERATION_SCOPE.workflowId,
+    });
+  };
+  const productionPolicyContext = (
+    operation: string,
+    args: unknown,
+    cfg: Required<Config>,
+    trustedWorkflowId: string,
+    agent: Agent | undefined,
+  ): HardwareToolPolicyContext => {
+    const re001d = agent === undefined
+      ? undefined
+      : re001dAuthority?.policy(agent, operation, args, cfg.backendMode);
+    if (re001d !== undefined) return re001d;
+    return REAL_DEPENDENCIES.resolvePolicyContext(operation, args, cfg, trustedWorkflowId);
+  };
+
+  const dependencies: PluginDependencies = {
+    createClient: REAL_DEPENDENCIES.createClient,
+    resolveOperationScopeContext: suppliedDependencies.resolveOperationScopeContext ?? productionScopeContext,
+    resolvePolicyContext: suppliedDependencies.resolvePolicyContext ?? productionPolicyContext,
+    ...suppliedDependencies,
+  };
   const client = dependencies.createClient(config);
   const egressState = new AgentEgressStateStore();
   const operationScopeGate = new OperationScopeGate();
+  // NON-PRODUCTION, developer-local debugging only: skip egress inspection of
+  // model-internal reasoning blocks. Visible text and tool arguments are always
+  // inspected, and no scope, confirmation, or authority path is affected.
+  const relaxReasoningInspection = ["1", "true", "yes", "on"].includes(
+    (process.env.AIA_RELAX_EGRESS_REASONING ?? "").trim().toLowerCase(),
+  );
   ctx.systemPrompt.section({
     name: "aia:hardware-agent-policy",
     order: 700,
@@ -169,6 +240,7 @@ export function applyWithDependencies(
       dependencies.onGroundingDiagnostic?.(diagnostic);
       ctx.logger.warn(`Agent grounding blocked category=${diagnostic.category} claim=${diagnostic.claimKind} correlation=${diagnostic.correlationId}`);
     },
+    { relaxReasoningInspection },
   ), "aia-agent-output-boundary");
 
   for (const contract of HARDWARE_TOOL_CONTRACTS) {
@@ -188,7 +260,7 @@ export function applyWithDependencies(
         if (violations.length) {
           throw safeAdapterFailure("invalid_tool_arguments", "NOT_SENT");
         }
-        const trustedScopeContext = dependencies.resolveOperationScopeContext(config, operation, args);
+        const trustedScopeContext = dependencies.resolveOperationScopeContext(config, operation, args, exec.agent);
         const scopeRequest = {
           requestCorrelationId: trustedScopeContext.requestCorrelationId,
           workflowId: trustedScopeContext.workflowId,
@@ -209,6 +281,7 @@ export function applyWithDependencies(
           args,
           config,
           trustedScopeContext.workflowId,
+          exec.agent,
         );
         if (policyContext.operation !== operation
           || policyContext.channel !== requestedChannel(args)
@@ -252,12 +325,20 @@ export function applyWithDependencies(
           if (outputViolations.length) {
             throw safeAdapterFailure("backend_response_invalid", "RESPONSE_RECEIVED");
           }
+          if (exec.agent !== undefined && re001dAuthority !== undefined) {
+            const publication = await re001dAuthority.recordSuccess(exec.agent, operation, args, value);
+            if (publication !== undefined) exec.agent.followup(publication);
+          }
           const evidence = presentHardwareResult(value, evidenceOptions);
           if (correlationId !== null) egressState.recordEvidence(correlationId, evidence);
           exec.deferContext(createTeachingEvidenceMessage(evidence));
           return value;
         } catch (error: unknown) {
           if (error instanceof AdapterFailure) {
+            // Only failures after an authorized dispatch mark the prepared
+            // workflow failed; scope and policy denials above are rejections,
+            // not workflow failures.
+            if (exec.agent !== undefined) re001dAuthority?.recordFailure(exec.agent);
             const evidence = presentAdapterFailure({
               code: error.code,
               message: error.message,
@@ -275,8 +356,16 @@ export function applyWithDependencies(
   }
 }
 
+function defaultRe001dApplication(_config: Required<Config>): Re001dApplicationPort {
+  return new Re001dApplicationClient();
+}
+
 function normalizeConfig(config: Config): Required<Config> {
   const merged = { ...DEFAULT_CONFIG, ...config };
+  const endpointOverride = runtimeOverride("AIA_HARNESS_HARDWARE_ENDPOINT");
+  if (endpointOverride !== undefined) merged.endpoint = endpointOverride;
+  const secretFileOverride = runtimeOverride("AIA_HARNESS_HARDWARE_SECRET_FILE");
+  if (secretFileOverride !== undefined) merged.secretFile = secretFileOverride;
   for (const key of ["connectTimeoutMs", "authTimeoutMs", "requestTimeoutMs"] as const) {
     if (!Number.isSafeInteger(merged[key]) || merged[key] <= 0) throw new Error(`${key} must be a positive integer`);
   }
@@ -284,6 +373,13 @@ function normalizeConfig(config: Config): Required<Config> {
     throw new Error("backendMode must be REAL or SIMULATED");
   }
   return Object.freeze(merged);
+}
+
+function runtimeOverride(name: "AIA_HARNESS_HARDWARE_ENDPOINT" | "AIA_HARNESS_HARDWARE_SECRET_FILE"): string | undefined {
+  const value = process.env[name];
+  if (value === undefined) return undefined;
+  if (value.trim().length === 0) throw new Error(`${name} runtime configuration is empty`);
+  return value.trim();
 }
 
 function object(value: unknown): Readonly<Record<string, unknown>> | undefined {

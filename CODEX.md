@@ -33,6 +33,9 @@ make a feature pass.
 - Current completed major phase: Phase 8.
 - Current intermediate phase: Phase 8.5B CLOSED FOR NOW / LIMITED INTEGRATION.
 - Next major phase: Phase 9 (planned; not started).
+- RE-001 current-core milestone: **CORE E2E PROOF COMPLETE**. RE-001A remains
+  EDA-provider limited; RE-001B, RE-001C-Lite, and RE-001D-Lite are complete
+  within their bounded claims. No next development phase has started.
 - Phase ledger: `docs/architecture/PHASE_STATUS.md`.
 - Architecture baseline: `docs/architecture/PROJECT_BASELINE.md`.
 - Frozen rules: `docs/architecture/ARCHITECTURE_INVARIANTS.md`.

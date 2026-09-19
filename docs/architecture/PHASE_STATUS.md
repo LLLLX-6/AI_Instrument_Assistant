@@ -39,6 +39,11 @@ Status meanings:
 | Phase 8.5B | **CLOSED FOR NOW / LIMITED INTEGRATION** | Uncommitted implementation follows `d5ce8f8` | Attempts 1–4 remain historical NOT PASS. Real diagnostics proved the canonical object API works in a stable Provider context, while ID reconstruction is lossy (2 selected IDs resolved to 1 primitive). Version 0.2.26 retains safe bounded stabilization, but reliable automatic current UI-selection capture remains host-state-sensitive. Automatic candidate binding, trusted selection, and `ProbeTarget` derivation that depend on it are deferred. No further real run is authorized. |
 | Phase 8.5C | **PLANNED / NOT STARTED** | None | Harness-owned operation authorization, physical confirmation, hardware workflow, and teaching interaction surface. |
 | Phase 8.5D | **PLANNED / NOT STARTED** | None | Separately authorized real interactive E2E only after 8.5A-C closeout. |
+| RE-001A | **FUNCTIONALLY COMPLETE / EDA PROVIDER LIMITED** | Uncommitted bounded implementation | Provider-neutral RC design/theory path and deterministic topology service are complete. Yuanlitu negative real validation passed; the positive provider runtime attempt stopped at health, so positive provider compatibility is not claimed. |
+| RE-001B | **COMPLETE — MEASUREMENT CORE** | Uncommitted bounded implementation | User-declared or observed roles feed a deterministic single-point plan and analyzer. No automatic source control, sweep, cutoff search, or generalized experiment framework. |
+| RE-001C-Lite | **COMPLETE — REAL GOVERNED DATA-FLOW PROVEN** | Uncommitted bounded implementation | Four one-shot Scope/Physical Policy/IPC/real DS1102Z-E operations produced canonical results, four typed measurements, and deterministic analysis without retry. |
+| RE-001D-Lite | **COMPLETE — REAL CONVERSATIONAL E2E PROVEN** | Uncommitted bounded implementation | A natural-language request reached trusted physical confirmation, governed real measurement, strict mapping, deterministic analysis, one-shot DeepSeek selection, grounded fallback, and safe final publication. This is data-flow proof, not RC-filter performance validation. |
+| RE-001 Core Milestone | **CORE E2E PROOF COMPLETE** | Closeout pending coherent commits | The current core conversational experiment chain is proven within its bounded scopes. Full EDA/simulation integration, sweep, automatic source control, report export, and generalized diagnosis remain deferred. |
 | Phase 9 | **PLANNED / NOT STARTED** | None | Guided Engineering Reasoning & Diagnosis roadmap only: proposal-only next measurement, reviewed inference rules, structured hypotheses, causal-diagnosis policy, then human-authorized iteration. |
 | Phase 10 | **PLANNED** | None | **Release & Deployment Hardening**: installer, signing, updater, durable operational state, production observability, OS sandboxing, packaging/distribution, and release engineering. Core interactive UX belongs to Phase 8.5. |
 
@@ -163,6 +168,20 @@ not alter Attempts 1–4 or any later compatibility evidence.
 
 Phase 9 is the Guided Engineering Reasoning & Diagnosis roadmap only. No Phase
 9 implementation, execution authority, or real external action is authorized.
+
+## Completed RE-001 Core E2E Proof
+
+RE-001A/B/C-Lite/D-Lite now establish the bounded path from provider-neutral
+design context or an explicit user-declared fallback, through deterministic
+planning and governed real measurement, to strict mapping, deterministic
+analysis, provenance-separated evidence, one-shot model claim selection, and
+safe grounded publication. The final real validation is recorded in
+[RE-001D-Lite Final Real Conversational E2E](../validation/re001d-lite-final-real-conversational-e2e.md).
+
+This completion does not start a new development phase. Reliable native
+JLCEDA selection, Yuanlitu positive-provider runtime validation, SimulIDE,
+automatic signal generation and sweep, cutoff search, full RC physical
+validation, report export, and generalized diagnosis remain deferred.
 
 ## Status Authority and References
 

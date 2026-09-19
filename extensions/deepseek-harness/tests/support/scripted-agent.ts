@@ -30,6 +30,7 @@ import {
 } from "../../src/policy/index.ts";
 import type { EgressDiagnostic } from "../../src/egress/index.ts";
 import type { GroundingDiagnostic } from "../../src/grounding/index.ts";
+import type { Re001dApplicationPort } from "../../src/re001d-application-client.ts";
 import {
   SEMANTIC_HARDWARE_OPERATIONS,
   createTrustedOperationScope,
@@ -107,12 +108,15 @@ export function simulatedPolicy(
 
 export interface AgentHarnessOptions {
   readonly script: ScriptStep[];
-  readonly client?: RecordingHardwareClient;
+  readonly client?: HardwareClientPort;
   readonly config?: Config;
   readonly resolvePolicyContext?: PluginDependencies["resolvePolicyContext"];
   readonly onEgressDiagnostic?: (diagnostic: EgressDiagnostic) => void;
   readonly onGroundingDiagnostic?: (diagnostic: GroundingDiagnostic) => void;
+  readonly onOperationScopeDecision?: PluginDependencies["onOperationScopeDecision"];
   readonly operationScopeContext?: TrustedOperationScopeContext;
+  readonly useProductionOperationScopeAuthority?: boolean;
+  readonly re001dApplication?: Re001dApplicationPort;
 }
 
 let sessionSequence = 0;
@@ -125,7 +129,9 @@ export async function createAgentHarness(options: AgentHarnessOptions): Promise<
 }> {
   const ctx = new Context();
   const adapter = new ScriptedAgentAdapter(options.script);
-  const operationScopeContext = options.operationScopeContext ?? trustedTestScopeContext();
+  const operationScopeContext = options.useProductionOperationScopeAuthority === true
+    ? undefined
+    : options.operationScopeContext ?? trustedTestScopeContext();
   await ctx.plugin(LlmRuntime);
   await ctx.plugin(SessionStore);
   await ctx.plugin(SessionProjectionRegistry);
@@ -139,10 +145,14 @@ export async function createAgentHarness(options: AgentHarnessOptions): Promise<
     { backendMode: "SIMULATED", ...options.config },
     {
       ...(options.client === undefined ? {} : { createClient: () => options.client! }),
-      resolveOperationScopeContext: () => operationScopeContext,
+      ...(options.re001dApplication === undefined ? {} : { createRe001dApplication: () => options.re001dApplication! }),
+      ...(operationScopeContext === undefined
+        ? {}
+        : { resolveOperationScopeContext: () => operationScopeContext }),
       resolvePolicyContext: options.resolvePolicyContext ?? simulatedPolicy,
       onEgressDiagnostic: options.onEgressDiagnostic,
       onGroundingDiagnostic: options.onGroundingDiagnostic,
+      onOperationScopeDecision: options.onOperationScopeDecision,
     },
   );
   const agent = await ctx.agentLoop.create(

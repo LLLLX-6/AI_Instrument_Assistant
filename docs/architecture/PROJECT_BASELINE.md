@@ -290,6 +290,24 @@ recorded/synthetic TeachingDiagnosisContext
 This is real-model safety integration PASS, not evidence of a valid-candidate
 happy path.
 
+RE-001D-Lite additionally completed the bounded current-core conversational
+proof:
+
+```text
+natural-language experiment request
+  -> bounded intent and trusted physical confirmation
+  -> four one-shot governed DS1102Z-E measurements
+  -> strict canonical mapping and deterministic analysis
+  -> provenance-separated teaching evidence
+  -> one DeepSeek structured candidate
+  -> deterministic grounded fallback and safe final Egress
+```
+
+The run preserved unexpected real measurements instead of rewriting them and
+created no causal diagnosis. It proves governed conversational experimental
+data flow, not RC-filter physical performance. The overall RE-001 status is
+**CORE E2E PROOF COMPLETE**.
+
 ## 8. Current Limitations
 
 - Harness compatibility is proven only for the frozen reviewed commit/package
@@ -327,6 +345,11 @@ happy path.
   safe rejection and deterministic fallback instead.
 - Phase 8 is complete without engineering inference, hypothesis, causal
   diagnosis, next-measurement proposals, or autonomous experimentation.
+- RE-001 does not yet include reliable native JLCEDA selection, a successful
+  positive Yuanlitu provider runtime validation, SimulIDE integration,
+  automatic signal-generator control, frequency sweep or cutoff search, full
+  RC physical validation, report export, or generalized diagnosis. These are
+  deferred and do not invalidate the bounded core E2E proof.
 
 ## 9. Historical Validation Policy
 
@@ -378,6 +401,8 @@ compilation, or behavior tests rather than brittle prose searches.
 - [JLCEDA protocol state machine](aia-jlceda-v1-state-machine.md)
 - [JLCEDA highlight findings](../compatibility/jlceda-phase5b4-highlight-findings.md)
 - [Physical confirmation workflow binding](physical-confirmation-workflow-binding.md)
+- [RE-001 experiment status](../experiments/re-001-rc-low-pass.md)
+- [RE-001D-Lite final real conversational E2E](../validation/re001d-lite-final-real-conversational-e2e.md)
 
 ## 12. Known Documentation Drift
 

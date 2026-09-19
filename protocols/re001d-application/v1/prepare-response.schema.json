@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-instrument-assistant.local/schemas/re001d-application/v1/prepare-response.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "operation", "workflow_id", "request_correlation_id", "intent", "status", "plan", "wiring_instructions"],
+  "properties": {
+    "protocol": { "const": "aia-re001d-application/v1" },
+    "operation": { "const": "prepare" },
+    "workflow_id": { "type": "string" },
+    "request_correlation_id": { "type": "string" },
+    "intent": { "const": "RE001D_LITE_SINGLE_POINT" },
+    "status": { "const": "CONFIRMATION_REQUIRED" },
+    "plan": {
+      "type": "object", "additionalProperties": false,
+      "required": ["requested_frequency_hz", "design_context_source", "vin", "vout", "reference", "operation_sequence"],
+      "properties": {
+        "requested_frequency_hz": { "type": "number", "exclusiveMinimum": 0 },
+        "design_context_source": { "const": "USER_DECLARED_DESIGN_CONTEXT" },
+        "vin": { "const": "STM32 output / CH1" },
+        "vout": { "const": "same STM32 output / CH2" },
+        "reference": { "const": "STM32 GND" },
+        "operation_sequence": {
+          "type": "array", "minItems": 4, "maxItems": 4,
+          "prefixItems": [
+            { "$ref": "#/$defs/ch1Frequency" }, { "$ref": "#/$defs/ch1Vpp" },
+            { "$ref": "#/$defs/ch2Frequency" }, { "$ref": "#/$defs/ch2Vpp" }
+          ], "items": false
+        }
+      }
+    },
+    "wiring_instructions": { "type": "string", "minLength": 1, "maxLength": 1024 }
+  },
+  "$defs": {
+    "ch1Frequency": { "const": ["hardware.measure_frequency", 1] },
+    "ch1Vpp": { "const": ["hardware.measure_vpp", 1] },
+    "ch2Frequency": { "const": ["hardware.measure_frequency", 2] },
+    "ch2Vpp": { "const": ["hardware.measure_vpp", 2] }
+  }
+}

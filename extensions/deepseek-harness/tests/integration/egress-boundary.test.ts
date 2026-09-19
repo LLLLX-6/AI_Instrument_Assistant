@@ -85,3 +85,39 @@ test("unsafe intermediate reasoning is discarded before live or durable Agent ou
     await harness.ctx.fiber.dispose();
   }
 });
+
+test("explicit reasoning-relaxation opt-in skips reasoning inspection but never relaxes authority", async () => {
+  process.env.AIA_RELAX_EGRESS_REASONING = "1";
+  try {
+    const client = new RecordingHardwareClient(SIMULATED_FREQUENCY_RESULT);
+    const harness = await createAgentHarness({
+      client,
+      useProductionOperationScopeAuthority: true,
+      script: [
+        [
+          { type: "block-start", index: 0, blockType: "reasoning" },
+          { type: "reasoning-delta", index: 0, text: "look in /tmp/private/capture.bin" },
+          { type: "block-end", index: 0, block: { type: "reasoning", text: "look in /tmp/private/capture.bin" } },
+          { type: "block-start", index: 1, blockType: "text" },
+          { type: "text-delta", index: 1, text: "No tool is needed." },
+          { type: "block-end", index: 1, block: { type: "text", text: "No tool is needed." } },
+          { type: "usage", usage: { inputTokens: 5, outputTokens: 5 } },
+          { type: "finish", reason: { kind: "stop" } },
+        ],
+        toolCallResponse("still-denied", "hardware_measure_frequency", { channel: 1 }),
+        textResponse("No authority exists outside the trusted lifecycle."),
+      ],
+    });
+    try {
+      await runAgent(harness.agent, "Explain the result.");
+      assert.match(finalAgentText(harness.agent), /No tool is needed\./);
+      await runAgent(harness.agent, "Measure frequency on CH1.");
+      assert.equal(client.calls.length, 0, "the dev-only egress flag must not mint any hardware authority");
+      assert.match(finalAgentText(harness.agent), /No authority exists outside the trusted lifecycle\./);
+    } finally {
+      await harness.ctx.fiber.dispose();
+    }
+  } finally {
+    delete process.env.AIA_RELAX_EGRESS_REASONING;
+  }
+});

@@ -29,7 +29,7 @@ await build({
 const pluginEntry = join(distRoot, "index.js").replaceAll("\\", "/").replaceAll("'", "''");
 const patch = [
   "- insert:",
-  "    - id: aia-hardware-dev",
+  "    - id: aia-hardware",
   `      name: '${pluginEntry}'`,
   "      config:",
   "        endpoint: 'ws://127.0.0.1:49625'",

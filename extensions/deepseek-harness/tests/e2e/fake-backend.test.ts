@@ -1,4 +1,8 @@
 import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 import { Context } from "@deepseek-ai/cordis";
@@ -8,6 +12,7 @@ import ToolRuntime from "@deepseek-ai/dsh-tools";
 
 import { applyWithDependencies } from "../../src/index.ts";
 import { HarnessHardwareIpcClient } from "../../src/ipc/client.ts";
+import { AdapterFailure } from "../../src/ipc/errors.ts";
 import { loadHarnessHardwareSecret } from "../../src/ipc/secret.ts";
 import {
   createAgentHarness,
@@ -29,6 +34,38 @@ const OPERATIONS = [
   ["hardware_capture_waveform", "hardware.capture_waveform", { channel: 1 }],
   ["hardware_measure_pwm", "hardware.measure_pwm", { channel: 1, context_id: "PWM_OUT" }],
 ] as const;
+
+test("wrong PSK fails closed before any Hardware request and leaks no secret", { timeout: 30_000 }, async () => {
+  const backend = await startFakeBackend();
+  const temporaryRoot = await mkdtemp(join(tmpdir(), "aia-wrong-psk-"));
+  const wrongSecretFile = join(temporaryRoot, "wrong-hardware-psk.txt");
+  const wrongSecret = randomBytes(32).toString("base64url");
+  await writeFile(wrongSecretFile, wrongSecret, { encoding: "ascii", mode: 0o600 });
+  const client = new HarnessHardwareIpcClient({
+    endpoint: backend.endpoint,
+    secretFile: wrongSecretFile,
+    loadSecret: () => loadHarnessHardwareSecret(wrongSecretFile),
+    connectTimeoutMs: 2_000,
+    authTimeoutMs: 2_000,
+    requestTimeoutMs: 5_000,
+    reconnectDelaysMs: [],
+  });
+  try {
+    client.start();
+    await assert.rejects(client.waitUntilAuthenticated(5_000), (error: unknown) => {
+      assert.ok(error instanceof AdapterFailure);
+      assert.equal(error.code, "ipc_authentication_failed");
+      assert.equal(error.deliveryState, "NOT_SENT");
+      assert.doesNotMatch(error.message, new RegExp(wrongSecret));
+      assert.doesNotMatch(error.message, /wrong-hardware-psk|aia-wrong-psk/i);
+      return true;
+    });
+  } finally {
+    await client.dispose();
+    await backend.dispose();
+    await rm(temporaryRoot, { recursive: true, force: true });
+  }
+});
 
 test("real frozen ToolRuntime executes all five tools through the Python fake backend", { timeout: 30_000 }, async () => {
   const backend = await startFakeBackend();

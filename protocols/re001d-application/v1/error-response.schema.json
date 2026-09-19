@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-instrument-assistant.local/schemas/re001d-application/v1/error-response.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "status", "error_code"],
+  "properties": {
+    "protocol": { "const": "aia-re001d-application/v1" },
+    "status": { "const": "FAILED" },
+    "error_code": { "enum": ["INVALID_REQUEST", "UNSUPPORTED_INTENT", "CORRELATION_MISMATCH", "DUPLICATE_COMPLETE", "APPLICATION_FAILURE"] }
+  }
+}

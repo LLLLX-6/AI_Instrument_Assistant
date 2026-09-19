@@ -24,13 +24,15 @@ export function installHarnessAgentEgressBoundary(
   state: AgentEgressStateStore,
   diagnostic: (value: EgressDiagnostic) => void = () => undefined,
   groundingDiagnostic: (value: GroundingDiagnostic) => void = () => undefined,
+  options: { relaxReasoningInspection?: boolean } = {},
 ): () => void {
-  return ctx.on("llm/stream", (options, next) => guardedStream(
-    options,
+  return ctx.on("llm/stream", (generateOptions, next) => guardedStream(
+    generateOptions,
     next,
     state,
     diagnostic,
     groundingDiagnostic,
+    options.relaxReasoningInspection ?? false,
   ));
 }
 
@@ -40,11 +42,12 @@ async function* guardedStream(
   state: AgentEgressStateStore,
   diagnostic: (value: EgressDiagnostic) => void,
   groundingDiagnostic: (value: GroundingDiagnostic) => void,
+  relaxReasoningInspection: boolean = false,
 ): AsyncIterable<StreamChunk> {
   const chunks: StreamChunk[] = [];
   for await (const chunk of next()) chunks.push(chunk);
   const correlationId = String(options.sessionId ?? "unscoped");
-  const egressViolations = inspectChunks(chunks, correlationId);
+  const egressViolations = inspectChunks(chunks, correlationId, relaxReasoningInspection);
   const hasToolCall = chunks.some((chunk) => chunk.type === "block-end" && chunk.block.type === "tool-call");
   const trusted = state.snapshot(correlationId);
 
@@ -133,11 +136,24 @@ function finalText(chunks: readonly StreamChunk[]): string {
     .join("\n");
 }
 
-function inspectChunks(chunks: readonly StreamChunk[], correlationId: string): EgressViolation[] {
+function inspectChunks(
+  chunks: readonly StreamChunk[],
+  correlationId: string,
+  relaxReasoningInspection: boolean = false,
+): EgressViolation[] {
+  // Trust boundary: a reasoning block is model-internal intermediate state.
+  // It is consumed by neither the tool dispatch path (which reads tool-call
+  // arguments only) nor the final-response grounding path (which reads text
+  // blocks only), so skipping its egress inspection cannot mint hardware
+  // authority or alter a published response. Final text and tool arguments
+  // are always inspected; `relaxReasoningInspection` is a NON-PRODUCTION,
+  // developer-local opt-in (AIA_RELAX_EGRESS_REASONING) that affects only
+  // reasoning-block hygiene inspection.
   const violations: EgressViolation[] = [];
   for (const chunk of chunks) {
     if (chunk.type !== "block-end") continue;
     const block = chunk.block;
+    if (relaxReasoningInspection && block.type === "reasoning") continue;
     const candidate = block.type === "tool-call" ? block.arguments : block.type === "text" || block.type === "reasoning" ? block.text : null;
     if (candidate === null) continue;
     const result = inspectEgressCandidate({

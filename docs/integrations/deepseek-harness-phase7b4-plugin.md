@@ -189,10 +189,47 @@ Terminal B — point to the exact official checkout, verify/build the plugin, an
 invoke all five tools through the frozen official Context + ToolRuntime:
 
 ```powershell
-$env:DEEPSEEK_HARNESS_DEV_ROOT = 'C:\Dev\deepseek-harness'
+$env:DEEPSEEK_HARNESS_DEV_ROOT = 'C:\path\to\the\frozen\deepseek-harness'
+$env:AIA_HARNESS_HARDWARE_ENDPOINT = 'ws://127.0.0.1:49625'
+$env:AIA_HARNESS_HARDWARE_SECRET_FILE = (Resolve-Path '.aia-secrets\harness-hardware-psk.txt').Path
 npm run build --workspace @aia/deepseek-harness-hardware
 npm run smoke:fake --workspace @aia/deepseek-harness-hardware
 ```
+
+The production plugin gives these process-local environment references
+precedence over Cordis configuration. The secret-file reference must be an
+absolute path so a Harness launched from another working directory cannot
+silently authenticate with an unrelated relative file. No secret-file path is
+hard-coded: the committed Cordis patch keeps the established local default,
+while production and Web runs must supply `AIA_HARNESS_HARDWARE_SECRET_FILE`
+(or explicit runtime configuration) with an absolute resolved path.
+
+### Trust boundaries after reconciliation
+
+- **Operation scopes.** Strict behavior is the default and the only production
+  behavior. `TrustedOperationScope` instances are issued exclusively by trusted
+  Host composition: the interactive status authority (one exact status request,
+  one one-shot scope) and the interactive RE-001D authority (one prepared
+  workflow, then exactly four one-shot scopes after confirmation). There is no
+  automatic scope provisioning, no broad or wildcard scope, and no budget-10
+  fallback. Requests outside a prepared workflow resolve a fail-closed scope.
+- **Physical confirmation.** The plugin never synthesizes a
+  `ProbeSetupConfirmation` and never defaults `safeLowVoltageConfirmed` to
+  true. The RE-001D authority records two channel confirmations only after the
+  user's exact workflow-bound confirmation phrase arrives as a current trusted
+  user chat event; generic affirmatives ("yes", "confirm") never authorize, and
+  any other text revokes the prepared workflow as stale.
+- **Egress inspection.** The egress boundary inspects three model-output
+  surfaces: final text, tool-call arguments, and reasoning blocks. Final text is
+  additionally grounding-checked against trusted evidence; tool arguments are
+  the surface that reaches Hardware IPC. Reasoning blocks are model-internal
+  intermediate state consumed by neither dispatch nor grounding, so a
+  developer-local `AIA_RELAX_EGRESS_REASONING` opt-in may skip only that
+  reasoning inspection — never text or tool-argument inspection — and it mints
+  no scope, confirmation, or other authority.
+- **Hardware IPC authentication.** Raw Hardware IPC proof verification is always
+  enabled; there is no relaxed mode that bypasses it. Wrong-PSK connections fail
+  closed before any Hardware request.
 
 The smoke output contains only bounded operation, `ok`, and artifact metadata
 summaries. To inspect reconnect behavior, stop Terminal A, start the smoke

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ai-instrument-assistant.local/schemas/re001d-application/v1/complete-response.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "operation", "workflow_id", "request_correlation_id", "status", "publication"],
+  "properties": {
+    "protocol": { "const": "aia-re001d-application/v1" },
+    "operation": { "const": "complete" },
+    "workflow_id": { "type": "string" },
+    "request_correlation_id": { "type": "string" },
+    "status": { "const": "COMPLETED" },
+    "publication": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "text", "grounding_result", "final_egress", "model_request_count", "model_retry_count"],
+      "properties": {
+        "status": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "text": { "type": "string", "minLength": 1, "maxLength": 16384 },
+        "grounding_result": { "enum": ["PASS", "FALLBACK"] },
+        "final_egress": { "const": "SAFE" },
+        "model_request_count": { "type": "integer", "minimum": 0, "maximum": 1 },
+        "model_retry_count": { "const": 0 }
+      }
+    }
+  }
+}

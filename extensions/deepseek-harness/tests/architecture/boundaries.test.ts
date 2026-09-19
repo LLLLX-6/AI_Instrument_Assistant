@@ -28,6 +28,25 @@ test("no committed source contains an absolute Harness checkout path", () => {
   assert.doesNotMatch(text, /[A-Za-z]:[\\/]Dev[\\/]deepseek-harness/i);
 });
 
+test("no committed source contains a machine-specific user-directory path", () => {
+  assert.doesNotMatch(sourceText(), /[A-Za-z]:[\\/]Users[\\/]/, "secret-file and checkout paths must be supplied at runtime");
+});
+
+test("default composition stays strict: no automatic scope provisioning or synthesized confirmation", () => {
+  const plugin = readFileSync(resolve(root, "src/plugin.ts"), "utf8");
+  assert.doesNotMatch(plugin, /interactiveRelaxedMode|AIA_STRICT_MODE|AIA_RELAXED_MODE/);
+  assert.doesNotMatch(plugin, /relaxed-scope-|relaxed-confirmation-|maxInvocations: 10/);
+  assert.doesNotMatch(plugin, /safeLowVoltageConfirmed/, "the plugin must never synthesize physical confirmation");
+  assert.match(plugin, /FAIL_CLOSED_OPERATION_SCOPE/);
+  assert.match(plugin, /installInteractiveRe001dAuthority/);
+  assert.match(plugin, /installInteractiveStatusScopeAuthority/);
+  // The only relaxed behavior allowed is the explicitly labeled, dev-only
+  // reasoning egress inspection opt-in; it must not touch authority surfaces.
+  const egressBoundary = readFileSync(resolve(root, "src/agent/egress-boundary.ts"), "utf8");
+  assert.match(egressBoundary, /relaxReasoningInspection/);
+  assert.match(egressBoundary, /block\.type === "reasoning"/);
+});
+
 test("frozen Harness source is not copied into the project", () => {
   const paths = readdirSync(resolve(root, "../.."), { recursive: true, withFileTypes: true })
     .filter((entry) => entry.isFile())
