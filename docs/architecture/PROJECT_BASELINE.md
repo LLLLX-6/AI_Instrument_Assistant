@@ -313,6 +313,17 @@ reviewed request names none, `requested_frequency_hz` is null, and the
 frequency-relative-deviation metric is omitted from analysis and publication
 unless an experiment plan explicitly declares a target (RE-001B 100 Hz point).
 
+The bounded REAL Rigol interactive Web validation then proved the same
+governed path against the real DS1102Z-E: trusted confirmation, four
+one-shot scopes, four ordered authenticated instrument measurements with
+`source = "instrument"`, targetless semantics preserved (no deviation
+metric published), deterministic gain analysis, and safe grounded
+publication. Recorded in
+[RE-001D Real Rigol Interactive Web E2E](../validation/re001d-real-rigol-web-e2e.md).
+The earlier approximately 10x Vpp discrepancy was traced to physical probe
+attenuation/configuration and disappeared after physical correction; no
+software compensation was added.
+
 ## 8. Current Limitations
 
 - Harness compatibility is proven only for the frozen reviewed commit/package
@@ -408,6 +419,7 @@ compilation, or behavior tests rather than brittle prose searches.
 - [Physical confirmation workflow binding](physical-confirmation-workflow-binding.md)
 - [RE-001 experiment status](../experiments/re-001-rc-low-pass.md)
 - [RE-001D-Lite final real conversational E2E](../validation/re001d-lite-final-real-conversational-e2e.md)
+- [RE-001D Real Rigol interactive Web E2E](../validation/re001d-real-rigol-web-e2e.md)
 
 ## 12. Known Documentation Drift
 

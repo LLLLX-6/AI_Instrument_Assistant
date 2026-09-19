@@ -178,6 +178,12 @@ analysis, provenance-separated evidence, one-shot model claim selection, and
 safe grounded publication. The final real validation is recorded in
 [RE-001D-Lite Final Real Conversational E2E](../validation/re001d-lite-final-real-conversational-e2e.md).
 
+The bounded REAL Rigol interactive Web path (real DS1102Z-E via the
+Harness Web: trusted confirmation, four one-shot scopes, four ordered
+instrument measurements, preserved instrument provenance, grounded
+publication) is recorded in
+[RE-001D Real Rigol Interactive Web E2E](../validation/re001d-real-rigol-web-e2e.md).
+
 This completion does not start a new development phase. Reliable native
 JLCEDA selection, Yuanlitu positive-provider runtime validation, SimulIDE,
 automatic signal generation and sweep, cutoff search, full RC physical
