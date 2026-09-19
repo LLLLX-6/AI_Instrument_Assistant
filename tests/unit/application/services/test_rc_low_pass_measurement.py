@@ -162,6 +162,28 @@ class RCSinglePointAnalysisTests(unittest.TestCase):
         with self.assertRaisesRegex(RCMeasurementAnalysisError, "channel_mismatch"):
             self.analyze(vout_frequency=result(MeasurementKind.FREQUENCY, 1, 99.9))
 
+    def test_targetless_plan_omits_deviation_but_keeps_gain(self) -> None:
+        # A plan without a declared frequency target yields no deviation metric;
+        # target-independent quantities (frequencies, Vpp, gain) still compute.
+        targetless_plan = RCLowPassMeasurementPlanner().from_user_declared_design(
+            requested_frequency_hz=None,
+            vin="Vin",
+            vout="Vout",
+            reference="GND",
+        )
+        measured = self.analyzer.analyze(
+            targetless_plan,
+            vin_frequency=result(MeasurementKind.FREQUENCY, 1, 10020.04),
+            vout_frequency=result(MeasurementKind.FREQUENCY, 2, 10020.04),
+            vin_vpp=result(MeasurementKind.VPP, 1, 0.408),
+            vout_vpp=result(MeasurementKind.VPP, 2, 4.12),
+        )
+        self.assertIsNone(measured.requested_frequency_hz)
+        self.assertIsNone(measured.vin_frequency_relative_deviation)
+        self.assertIsNone(measured.vout_frequency_relative_deviation)
+        self.assertAlmostEqual(4.12 / 0.408, measured.gain_ratio)
+        self.assertAlmostEqual(20.0 * math.log10(4.12 / 0.408), measured.gain_db)
+
     def test_non_finite_or_non_physical_observation_is_rejected(self) -> None:
         invalid = result(MeasurementKind.FREQUENCY, 1, 100.0)
         object.__setattr__(invalid.instrument_frequency, "value", math.nan)

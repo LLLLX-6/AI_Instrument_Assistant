@@ -8,7 +8,8 @@ export interface Re001dPrepareResponse {
   readonly intent: "RE001D_LITE_SINGLE_POINT";
   readonly status: "CONFIRMATION_REQUIRED";
   readonly plan: Readonly<{
-    requested_frequency_hz: number;
+    /** Declared frequency target; null = no target was declared or known. */
+    requested_frequency_hz: number | null;
     design_context_source: "USER_DECLARED_DESIGN_CONTEXT";
     vin: "STM32 output / CH1";
     vout: "same STM32 output / CH2";

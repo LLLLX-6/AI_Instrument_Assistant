@@ -15,7 +15,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["requested_frequency_hz", "design_context_source", "vin", "vout", "reference", "operation_sequence"],
       "properties": {
-        "requested_frequency_hz": { "type": "number", "exclusiveMinimum": 0 },
+        "requested_frequency_hz": { "type": ["number", "null"], "exclusiveMinimum": 0 },
         "design_context_source": { "const": "USER_DECLARED_DESIGN_CONTEXT" },
         "vin": { "const": "STM32 output / CH1" },
         "vout": { "const": "same STM32 output / CH2" },

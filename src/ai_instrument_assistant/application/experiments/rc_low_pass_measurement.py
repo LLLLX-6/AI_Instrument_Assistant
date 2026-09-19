@@ -60,7 +60,7 @@ class RCNodeRole:
 
 @dataclass(frozen=True, slots=True)
 class RCLowPassMeasurementPlan:
-    requested_frequency_hz: float
+    requested_frequency_hz: float | None
     design_context_source: RCDesignContextSource
     vin_role: RCNodeRole
     vout_role: RCNodeRole
@@ -71,8 +71,9 @@ class RCLowPassMeasurementPlan:
     vout_channel: int = 2
 
     def __post_init__(self) -> None:
-        frequency = _positive_finite(self.requested_frequency_hz, "requested_frequency_hz")
-        object.__setattr__(self, "requested_frequency_hz", frequency)
+        if self.requested_frequency_hz is not None:
+            frequency = _positive_finite(self.requested_frequency_hz, "requested_frequency_hz")
+            object.__setattr__(self, "requested_frequency_hz", frequency)
         if self.experiment_type != "RC_LOW_PASS":
             raise ValueError("only RC_LOW_PASS is supported")
         if self.vin_channel != 1 or self.vout_channel != 2:
@@ -101,7 +102,7 @@ class RCLowPassMeasurementPlanner:
     def from_observed_design(
         self,
         design: RCExperimentResult,
-        requested_frequency_hz: float,
+        requested_frequency_hz: float | None,
     ) -> RCLowPassMeasurementPlan:
         if not isinstance(design, RCExperimentResult):
             raise TypeError("design must be RCExperimentResult")
@@ -122,7 +123,7 @@ class RCLowPassMeasurementPlanner:
     def from_user_declared_design(
         self,
         *,
-        requested_frequency_hz: float,
+        requested_frequency_hz: float | None,
         vin: str,
         vout: str,
         reference: str,
@@ -138,21 +139,33 @@ class RCLowPassMeasurementPlanner:
 
     @staticmethod
     def _plan(
-        requested_frequency_hz: float,
+        requested_frequency_hz: float | None,
         source: RCDesignContextSource,
         vin: RCNodeRole,
         vout: RCNodeRole,
         reference: RCNodeRole,
     ) -> RCLowPassMeasurementPlan:
-        frequency = _positive_finite(requested_frequency_hz, "requested_frequency_hz")
+        frequency = (
+            None
+            if requested_frequency_hz is None
+            else _positive_finite(requested_frequency_hz, "requested_frequency_hz")
+        )
+        source_instructions = (
+            (
+                f"Configure the signal source manually for a {frequency:g} Hz sine wave.",
+            )
+            if frequency is not None
+            else (
+                "Configure the signal source manually for the signal under test.",
+            )
+        )
         return RCLowPassMeasurementPlan(
             requested_frequency_hz=frequency,
             design_context_source=source,
             vin_role=vin,
             vout_role=vout,
             reference_role=reference,
-            manual_source_instructions=(
-                f"Configure the signal source manually for a {frequency:g} Hz sine wave.",
+            manual_source_instructions=source_instructions + (
                 "Connect the source signal to Vin and its reference to circuit reference.",
                 "Keep the source settings unchanged during this single-point measurement.",
             ),
@@ -188,26 +201,30 @@ class RCPhysicalChannelMeasurement:
 
 @dataclass(frozen=True, slots=True)
 class RCFrequencyPointMeasurement:
-    requested_frequency_hz: float
+    requested_frequency_hz: float | None
     vin: RCPhysicalChannelMeasurement
     vout: RCPhysicalChannelMeasurement
     gain_ratio: float
     gain_db: float
-    vin_frequency_relative_deviation: float
-    vout_frequency_relative_deviation: float
+    vin_frequency_relative_deviation: float | None
+    vout_frequency_relative_deviation: float | None
     quality: MeasurementQuality
     warnings: tuple[str, ...] = ()
     within_tolerance: None = None
     analysis_source: RCEvidenceSource = RCEvidenceSource.SOFTWARE_ANALYSIS
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "requested_frequency_hz", _positive_finite(self.requested_frequency_hz, "requested_frequency_hz"))
+        if self.requested_frequency_hz is not None:
+            object.__setattr__(self, "requested_frequency_hz", _positive_finite(self.requested_frequency_hz, "requested_frequency_hz"))
         if not isinstance(self.vin, RCPhysicalChannelMeasurement) or self.vin.channel != 1:
             raise ValueError("Vin measurement must be CH1")
         if not isinstance(self.vout, RCPhysicalChannelMeasurement) or self.vout.channel != 2:
             raise ValueError("Vout measurement must be CH2")
         for name in ("gain_ratio", "vin_frequency_relative_deviation", "vout_frequency_relative_deviation"):
-            value = _finite(getattr(self, name), name)
+            value = getattr(self, name)
+            if value is None:
+                continue
+            _finite(value, name)
             if value < 0:
                 raise ValueError(f"{name} must be non-negative")
             object.__setattr__(self, name, value)
@@ -267,14 +284,20 @@ class RCSinglePointMeasurementAnalyzer:
             )
         ))
         gain_ratio = vout_vpp_value / vin_vpp_value
+        target = plan.requested_frequency_hz
+        if target is None:
+            vin_deviation = vout_deviation = None
+        else:
+            vin_deviation = abs(vin_frequency_value - target) / target
+            vout_deviation = abs(vout_frequency_value - target) / target
         return RCFrequencyPointMeasurement(
-            requested_frequency_hz=plan.requested_frequency_hz,
+            requested_frequency_hz=target,
             vin=RCPhysicalChannelMeasurement(1, vin_frequency_value, vin_vpp_value, quality, vin_artifacts),
             vout=RCPhysicalChannelMeasurement(2, vout_frequency_value, vout_vpp_value, quality, vout_artifacts),
             gain_ratio=gain_ratio,
             gain_db=20.0 * math.log10(gain_ratio),
-            vin_frequency_relative_deviation=abs(vin_frequency_value - plan.requested_frequency_hz) / plan.requested_frequency_hz,
-            vout_frequency_relative_deviation=abs(vout_frequency_value - plan.requested_frequency_hz) / plan.requested_frequency_hz,
+            vin_frequency_relative_deviation=vin_deviation,
+            vout_frequency_relative_deviation=vout_deviation,
             quality=quality,
             warnings=warnings,
         )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import json
 import unittest
 from pathlib import Path
@@ -242,6 +243,12 @@ class RE001DLiteCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         names = set(prepared.__dataclass_fields__)
         self.assertFalse(names & {"scope", "confirmation", "authorization", "tool_arguments"})
 
+    def test_current_output_request_declares_no_frequency_target(self) -> None:
+        # The reviewed request names no expected frequency; the plan must not
+        # invent one (no implicit 100 Hz target).
+        prepared = self.coordinator.prepare(self.request)
+        self.assertIsNone(prepared.plan.requested_frequency_hz)
+
     async def test_fake_e2e_maps_analyzes_and_publishes_exact_evidence(self) -> None:
         prepared = self.coordinator.prepare(self.request)
         runtime, egress = SelectingRuntime(), SafeEgress()
@@ -253,14 +260,18 @@ class RE001DLiteCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(result.measurement.gain_ratio, 3.24 / 0.34)
         self.assertAlmostEqual(result.measurement.gain_db, 19.58132186328714)
+        self.assertIsNone(result.measurement.requested_frequency_hz)
+        self.assertIsNone(result.measurement.vin_frequency_relative_deviation)
+        self.assertIsNone(result.measurement.vout_frequency_relative_deviation)
         self.assertEqual(len(result.teaching_context.physical_observations), 4)
-        self.assertEqual(len(result.teaching_context.software_analyses), 4)
+        self.assertEqual(len(result.teaching_context.software_analyses), 2)
         self.assertEqual(result.teaching_context.inferences, ())
         self.assertEqual(result.publication.audit.hardware_count, 0)
         self.assertIn("10020.04 Hz", result.publication.publication.text)
         self.assertIn("0.34 V", result.publication.publication.text)
         self.assertIn("3.24 V", result.publication.publication.text)
         self.assertNotIn("100 Hz", result.publication.publication.text)
+        self.assertNotIn("relative deviation", result.publication.publication.text)
         self.assertEqual(runtime.closed, 1)
         self.assertEqual(len(egress.values), 1)
 
@@ -298,11 +309,33 @@ class RE001DLiteCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Simulated evidence:", text)
         self.assertIn("Simulated evidence: CH1 frequency = 10000 Hz.", text)
         self.assertIn("Simulated evidence: CH1 Vpp = 3.3 V.", text)
+        self.assertNotIn("relative deviation", text)
         self.assertNotIn("Instrument measurement:", text)
         self.assertNotIn("observation_source_invalid", text)
         self.assertEqual(result.publication.audit.final_egress, "SAFE")
         self.assertEqual(result.publication.audit.model_retry_count, 0)
         self.assertEqual(result.publication.audit.tool_count, 0)
+
+    async def test_explicit_target_plan_still_publishes_deviation(self) -> None:
+        # A plan that genuinely declares a frequency target keeps the deviation
+        # metric end to end (RE-001B-style 100 Hz experiment point).
+        prepared = self.coordinator.prepare(self.request)
+        targeted = dataclasses.replace(
+            prepared,
+            plan=dataclasses.replace(prepared.plan, requested_frequency_hz=100.0),
+        )
+        runtime, egress = SelectingRuntime(), SafeEgress()
+        result = await self.coordinator.complete(
+            targeted,
+            simulated_backend_receipt(values=(10000.0, 3.3, 10000.0, 3.3)),
+            publisher=publisher(runtime, egress),
+            correlation_id="re001d-targeted",
+        )
+        self.assertEqual(result.measurement.requested_frequency_hz, 100.0)
+        self.assertIsNotNone(result.measurement.vin_frequency_relative_deviation)
+        self.assertIsNotNone(result.measurement.vout_frequency_relative_deviation)
+        self.assertEqual(len(result.teaching_context.software_analyses), 4)
+        self.assertIn("relative deviation", result.publication.publication.text)
 
     async def test_invalid_governed_receipt_stops_before_model(self) -> None:
         invalid = receipt()

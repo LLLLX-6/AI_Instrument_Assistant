@@ -23,7 +23,7 @@ function application(): Re001dApplicationPort & { prepareCount: number; complete
         workflow_id: input.workflowId, request_correlation_id: input.requestCorrelationId,
         intent: "RE001D_LITE_SINGLE_POINT", status: "CONFIRMATION_REQUIRED",
         plan: {
-          requested_frequency_hz: 100, design_context_source: "USER_DECLARED_DESIGN_CONTEXT",
+          requested_frequency_hz: null, design_context_source: "USER_DECLARED_DESIGN_CONTEXT",
           vin: "STM32 output / CH1", vout: "same STM32 output / CH2", reference: "STM32 GND",
           operation_sequence: [
             ["hardware.measure_frequency", 1], ["hardware.measure_vpp", 1],

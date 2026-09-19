@@ -136,6 +136,48 @@ class RE001DApplicationServiceTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(RE001DApplicationError, "DUPLICATE_COMPLETE"):
             await target.complete(complete_request())
 
+    def test_prepare_response_schema_requires_target_field_but_allows_null(self):
+        # Wire contract: the field stays required (stable shape) but accepts
+        # null to mean "no declared/known frequency target".
+        from ai_instrument_assistant.protocol.schema_registry import SchemaRegistry
+        from ai_instrument_assistant.protocol.schema_validator import (
+            SchemaInstanceValidationError,
+            SchemaValidator,
+        )
+        validator = SchemaValidator(
+            SchemaRegistry.from_directory(ROOT / "protocols/re001d-application/v1"),
+            enforce_formats=True,
+        )
+        ref = "https://ai-instrument-assistant.local/schemas/re001d-application/v1/prepare-response.schema.json"
+
+        def response(target):
+            return {
+                "protocol": "aia-re001d-application/v1", "operation": "prepare",
+                "workflow_id": "w", "request_correlation_id": "r",
+                "intent": "RE001D_LITE_SINGLE_POINT", "status": "CONFIRMATION_REQUIRED",
+                "plan": {
+                    "requested_frequency_hz": target,
+                    "design_context_source": "USER_DECLARED_DESIGN_CONTEXT",
+                    "vin": "STM32 output / CH1", "vout": "same STM32 output / CH2",
+                    "reference": "STM32 GND",
+                    "operation_sequence": [
+                        ["hardware.measure_frequency", 1], ["hardware.measure_vpp", 1],
+                        ["hardware.measure_frequency", 2], ["hardware.measure_vpp", 2],
+                    ],
+                },
+                "wiring_instructions": "Confirm wiring.",
+            }
+
+        validator.validate_and_freeze(ref, response(None))
+        validator.validate_and_freeze(ref, response(100.0))
+        for bad in (-1.0, 0.0, "100"):
+            with self.assertRaises(SchemaInstanceValidationError):
+                validator.validate_and_freeze(ref, response(bad))
+        missing = response(None)
+        del missing["plan"]["requested_frequency_hz"]
+        with self.assertRaises(SchemaInstanceValidationError):
+            validator.validate_and_freeze(ref, missing)
+
     async def test_complete_accepts_simulated_backend_receipt_and_preserves_provenance(self):
         target = service(); target.prepare(prepare_request())
         result = await target.complete(

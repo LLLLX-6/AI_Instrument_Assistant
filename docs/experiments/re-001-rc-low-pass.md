@@ -115,8 +115,12 @@ analyzer. No tolerance or causal conclusion was introduced.
 
 RE-001D-Lite adds only a two-stage validation composition. A constrained
 Host-side intent recognizer accepts the reviewed natural-language request and
-prepares the existing user-declared 100 Hz single-point plan plus deterministic
-wiring instructions. Its output contains no Scope, physical confirmation,
+prepares a user-declared single-point plan (Vin/Vout/reference roles) with no
+implicit expected-frequency target: the reviewed request names no frequency,
+so `requested_frequency_hz` is null and the frequency-relative-deviation metric
+is omitted. Explicit-target experiments (the RE-001B 100 Hz sine-wave point)
+still declare a target and keep the deviation metric. Deterministic wiring
+instructions are unchanged. Its output contains no Scope, physical confirmation,
 Tool arguments, or execution authority. Completion accepts only the existing
 governed RE-001C receipt, whose four exact one-shot Scope, Physical Policy,
 IPC, operation/channel, and canonical-result bindings are validated before any

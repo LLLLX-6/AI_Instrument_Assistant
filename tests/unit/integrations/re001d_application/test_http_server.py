@@ -109,6 +109,7 @@ class RE001DHttpBridgeTests(unittest.TestCase):
         self.assertEqual(payload["intent"], "RE001D_LITE_SINGLE_POINT")
         self.assertEqual(payload["status"], "CONFIRMATION_REQUIRED")
         plan = payload["plan"]
+        self.assertIsNone(plan["requested_frequency_hz"])
         self.assertIn("CH1", plan["vin"])
         self.assertIn("CH2", plan["vout"])
         self.assertEqual(plan["reference"], "STM32 GND")

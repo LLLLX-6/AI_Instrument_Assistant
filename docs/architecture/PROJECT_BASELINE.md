@@ -308,6 +308,11 @@ created no causal diagnosis. It proves governed conversational experimental
 data flow, not RC-filter physical performance. The overall RE-001 status is
 **CORE E2E PROOF COMPLETE**.
 
+The current-output RE-001D plan declares no expected-frequency target: the
+reviewed request names none, `requested_frequency_hz` is null, and the
+frequency-relative-deviation metric is omitted from analysis and publication
+unless an experiment plan explicitly declares a target (RE-001B 100 Hz point).
+
 ## 8. Current Limitations
 
 - Harness compatibility is proven only for the frozen reviewed commit/package

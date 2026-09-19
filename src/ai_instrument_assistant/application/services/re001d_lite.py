@@ -94,7 +94,9 @@ class RE001DLiteCoordinator:
         request = _bounded_request(user_request)
         _require_reviewed_intent(request)
         plan = RCLowPassMeasurementPlanner().from_user_declared_design(
-            requested_frequency_hz=100.0,
+            # The reviewed request declares roles but no expected frequency;
+            # no implicit target is assumed, so the deviation metric is omitted.
+            requested_frequency_hz=None,
             vin="STM32 output / CH1",
             vout="same STM32 output / CH2",
             reference="STM32 GND",
@@ -178,12 +180,14 @@ def _teaching_context(
         for ordinal, result in enumerate(bundle.measurements)
     )
     analysis = bundle.analysis
-    software_values = (
+    software_values = [
         ("Vin/Vout gain ratio", analysis.gain_ratio, "ratio", EngineeringMetric.OTHER),
         ("Vin/Vout gain in decibels", analysis.gain_db, "dB", EngineeringMetric.OTHER),
-        ("Vin frequency relative deviation", analysis.vin_frequency_relative_deviation, "ratio", EngineeringMetric.FREQUENCY),
-        ("Vout frequency relative deviation", analysis.vout_frequency_relative_deviation, "ratio", EngineeringMetric.FREQUENCY),
-    )
+    ]
+    if analysis.vin_frequency_relative_deviation is not None:
+        software_values.append(("Vin frequency relative deviation", analysis.vin_frequency_relative_deviation, "ratio", EngineeringMetric.FREQUENCY))
+    if analysis.vout_frequency_relative_deviation is not None:
+        software_values.append(("Vout frequency relative deviation", analysis.vout_frequency_relative_deviation, "ratio", EngineeringMetric.FREQUENCY))
     software = tuple(
         _analysis_item(context_id, observed_at, ordinal, *value)
         for ordinal, value in enumerate(software_values)

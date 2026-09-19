@@ -35,7 +35,7 @@ test("bounded Web experiment executes four governed FAKE calls then publishes", 
         workflow_id: input.workflowId, request_correlation_id: input.requestCorrelationId,
         intent: "RE001D_LITE_SINGLE_POINT", status: "CONFIRMATION_REQUIRED",
         plan: {
-          requested_frequency_hz: 100, design_context_source: "USER_DECLARED_DESIGN_CONTEXT",
+          requested_frequency_hz: null, design_context_source: "USER_DECLARED_DESIGN_CONTEXT",
           vin: "STM32 output / CH1", vout: "same STM32 output / CH2", reference: "STM32 GND",
           operation_sequence: [["hardware.measure_frequency", 1], ["hardware.measure_vpp", 1], ["hardware.measure_frequency", 2], ["hardware.measure_vpp", 2]],
         }, wiring_instructions: "Confirm CH1/CH2 and safe common-ground wiring.",
@@ -105,7 +105,7 @@ test("a question-tool answer cannot confirm RE-001D, but a second claimed user m
         workflow_id: input.workflowId, request_correlation_id: input.requestCorrelationId,
         intent: "RE001D_LITE_SINGLE_POINT", status: "CONFIRMATION_REQUIRED",
         plan: {
-          requested_frequency_hz: 100, design_context_source: "USER_DECLARED_DESIGN_CONTEXT",
+          requested_frequency_hz: null, design_context_source: "USER_DECLARED_DESIGN_CONTEXT",
           vin: "STM32 output / CH1", vout: "same STM32 output / CH2", reference: "STM32 GND",
           operation_sequence: [
             ["hardware.measure_frequency", 1], ["hardware.measure_vpp", 1],
