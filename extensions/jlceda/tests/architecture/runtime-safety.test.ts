@@ -130,7 +130,7 @@ test('official WebSocket calls are a static allowlist inside JlcEdaApiAdapter', 
   assert.deepEqual([...observed].sort(), [...allowed].sort());
 });
 
-test('remote EDA dispatcher exposes only document, selection and highlight static operations', () => {
+test('remote EDA dispatcher exposes only reviewed static semantic operations', () => {
   const tree = parse(dispatcherPath);
   const operationStrings = new Set<string>();
   let dynamicCallCount = 0;
@@ -145,6 +145,7 @@ test('remote EDA dispatcher exposes only document, selection and highlight stati
   };
   visit(tree);
   assert.deepEqual([...operationStrings].sort(), [
+    'eda.design.get',
     'eda.document.get_active',
     'eda.selection.get',
     'eda.view.highlight',

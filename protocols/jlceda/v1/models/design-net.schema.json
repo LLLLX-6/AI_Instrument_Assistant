@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/models/design-net",
+  "title": "DesignNet",
+  "description": "One bounded electrical-net observation. Display name is presentation metadata, not identity.",
+  "type": "object",
+  "required": ["model_version", "ref", "is_reference"],
+  "properties": {
+    "model_version": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/modelVersion" },
+    "ref": {
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/models/design-object-ref" },
+        { "type": "object", "properties": { "object_type": { "const": "net" } } }
+      ]
+    },
+    "is_reference": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

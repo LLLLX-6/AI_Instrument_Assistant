@@ -37,7 +37,7 @@ class Phase85AArchitectureTests(unittest.TestCase):
         expected = {
             "protocols/evidence/v1/teaching-evidence-context.schema.json": "a59885604d01942c0a2270dbfba62771fbfa602038343657637c69ef3f3642d1",
             "protocols/hardware/v1/hardware-tool.schema.json": "eba930ef4b9f85e73d19814fe7df53b846acbf4c31e404092b38145e4b71a5fa",
-            "protocols/jlceda/v1/message.schema.json": "64bc6ceef5a606a48918feec8b4a4641e4ebfb60e696a85a3e59080a594f743f",
+            "protocols/jlceda/v1/message.schema.json": "5e1d025e97addf93ba3a16ab7faf91c9e423e348502e3f7f46b248b664111a5d",
         }
         for relative, digest in expected.items():
             self.assertEqual(hashlib.sha256((ROOT / relative).read_bytes()).hexdigest(), digest)

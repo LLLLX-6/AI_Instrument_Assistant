@@ -26,6 +26,7 @@ from ai_instrument_assistant.domain.eda.models import (
     DesignFingerprint,
     DesignObjectKind,
     DesignObjectRef,
+    DesignObservation,
     DesignSelection,
     DutyCycle,
     SelectionContext,
@@ -45,6 +46,7 @@ class InMemoryEDAAdapter(EDAInterface):
         active_document: DesignDocument | None,
         selection_context: SelectionContext,
         *,
+        design_observation: DesignObservation | None = None,
         capabilities: EDACapabilitySet = _ALL_CAPABILITIES,
         clock: Callable[[], datetime] | None = None,
     ) -> None:
@@ -60,6 +62,7 @@ class InMemoryEDAAdapter(EDAInterface):
             )
         self._active_document = active_document
         self._selection_context = selection_context
+        self._design_observation = design_observation
         self._capabilities = capabilities
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         self._highlight_history: list[HighlightCommand] = []
@@ -157,6 +160,14 @@ class InMemoryEDAAdapter(EDAInterface):
         if self._active_document is None:
             raise NoActiveDocumentError("the in-memory EDA has no active document")
         return self._selection_context
+
+    async def observe_design(self) -> DesignObservation:
+        self.capabilities.require(EDACapability.DESIGN_READ)
+        if self._active_document is None:
+            raise NoActiveDocumentError("the in-memory EDA has no active document")
+        if self._design_observation is None:
+            return DesignObservation(self._active_document, (), ())
+        return self._design_observation
 
     async def highlight(self, command: HighlightCommand) -> HighlightResult:
         self.capabilities.require(EDACapability.VIEW_HIGHLIGHT)

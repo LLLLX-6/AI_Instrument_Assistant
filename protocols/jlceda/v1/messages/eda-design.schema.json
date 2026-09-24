@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/messages/eda-design",
+  "title": "AIA-JLCEDA Protocol v1 Full Design Observation",
+  "description": "Authenticated read-only full-design observation. Coherence across provider reads remains a state/adapter rule, not a Schema rule.",
+  "$defs": {
+    "getDesignRequest": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields" },
+        {
+          "required": ["session_id", "kind", "operation", "payload"],
+          "properties": {
+            "session_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/sessionId" },
+            "kind": { "const": "request" },
+            "operation": { "const": "eda.design.get" },
+            "payload": { "type": "object", "maxProperties": 0, "additionalProperties": false }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "getDesignSuccessResponse": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields" },
+        {
+          "required": ["session_id", "kind", "operation", "reply_to_message_id", "status", "payload"],
+          "properties": {
+            "session_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/sessionId" },
+            "kind": { "const": "response" },
+            "operation": { "const": "eda.design.get" },
+            "reply_to_message_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/messageId" },
+            "status": { "const": "success" },
+            "payload": {
+              "type": "object", "required": ["observation"],
+              "properties": { "observation": { "$ref": "aia://protocol/jlceda/v1/models/design-observation" } },
+              "additionalProperties": false
+            }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "getDesignErrorResponse": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/common/envelope#/$defs/baseEnvelopeFields" },
+        {
+          "required": ["session_id", "kind", "operation", "reply_to_message_id", "status", "error"],
+          "properties": {
+            "session_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/sessionId" },
+            "kind": { "const": "response" },
+            "operation": { "const": "eda.design.get" },
+            "reply_to_message_id": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/messageId" },
+            "status": { "const": "error" },
+            "error": { "$ref": "aia://protocol/jlceda/v1/common/errors#/$defs/edaOperationError" }
+          }
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  }
+}

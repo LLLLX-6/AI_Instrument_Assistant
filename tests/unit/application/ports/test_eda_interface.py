@@ -61,12 +61,13 @@ def net_ref() -> DesignObjectRef:
 
 
 class EDAInterfaceTests(unittest.TestCase):
-    def test_port_exposes_only_phase_three_operations(self) -> None:
+    def test_port_exposes_only_reviewed_semantic_operations(self) -> None:
         self.assertEqual(
             frozenset(
                 {
                     "capabilities",
                     "get_active_document",
+                    "observe_design",
                     "get_selection",
                     "highlight",
                 }
@@ -76,6 +77,7 @@ class EDAInterfaceTests(unittest.TestCase):
 
     def test_capabilities_use_provider_neutral_semantic_names(self) -> None:
         self.assertEqual("document.read", EDACapability.DOCUMENT_READ.value)
+        self.assertEqual("design.read", EDACapability.DESIGN_READ.value)
         self.assertEqual("selection.read", EDACapability.SELECTION_READ.value)
         self.assertEqual("view.highlight", EDACapability.VIEW_HIGHLIGHT.value)
 

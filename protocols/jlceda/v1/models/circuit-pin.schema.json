@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/models/circuit-pin",
+  "title": "CircuitPin",
+  "description": "A bounded component pin and its observed electrical-net identity.",
+  "type": "object",
+  "required": ["model_version", "pin_name", "pin_number", "net_ref"],
+  "properties": {
+    "model_version": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/modelVersion" },
+    "pin_name": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "pin_number": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "net_ref": {
+      "oneOf": [
+        {
+          "allOf": [
+            { "$ref": "aia://protocol/jlceda/v1/models/design-object-ref" },
+            { "type": "object", "properties": { "object_type": { "const": "net" } } }
+          ]
+        },
+        { "type": "null" }
+      ]
+    }
+  },
+  "additionalProperties": false
+}

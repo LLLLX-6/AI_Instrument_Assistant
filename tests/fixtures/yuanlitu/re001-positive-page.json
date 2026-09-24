@@ -1,0 +1,27 @@
+{
+  "health": {
+    "context": {
+      "project": {"uuid": "project-positive", "friendlyName": "Synthetic RC"},
+      "page": {"uuid": "page-positive", "name": "P1"}
+    },
+    "cache": {"coordinateTolerance": 0.01}
+  },
+  "pages": {
+    "pages": [{"uuid": "page-positive", "name": "P1", "schematicUuid": "schematic-positive", "schematicName": "main"}]
+  },
+  "inspection": {
+    "page": {"uuid": "page-positive", "name": "P1"},
+    "components": [
+      {"id": "resistor-1", "type": "part", "designator": "R7", "name": "arbitrary", "attributes": [{"key": "Value", "value": "1.6 kOhm"}, {"key": "Sim Model Title", "value": "Resistor"}], "pins": [{"name": "A", "number": "1", "x": 0, "y": 0, "noConnected": false}, {"name": "B", "number": "2", "x": 20, "y": 0, "noConnected": false}]},
+      {"id": "capacitor-1", "type": "part", "designator": "C9", "name": "arbitrary", "attributes": [{"key": "Value", "value": "100 nF"}, {"key": "NGSpice Model Title", "value": "Capacitor"}], "pins": [{"name": "A", "number": "1", "x": 20, "y": 10, "noConnected": false}, {"name": "B", "number": "2", "x": 20, "y": 30, "noConnected": false}]},
+      {"id": "reference-1", "type": "part", "designator": "REF7", "name": "not-authority", "attributes": [{"key": "Sim Model Title", "value": "Ground"}], "pins": [{"name": "A", "number": "1", "x": 20, "y": 40, "noConnected": false}]},
+      {"id": "frame", "type": "sheet", "name": "Drawing frame", "attributes": [], "pins": []}
+    ],
+    "netLabels": [],
+    "wires": [
+      {"id": "wire-in", "net": "presentation-a", "line": [-10, 0, 0, 0]},
+      {"id": "wire-out", "net": "presentation-b", "line": [20, 0, 20, 10]},
+      {"id": "wire-ref", "net": "presentation-c", "line": [20, 30, 20, 40]}
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/models/circuit-component",
+  "title": "CircuitComponent",
+  "description": "Finite component projection; raw provider properties never cross the boundary.",
+  "type": "object",
+  "required": ["model_version", "ref", "component_kind", "designator", "value_text", "pins"],
+  "properties": {
+    "model_version": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/modelVersion" },
+    "ref": {
+      "allOf": [
+        { "$ref": "aia://protocol/jlceda/v1/models/design-object-ref" },
+        { "type": "object", "properties": { "object_type": { "const": "component" } } }
+      ]
+    },
+    "component_kind": { "type": "string", "enum": ["resistor", "capacitor", "reference", "other"] },
+    "designator": { "oneOf": [{ "type": "string", "minLength": 1, "maxLength": 128 }, { "type": "null" }] },
+    "value_text": { "oneOf": [{ "type": "string", "minLength": 1, "maxLength": 128 }, { "type": "null" }] },
+    "pins": {
+      "type": "array", "minItems": 0, "maxItems": 128, "uniqueItems": true,
+      "items": { "$ref": "aia://protocol/jlceda/v1/models/circuit-pin" }
+    }
+  },
+  "additionalProperties": false
+}

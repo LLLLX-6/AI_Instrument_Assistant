@@ -5,6 +5,7 @@ import {
   JlcEdaCapabilityUnavailableError,
   type CurrentDocumentDto,
   type CurrentDocumentReadDto,
+  type CurrentDesignDto,
   type CurrentSelectionDto,
   type SelectedObjectDto,
 } from './jlc-eda-api-adapter.ts';
@@ -40,6 +41,7 @@ export type DispatchOutcome =
 
 export interface EdaObservationReader {
   readCurrentDocument(): Promise<CurrentDocumentReadDto>;
+  readCurrentDesign?(): Promise<CurrentDesignDto>;
   highlightSelection?(command: HighlightCommandDto, context: HighlightExecutionContext): Promise<Readonly<Record<string, unknown>>>;
   readCurrentSelection?(): Promise<CurrentSelectionDto>;
 }
@@ -80,6 +82,9 @@ export class EdaProtocolDispatcher {
     }
     if (request.operation === 'eda.selection.get') {
       return this.#getSelection();
+    }
+    if (request.operation === 'eda.design.get') {
+      return this.#getDesign();
     }
     return errorOutcome(
       'operation_not_allowed',
@@ -194,6 +199,78 @@ export class EdaProtocolDispatcher {
       return mapProviderError(error, 'selection.read');
     }
   }
+
+  async #getDesign(): Promise<DispatchOutcome> {
+    try {
+      const before = await this.#api.readCurrentDocument();
+      if (before.document === null) return errorOutcome('no_active_document', 'No active design document is available.');
+      if (typeof this.#api.readCurrentDesign !== 'function') {
+        return errorOutcome('capability_unsupported', 'The active JLCEDA runtime does not expose design.read.');
+      }
+      const design = await this.#api.readCurrentDesign();
+      const after = await this.#api.readCurrentDocument();
+      if (after.document === null
+        || after.document.provider !== before.document.provider
+        || after.document.documentId !== before.document.documentId) {
+        return errorOutcome('inconsistent_observation', 'The active document changed while the design was observed.');
+      }
+      if (design.truncated) return errorOutcome('provider_error', 'The full design exceeds the bounded observation limit.');
+      const snapshotId = this.#environment.randomUuid();
+      return Object.freeze({
+        status: 'success' as const,
+        payload: Object.freeze({
+          observation: normalizeDesignObservation(
+            before.document, design, snapshotId, this.#environment.now(),
+          ),
+        }),
+      });
+    }
+    catch (error) {
+      return mapProviderError(error, 'design.read');
+    }
+  }
+}
+
+function normalizeDesignObservation(
+  document: CurrentDocumentDto,
+  design: CurrentDesignDto,
+  snapshotId: string,
+  capturedAt: Date,
+): Readonly<Record<string, unknown>> {
+  const netRefs = new Map(design.nets.map((net) => [
+    net.netName,
+    Object.freeze({
+      model_version: '1.0', provider: document.provider, object_type: 'net',
+      document_id: document.documentId, snapshot_id: snapshotId,
+      native_id: net.netName,
+      canonical_id: canonicalId('net', document.documentId, net.netName),
+      display_name: net.netName, provider_kind: 'Wire.net',
+    }),
+  ]));
+  return Object.freeze({
+    model_version: '1.0',
+    document: normalizeDocument(document, snapshotId, capturedAt),
+    components: Object.freeze(design.components.map((component) => Object.freeze({
+      model_version: '1.0',
+      ref: Object.freeze({
+        model_version: '1.0', provider: document.provider, object_type: 'component',
+        document_id: document.documentId, snapshot_id: snapshotId,
+        native_id: component.primitiveId,
+        canonical_id: canonicalId('component', document.documentId, component.primitiveId),
+        display_name: component.designator, provider_kind: component.providerKind,
+      }),
+      component_kind: component.componentKind,
+      designator: component.designator,
+      value_text: component.valueText,
+      pins: Object.freeze(component.pins.map((pin) => Object.freeze({
+        model_version: '1.0', pin_name: pin.pinName, pin_number: pin.pinNumber,
+        net_ref: pin.netName === null ? null : netRefs.get(pin.netName) ?? null,
+      }))),
+    }))),
+    nets: Object.freeze(design.nets.map((net) => Object.freeze({
+      model_version: '1.0', ref: netRefs.get(net.netName), is_reference: net.isReference,
+    }))),
+  });
 }
 
 function normalizeDocument(
@@ -319,7 +396,7 @@ function base64Url(value: string): string {
 
 function mapProviderError(
   error: unknown,
-  capability: 'document.read' | 'selection.read',
+  capability: 'document.read' | 'selection.read' | 'design.read',
 ): DispatchOutcome {
   if (error instanceof JlcEdaCapabilityUnavailableError) {
     return errorOutcome(

@@ -83,6 +83,9 @@ class FakeEDA(EDAInterface):
             raise self.failure
         return self.document
 
+    async def observe_design(self):
+        raise AssertionError("legacy selection evidence does not use full design")
+
     async def get_selection(self) -> SelectionContext:
         self.calls.append("selection")
         return self.selection

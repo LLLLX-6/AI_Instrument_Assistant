@@ -22,7 +22,11 @@ from ai_instrument_assistant.application.ports.eda_interface import (
     NoActiveDocumentError,
     OperationNotAllowedError,
 )
-from ai_instrument_assistant.domain.eda.models import DesignDocument, SelectionContext
+from ai_instrument_assistant.domain.eda.models import (
+    DesignDocument,
+    DesignObservation,
+    SelectionContext,
+)
 from ai_instrument_assistant.protocol.schema_validator import (
     SchemaInstanceValidationError,
     SchemaValidator,
@@ -38,6 +42,7 @@ from .errors import (
 )
 from .mapper import (
     DESIGN_DOCUMENT_SCHEMA_ID,
+    DESIGN_OBSERVATION_SCHEMA_ID,
     SELECTION_CONTEXT_SCHEMA_ID,
     JLCEDADomainMapper,
 )
@@ -46,6 +51,7 @@ from .mapper import (
 MESSAGE_SCHEMA_ID = "aia://protocol/jlceda/v1/message"
 GET_ACTIVE_DOCUMENT = "eda.document.get_active"
 GET_SELECTION = "eda.selection.get"
+GET_DESIGN = "eda.design.get"
 
 
 class JLCEDARequestClient(Protocol):
@@ -78,7 +84,12 @@ class JLCEDARemoteAdapter(EDAInterface):
         self._request_timeout = request_timeout
         self._capabilities = EDACapabilitySet(
             frozenset(
-                {EDACapability.DOCUMENT_READ, EDACapability.SELECTION_READ, EDACapability.VIEW_HIGHLIGHT}
+                {
+                    EDACapability.DOCUMENT_READ,
+                    EDACapability.DESIGN_READ,
+                    EDACapability.SELECTION_READ,
+                    EDACapability.VIEW_HIGHLIGHT,
+                }
             )
         )
 
@@ -140,6 +151,35 @@ class JLCEDARemoteAdapter(EDAInterface):
                 payload.get("context"),
             )
             return self._mapper.map_selection_context(validated_context)
+        except SchemaInstanceValidationError as error:
+            raise EDAProtocolError(f"JLCEDA protocol response rejected: {error}") from error
+        except WireToDomainMappingError as error:
+            raise EDAProtocolError(f"JLCEDA mapping failed: {error}") from error
+        except JLCEDATransportUnavailableError as error:
+            raise EDANotConnectedError(str(error)) from error
+        except JLCEDARequestTimeoutError as error:
+            raise EDARequestTimeoutError(str(error)) from error
+        except JLCEDAConnectionLostError as error:
+            raise EDAConnectionLostError(str(error)) from error
+        except JLCEDAProtocolError as error:
+            raise EDAProtocolError(str(error)) from error
+
+    async def observe_design(self) -> DesignObservation:
+        try:
+            raw_response = await self._request_client.request(
+                GET_DESIGN, {}, timeout=self._request_timeout
+            )
+            self._validator.validate_and_freeze(MESSAGE_SCHEMA_ID, raw_response)
+            response = _mapping(raw_response)
+            if response.get("operation") != GET_DESIGN:
+                raise JLCEDAProtocolError("Remote response operation mismatch")
+            if response.get("status") == "error":
+                self._raise_remote_error(_mapping(response.get("error")))
+            payload = _mapping(response.get("payload"))
+            validated = self._validator.validate_and_freeze(
+                DESIGN_OBSERVATION_SCHEMA_ID, payload.get("observation")
+            )
+            return self._mapper.map_design_observation(validated)
         except SchemaInstanceValidationError as error:
             raise EDAProtocolError(f"JLCEDA protocol response rejected: {error}") from error
         except WireToDomainMappingError as error:

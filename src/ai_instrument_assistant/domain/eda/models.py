@@ -23,6 +23,13 @@ class DesignObjectKind(StrEnum):
     OTHER = "other"
 
 
+class CircuitComponentKind(StrEnum):
+    RESISTOR = "resistor"
+    CAPACITOR = "capacitor"
+    REFERENCE = "reference"
+    OTHER = "other"
+
+
 class ProbeTargetKind(StrEnum):
     DESIGN_ONLY = "design_only"
     PHYSICAL = "physical"
@@ -229,6 +236,111 @@ class CircuitNet:
     def connectivity_unresolved(self) -> bool:
         """True only when no endpoint connectivity could be resolved."""
         return not self.endpoints
+
+
+@dataclass(frozen=True, slots=True)
+class DesignNet:
+    """One observed electrical net; display labels are not its identity."""
+
+    ref: DesignObjectRef
+    is_reference: bool = False
+
+    def __post_init__(self) -> None:
+        if self.ref.object_type is not DesignObjectKind.NET:
+            raise DomainInvariantError("DesignNet ref must reference a net")
+        if not isinstance(self.is_reference, bool):
+            raise DomainInvariantError("is_reference must be boolean")
+
+
+@dataclass(frozen=True, slots=True)
+class CircuitPin:
+    pin_name: str
+    pin_number: str
+    net_ref: DesignObjectRef | None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "pin_name", _non_empty(self.pin_name, "pin_name"))
+        object.__setattr__(
+            self, "pin_number", _non_empty(self.pin_number, "pin_number")
+        )
+        if self.net_ref is not None and self.net_ref.object_type is not DesignObjectKind.NET:
+            raise DomainInvariantError("CircuitPin net_ref must reference a net")
+
+
+@dataclass(frozen=True, slots=True)
+class CircuitComponent:
+    ref: DesignObjectRef
+    kind: CircuitComponentKind
+    designator: str | None
+    value_text: str | None
+    pins: tuple[CircuitPin, ...]
+
+    def __post_init__(self) -> None:
+        if self.ref.object_type is not DesignObjectKind.COMPONENT:
+            raise DomainInvariantError("CircuitComponent ref must reference a component")
+        if not isinstance(self.kind, CircuitComponentKind):
+            raise DomainInvariantError("kind must be CircuitComponentKind")
+        for name in ("designator", "value_text"):
+            value = getattr(self, name)
+            if value is not None:
+                object.__setattr__(self, name, _non_empty(value, name))
+        pins = tuple(self.pins)
+        if not all(isinstance(pin, CircuitPin) for pin in pins):
+            raise DomainInvariantError("pins must contain only CircuitPin values")
+        identities = tuple((pin.pin_number, pin.pin_name) for pin in pins)
+        if len(identities) != len(set(identities)):
+            raise DomainInvariantError("component pins must be unique")
+        object.__setattr__(self, "pins", pins)
+
+
+@dataclass(frozen=True, slots=True)
+class DesignObservation:
+    """Bounded provider-neutral full-design observation for one snapshot."""
+
+    document: DesignDocument
+    components: tuple[CircuitComponent, ...]
+    nets: tuple[DesignNet, ...]
+
+    def __post_init__(self) -> None:
+        components, nets = tuple(self.components), tuple(self.nets)
+        if not all(isinstance(item, CircuitComponent) for item in components):
+            raise DomainInvariantError("components must contain CircuitComponent values")
+        if not all(isinstance(item, DesignNet) for item in nets):
+            raise DomainInvariantError("nets must contain DesignNet values")
+        if len({item.ref.canonical_id for item in components}) != len(components):
+            raise DomainInvariantError("component identities must be unique")
+        if len({item.ref.canonical_id for item in nets}) != len(nets):
+            raise DomainInvariantError("net identities must be unique")
+
+        document_ref = self.document.document_ref
+        observed_refs = [item.ref for item in components] + [item.ref for item in nets]
+        for observed_ref in observed_refs:
+            if (
+                observed_ref.provider,
+                observed_ref.document_id,
+                observed_ref.snapshot_id,
+            ) != (
+                document_ref.provider,
+                document_ref.document_id,
+                document_ref.snapshot_id,
+            ):
+                raise DomainInvariantError(
+                    "full-design objects must belong to the document observation"
+                )
+
+        net_refs = {item.ref for item in nets}
+        for component in components:
+            for pin in component.pins:
+                if pin.net_ref is not None and pin.net_ref not in net_refs:
+                    raise DomainInvariantError(
+                        "pin connectivity must reference a net in the observation"
+                    )
+        object.__setattr__(self, "components", components)
+        object.__setattr__(self, "nets", nets)
+
+    @property
+    def snapshot_id(self) -> UUID:
+        return self.document.snapshot_id
 
 
 @dataclass(frozen=True, slots=True)

@@ -10,12 +10,17 @@ from ai_instrument_assistant.application.ports.eda_interface import (
 )
 from ai_instrument_assistant.domain.eda.errors import DomainInvariantError
 from ai_instrument_assistant.domain.eda.models import (
+    CircuitComponent,
+    CircuitComponentKind,
     CircuitEndpoint,
     CircuitNet,
+    CircuitPin,
     DesignDocument,
     DesignFingerprint,
+    DesignNet,
     DesignObjectKind,
     DesignObjectRef,
+    DesignObservation,
     DesignSelection,
     DutyCycle,
     SelectionContext,
@@ -28,6 +33,7 @@ from .errors import UnvalidatedWireDataError, WireToDomainMappingError
 
 DESIGN_DOCUMENT_SCHEMA_ID = "aia://protocol/jlceda/v1/models/design-document"
 SELECTION_CONTEXT_SCHEMA_ID = "aia://protocol/jlceda/v1/models/selection-context"
+DESIGN_OBSERVATION_SCHEMA_ID = "aia://protocol/jlceda/v1/models/design-observation"
 
 
 class JLCEDADomainMapper:
@@ -35,6 +41,9 @@ class JLCEDADomainMapper:
 
     def map_design_document(self, payload: ValidatedInstance) -> DesignDocument:
         wire = self._validated_mapping(payload, DESIGN_DOCUMENT_SCHEMA_ID)
+        return self._map_design_document_mapping(wire)
+
+    def _map_design_document_mapping(self, wire: Mapping[str, Any]) -> DesignDocument:
         try:
             fingerprint_wire = wire["fingerprint"]
             fingerprint = None
@@ -74,6 +83,27 @@ class JLCEDADomainMapper:
         except (KeyError, TypeError, ValueError, DomainInvariantError) as error:
             raise WireToDomainMappingError(
                 f"Cannot map JLCEDA DesignDocument: {error}"
+            ) from error
+
+    def map_design_observation(self, payload: ValidatedInstance) -> DesignObservation:
+        wire = self._validated_mapping(payload, DESIGN_OBSERVATION_SCHEMA_ID)
+        try:
+            return DesignObservation(
+                document=self._map_design_document_mapping(
+                    _mapping(wire["document"], "document")
+                ),
+                components=tuple(
+                    self._map_component(component)
+                    for component in _sequence(wire["components"], "components")
+                ),
+                nets=tuple(
+                    self._map_design_net(net)
+                    for net in _sequence(wire["nets"], "nets")
+                ),
+            )
+        except (KeyError, TypeError, ValueError, DomainInvariantError) as error:
+            raise WireToDomainMappingError(
+                f"Cannot map JLCEDA DesignObservation: {error}"
             ) from error
 
     def map_selection_context(self, payload: ValidatedInstance) -> SelectionContext:
@@ -132,6 +162,35 @@ class JLCEDADomainMapper:
             canonical_id=_string(wire["canonical_id"], "canonical_id"),
             display_name=_optional_string(wire["display_name"], "display_name"),
             provider_kind=_optional_string(wire.get("provider_kind"), "provider_kind"),
+        )
+
+    def _map_design_net(self, value: Any) -> DesignNet:
+        wire = _mapping(value, "DesignNet")
+        return DesignNet(
+            ref=self._map_object_ref(wire["ref"]),
+            is_reference=_boolean(wire["is_reference"], "is_reference"),
+        )
+
+    def _map_component(self, value: Any) -> CircuitComponent:
+        wire = _mapping(value, "CircuitComponent")
+        return CircuitComponent(
+            ref=self._map_object_ref(wire["ref"]),
+            kind=CircuitComponentKind(_string(wire["component_kind"], "component_kind")),
+            designator=_optional_string(wire["designator"], "designator"),
+            value_text=_optional_string(wire["value_text"], "value_text"),
+            pins=tuple(
+                self._map_pin(pin)
+                for pin in _sequence(wire["pins"], "pins")
+            ),
+        )
+
+    def _map_pin(self, value: Any) -> CircuitPin:
+        wire = _mapping(value, "CircuitPin")
+        net_ref = wire["net_ref"]
+        return CircuitPin(
+            pin_name=_string(wire["pin_name"], "pin_name"),
+            pin_number=_string(wire["pin_number"], "pin_number"),
+            net_ref=None if net_ref is None else self._map_object_ref(net_ref),
         )
 
     def _map_endpoint(self, value: Any) -> CircuitEndpoint:

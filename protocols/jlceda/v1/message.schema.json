@@ -44,6 +44,15 @@
       "$ref": "aia://protocol/jlceda/v1/messages/eda-selection#/$defs/getSelectionErrorResponse"
     },
     {
+      "$ref": "aia://protocol/jlceda/v1/messages/eda-design#/$defs/getDesignRequest"
+    },
+    {
+      "$ref": "aia://protocol/jlceda/v1/messages/eda-design#/$defs/getDesignSuccessResponse"
+    },
+    {
+      "$ref": "aia://protocol/jlceda/v1/messages/eda-design#/$defs/getDesignErrorResponse"
+    },
+    {
       "$ref": "aia://protocol/jlceda/v1/messages/eda-highlight#/$defs/request"
     },
     {

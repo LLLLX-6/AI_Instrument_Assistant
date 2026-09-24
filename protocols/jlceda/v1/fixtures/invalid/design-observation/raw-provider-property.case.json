@@ -1,0 +1,11 @@
+{
+  "description": "Raw provider properties cannot cross the full-design boundary",
+  "schema_ref": "aia://protocol/jlceda/v1/models/design-observation",
+  "instance": {
+    "model_version": "1.0",
+    "document": {},
+    "components": [],
+    "nets": [],
+    "raw_provider_payload": {"anything": true}
+  }
+}

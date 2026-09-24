@@ -45,6 +45,9 @@ class DelayedEDA(EDAInterface):
             raise self.failure
         return await self.delegate.get_active_document()
 
+    async def observe_design(self):
+        return await self.delegate.observe_design()
+
     async def get_selection(self):
         self.selection_calls += 1
         return await self.delegate.get_selection()

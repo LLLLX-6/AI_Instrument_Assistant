@@ -105,6 +105,25 @@ class JLCEDARemoteAdapterTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((), context.selection.selected_objects)
         self.assertEqual((), context.nets)
 
+    async def test_full_design_operation_maps_provider_neutral_observation(self) -> None:
+        fixture = PROTOCOL_ROOT / "fixtures" / "valid" / "design-observation" / "rc-low-pass.case.json"
+        observation = json.loads(fixture.read_text(encoding="utf-8"))["instance"]
+        response = _base() | {
+            "operation": "eda.design.get",
+            "status": "success",
+            "payload": {"observation": observation},
+        }
+        client = StubRequestClient(response)
+        adapter = JLCEDARemoteAdapter(
+            request_client=client, validator=self.validator, mapper=JLCEDADomainMapper()
+        )
+
+        result = await adapter.observe_design()
+
+        self.assertEqual(2, len(result.components))
+        self.assertEqual([("eda.design.get", {}, 5.0)], client.calls)
+        self.assertTrue(adapter.capabilities.supports(EDACapability.DESIGN_READ))
+
     async def test_selection_maps_inconsistent_observation_error(self) -> None:
         adapter = self._adapter(
             _selection_error_response("inconsistent_observation")

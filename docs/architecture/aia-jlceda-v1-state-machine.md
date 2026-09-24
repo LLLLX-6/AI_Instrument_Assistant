@@ -77,8 +77,8 @@ Official host callbacks are synchronous boundaries: they always return `undefine
 
 ## Authenticated business request lifecycle
 
-Phase 5B.3b permits exactly two operations, `eda.document.get_active` and
-`eda.selection.get`. The Python
+The authenticated read allowlist includes `eda.document.get_active`,
+`eda.selection.get`, and the additive `eda.design.get`. The Python
 gateway sends it only after exactly one authenticated session is active. The
 request `message_id` is its request identity; a response must carry the same
 session, operation and trace identifiers and name that request in
@@ -97,8 +97,9 @@ rules in the previous paragraph are cross-message semantics and are enforced by
 the transport lifecycle, not claimed as Schema guarantees.
 
 Unknown operations, malformed JSON, binary frames, and unknown fields are
-rejected before business dispatch. Remote highlight remains intentionally
-absent.
+rejected before business dispatch. Guarded `eda.view.highlight` remains a
+separate, explicitly authorized presentation operation; it is not part of the
+read-only observation path.
 
 For `eda.selection.get`, the Extension reads current document identity, then
 the finite selection DTO, then current document identity again. A missing first
@@ -108,6 +109,11 @@ Extension generate one new AIA `snapshot_id` shared by the document reference,
 selected object references, and safely derived net references. This is a
 coherent observation window, not an atomic provider snapshot, native revision,
 content version, or stale-proof.
+
+For `eda.design.get`, the same document-before/document-after coherence rule
+wraps one bounded full-design read. Truncation or a changed document fails
+closed. Its generated snapshot identifies only that observation; it is not a
+provider revision, freshness proof, or design immutability guarantee.
 
 Selected wire, component, and unsupported primitive types remain distinct.
 Provider primitive IDs and finite native type names are retained, but official

@@ -3,10 +3,15 @@
 from .errors import DomainInvariantError
 from .models import (
     ArtifactReference,
+    CircuitComponent,
+    CircuitComponentKind,
     CircuitEndpoint,
     CircuitNet,
+    CircuitPin,
     DesignDocument,
     DesignFingerprint,
+    DesignNet,
+    DesignObservation,
     DesignObjectKind,
     DesignObjectRef,
     DesignSelection,
@@ -21,10 +26,15 @@ from .models import (
 
 __all__ = [
     "ArtifactReference",
+    "CircuitComponent",
+    "CircuitComponentKind",
     "CircuitEndpoint",
     "CircuitNet",
+    "CircuitPin",
     "DesignDocument",
     "DesignFingerprint",
+    "DesignNet",
+    "DesignObservation",
     "DesignObjectKind",
     "DesignObjectRef",
     "DesignSelection",

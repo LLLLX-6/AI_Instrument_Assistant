@@ -124,6 +124,27 @@ class JLCEDADomainMapperTests(unittest.TestCase):
             context.nets[0].signal_expectation.duty_cycle.percent,
         )
 
+    def test_valid_full_design_maps_connectivity_without_losing_identity(self) -> None:
+        fixture = self.valid_fixture("design-observation", "rc-low-pass.case.json")
+        validated = self.validator.validate_and_freeze(
+            fixture.schema_ref, fixture.instance
+        )
+
+        observation = self.mapper.map_design_observation(validated)
+
+        self.assertEqual(2, len(observation.components))
+        self.assertEqual(3, len(observation.nets))
+        self.assertEqual(
+            observation.nets[1].ref,
+            observation.components[0].pins[1].net_ref,
+        )
+        self.assertTrue(observation.nets[2].is_reference)
+
+    def test_full_design_mapper_rejects_unvalidated_wire(self) -> None:
+        fixture = self.valid_fixture("design-observation", "rc-low-pass.case.json")
+        with self.assertRaises(UnvalidatedWireDataError):
+            self.mapper.map_design_observation(fixture.instance)  # type: ignore[arg-type]
+
     def test_domain_provider_is_an_ordinary_string_not_a_literal(self) -> None:
         self.assertIs(str, get_type_hints(DesignObjectRef)["provider"])
 

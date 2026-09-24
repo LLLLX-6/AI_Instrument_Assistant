@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aia://protocol/jlceda/v1/models/design-observation",
+  "title": "DesignObservation",
+  "description": "Bounded full-design projection for one AIA observation snapshot; it is not a provider revision or immutability proof.",
+  "type": "object",
+  "required": ["model_version", "document", "components", "nets"],
+  "properties": {
+    "model_version": { "$ref": "aia://protocol/jlceda/v1/common/identifiers#/$defs/modelVersion" },
+    "document": { "$ref": "aia://protocol/jlceda/v1/models/design-document" },
+    "components": {
+      "type": "array", "minItems": 0, "maxItems": 4096, "uniqueItems": true,
+      "items": { "$ref": "aia://protocol/jlceda/v1/models/circuit-component" }
+    },
+    "nets": {
+      "type": "array", "minItems": 0, "maxItems": 4096, "uniqueItems": true,
+      "items": { "$ref": "aia://protocol/jlceda/v1/models/design-net" }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,32 @@
+{
+  "health": {
+    "context": {
+      "project": {"uuid": "recorded-project", "friendlyName": "Recorded RC project"},
+      "page": {"uuid": "recorded-page", "name": "P1"}
+    },
+    "cache": {"coordinateTolerance": 0.01}
+  },
+  "pages": {
+    "pages": [{"uuid": "recorded-page", "name": "P1", "schematicUuid": "recorded-schematic", "schematicName": "main"}]
+  },
+  "inspection": {
+    "page": {"uuid": "recorded-page", "name": "P1"},
+    "components": [
+      {"id": "source", "type": "part", "designator": "Vs1", "name": "Voltage Source", "attributes": [{"key": "Frequency[Hz]", "value": "100"}], "pins": [{"name": "1", "number": "1", "x": 420, "y": 570}, {"name": "2", "number": "2", "x": 420, "y": 620}]},
+      {"id": "source-r", "type": "part", "designator": "Rs1", "name": "Resistor", "attributes": [{"key": "Value", "value": "50 ohm"}, {"key": "Sim Model Title", "value": "Resistor"}], "pins": [{"name": "1", "number": "1", "x": 475, "y": 620}, {"name": "2", "number": "2", "x": 515, "y": 620}]},
+      {"id": "main-r", "type": "part", "designator": "R", "name": "Resistor", "attributes": [{"key": "Value", "value": "10 kohm"}, {"key": "NGSpice Model Title", "value": "Resistor"}], "pins": [{"name": "1", "number": "1", "x": 555, "y": 620}, {"name": "2", "number": "2", "x": 595, "y": 620}]},
+      {"id": "load-r", "type": "part", "designator": "RL", "name": "Resistor", "attributes": [{"key": "Value", "value": "10 kohm"}, {"key": "Sim Model Title", "value": "Resistor"}], "pins": [{"name": "1", "number": "1", "x": 625, "y": 475}, {"name": "2", "number": "2", "x": 625, "y": 515}]},
+      {"id": "ground", "type": "part", "designator": "GND1", "name": "Ground", "attributes": [{"key": "Sim Model Title", "value": "Ground"}], "pins": [{"name": "1", "number": "1", "x": 420, "y": 560}]},
+      {"id": "capacitor", "type": "part", "designator": "C2", "name": "Capacitor", "attributes": [{"key": "Value", "value": "167.5 nF"}, {"key": "Sim Model Title", "value": "Capacitor"}], "pins": [{"name": "1", "number": "1", "x": 625, "y": 550}, {"name": "2", "number": "2", "x": 625, "y": 590}]},
+      {"id": "frame", "type": "sheet", "name": "Drawing frame", "attributes": [{"key": "arbitrary", "value": "must-not-propagate"}], "pins": []}
+    ],
+    "netLabels": [],
+    "wires": [
+      {"id": "ground-wire", "net": "", "line": [420, 570, 420, 560, 625, 475, 625, 465, 625, 465, 445, 465, 445, 570, 445, 465, 420, 570, 445, 570]},
+      {"id": "load-cap", "net": "", "line": [625, 550, 625, 515]},
+      {"id": "cap-main", "net": "", "line": [625, 620, 595, 620, 625, 590, 625, 620]},
+      {"id": "source-rs", "net": "", "line": [420, 620, 475, 620]},
+      {"id": "rs-main", "net": "", "line": [555, 620, 515, 620]}
+    ]
+  }
+}

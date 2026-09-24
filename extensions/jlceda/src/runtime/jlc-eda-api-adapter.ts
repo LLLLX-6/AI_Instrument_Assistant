@@ -2,6 +2,8 @@ import { HighlightPreflightError, type HighlightCommandDto, type HighlightExecut
 
 const MAX_TEXT_LENGTH = 512;
 const MAX_SELECTION_OBJECTS = 128;
+const MAX_DESIGN_OBJECTS = 4096;
+const MAX_COMPONENT_PINS = 128;
 const DOCUMENT_SHAPE_KEYS = new Set([
   'documentType',
   'uuid',
@@ -51,6 +53,34 @@ export interface CurrentSelectionDto {
   readonly totalSelected: number;
   readonly truncated: boolean;
   readonly primitiveTypeSummary: Readonly<Record<string, number>>;
+}
+
+export type CircuitComponentKindDto = 'resistor' | 'capacitor' | 'reference' | 'other';
+
+export interface DesignPinDto {
+  readonly pinName: string;
+  readonly pinNumber: string;
+  readonly netName: string | null;
+}
+
+export interface DesignComponentDto {
+  readonly primitiveId: string;
+  readonly providerKind: string;
+  readonly componentKind: CircuitComponentKindDto;
+  readonly designator: string | null;
+  readonly valueText: string | null;
+  readonly pins: readonly DesignPinDto[];
+}
+
+export interface DesignNetDto {
+  readonly netName: string;
+  readonly isReference: boolean;
+}
+
+export interface CurrentDesignDto {
+  readonly components: readonly DesignComponentDto[];
+  readonly nets: readonly DesignNetDto[];
+  readonly truncated: boolean;
 }
 
 export interface HighlightSelectionResultDto {
@@ -312,6 +342,83 @@ export class JlcEdaApiAdapter {
       }
     }
     throw apiCallError(operation, lastFailure);
+  }
+
+  async readCurrentDesign(): Promise<CurrentDesignDto> {
+    const operation = 'sch_PrimitiveComponent.getAll+sch_PrimitiveWire.getAll';
+    const componentApi = this.#runtime.sch_PrimitiveComponent;
+    const wireApi = this.#runtime.sch_PrimitiveWire;
+    if (typeof componentApi?.getAll !== 'function' || typeof wireApi?.getAll !== 'function') {
+      throw new JlcEdaCapabilityUnavailableError(operation);
+    }
+    try {
+      const [rawComponents, rawWires] = await Promise.all([
+        componentApi.getAll(undefined, false),
+        wireApi.getAll(),
+      ]);
+      if (rawComponents.length > MAX_DESIGN_OBJECTS || rawWires.length > MAX_DESIGN_OBJECTS) {
+        return Object.freeze({ components: Object.freeze([]), nets: Object.freeze([]), truncated: true });
+      }
+      const wireGeometry = rawWires.map((wire) => Object.freeze({
+        netName: requiredFiniteText(wire.getState_Net(), 'wire net'),
+        paths: normalizeWirePaths(wire.getState_Line()),
+      }));
+      const referenceNames = new Set<string>();
+      const components: DesignComponentDto[] = [];
+      for (const component of rawComponents) {
+        const primitiveId = requiredFiniteText(component.getState_PrimitiveId(), 'component id');
+        const providerKind = requiredFiniteText(String(component.getState_ComponentType()), 'component type');
+        const designator = optionalFiniteText(component.getState_Designator());
+        const name = optionalFiniteText(component.getState_Name());
+        const componentKind = classifyComponent(providerKind, designator, name);
+        const componentNet = optionalFiniteText(component.getState_Net());
+        if (componentKind === 'reference' && componentNet !== null) referenceNames.add(componentNet);
+        const rawPins = await component.getAllPins();
+        if (rawPins === undefined || rawPins.length > MAX_COMPONENT_PINS) {
+          return Object.freeze({ components: Object.freeze([]), nets: Object.freeze([]), truncated: true });
+        }
+        const pins = rawPins.map((pin) => {
+          const matches = new Set(
+            wireGeometry
+              .filter((wire) => wire.paths.some((path) => pointOnPath(pin.getState_X(), pin.getState_Y(), path)))
+              .map((wire) => wire.netName),
+          );
+          const netName = matches.size === 1
+            ? [...matches][0]!
+            : componentKind === 'reference' && componentNet !== null
+              ? componentNet
+              : null;
+          return Object.freeze({
+            pinName: requiredFiniteText(pin.getState_PinName(), 'pin name'),
+            pinNumber: requiredFiniteText(pin.getState_PinNumber(), 'pin number'),
+            netName,
+          });
+        });
+        components.push(Object.freeze({
+          primitiveId,
+          providerKind,
+          componentKind,
+          designator,
+          valueText: finiteComponentValue(component.getState_OtherProperty()),
+          pins: Object.freeze(pins),
+        }));
+      }
+      const netNames = [...new Set([
+        ...wireGeometry.map((wire) => wire.netName),
+        ...components.flatMap((component) => component.pins.map((pin) => pin.netName).filter((value): value is string => value !== null)),
+      ])].sort();
+      return Object.freeze({
+        components: Object.freeze(components),
+        nets: Object.freeze(netNames.map((netName) => Object.freeze({
+          netName, isReference: referenceNames.has(netName),
+        }))),
+        truncated: false,
+      });
+    }
+    catch (error) {
+      if (error instanceof JlcEdaCapabilityUnavailableError) throw error;
+      throw apiCallError(operation, error);
+    }
   }
 
   highlightSelection(): Promise<HighlightSelectionResultDto>;
@@ -861,6 +968,54 @@ function normalizePrimitive(
     );
   }
   return Object.freeze(base);
+}
+
+function classifyComponent(
+  providerKind: string,
+  designator: string | null,
+  name: string | null,
+): CircuitComponentKindDto {
+  const provider = providerKind.toLowerCase();
+  const semanticName = (name ?? '').toLowerCase();
+  if (provider.includes('ground') || semanticName.includes('ground') || semanticName === 'gnd') return 'reference';
+  const prefix = designator?.charAt(0).toUpperCase();
+  if (prefix === 'R' || semanticName.includes('resistor')) return 'resistor';
+  if (prefix === 'C' || semanticName.includes('capacitor')) return 'capacitor';
+  return 'other';
+}
+
+function finiteComponentValue(
+  properties: Record<string, string | number | boolean> | undefined,
+): string | null {
+  if (properties === undefined) return null;
+  for (const key of ['Value', 'value', 'Resistance', 'resistance', 'Capacitance', 'capacitance']) {
+    const value = properties[key];
+    if (typeof value === 'string' || typeof value === 'number') return optionalFiniteText(String(value), 128);
+  }
+  return null;
+}
+
+function normalizeWirePaths(line: number[] | number[][]): readonly (readonly number[])[] {
+  const paths = Array.isArray(line[0]) ? line as number[][] : [line as number[]];
+  return Object.freeze(paths.map((path) => {
+    if (path.length < 4 || path.length % 2 !== 0 || path.some((value) => !Number.isFinite(value))) {
+      throw new TypeError('wire path is invalid');
+    }
+    return Object.freeze([...path]);
+  }));
+}
+
+function pointOnPath(x: number, y: number, path: readonly number[]): boolean {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+  for (let index = 0; index + 3 < path.length; index += 2) {
+    const x1 = path[index]!, y1 = path[index + 1]!;
+    const x2 = path[index + 2]!, y2 = path[index + 3]!;
+    const cross = (x - x1) * (y2 - y1) - (y - y1) * (x2 - x1);
+    if (Math.abs(cross) > 1e-9) continue;
+    if (x >= Math.min(x1, x2) - 1e-9 && x <= Math.max(x1, x2) + 1e-9
+      && y >= Math.min(y1, y2) - 1e-9 && y <= Math.max(y1, y2) + 1e-9) return true;
+  }
+  return false;
 }
 
 function normalizeDocumentType(value: EDMT_EditorDocumentType): DocumentTypeDto {

@@ -8,6 +8,7 @@ from uuid import UUID
 
 from ai_instrument_assistant.domain.eda.models import (
     DesignDocument,
+    DesignObservation,
     DesignFingerprint,
     DesignObjectKind,
     DesignObjectRef,
@@ -17,6 +18,7 @@ from ai_instrument_assistant.domain.eda.models import (
 
 class EDACapability(StrEnum):
     DOCUMENT_READ = "document.read"
+    DESIGN_READ = "design.read"
     SELECTION_READ = "selection.read"
     VIEW_HIGHLIGHT = "view.highlight"
 
@@ -245,6 +247,10 @@ class EDAInterface(ABC):
     @abstractmethod
     async def get_active_document(self) -> DesignDocument:
         """Return the current active design document."""
+
+    @abstractmethod
+    async def observe_design(self) -> DesignObservation:
+        """Return one coherent, bounded observation of the active design."""
 
     @abstractmethod
     async def get_selection(self) -> SelectionContext:
